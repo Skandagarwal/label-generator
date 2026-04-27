@@ -4,7 +4,8 @@
   "description": "",
   "main": "server.js",
   "scripts": {
-    "postinstall": "puppeteer browsers install chrome",
+    "install:chrome": "node scripts/installChrome.js",
+    "postinstall": "npm run install:chrome",
     "start": "node server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

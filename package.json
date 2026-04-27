@@ -11,7 +11,7 @@
     "start": "node server/server.js",
     "dev": "concurrently \"npm run server\" \"npm run client\"",
     "start:lan": "node scripts/start-lan.js",
-    "build": "npm run build --workspace client",
+    "build": "npm run build --workspace client && npm run install:chrome --workspace server",
     "start:prod": "node server/server.js",
     "server": "npm start --prefix server",
     "client": "npm start --prefix client"

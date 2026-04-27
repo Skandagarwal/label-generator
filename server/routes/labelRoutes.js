@@ -10,6 +10,10 @@ const Label = require("../models/Label");
 const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN || "http://localhost:3000";
 const PUBLIC_API_ORIGIN = process.env.PUBLIC_API_ORIGIN || "http://localhost:5050";
 
+if (process.env.NODE_ENV === "production" && !process.env.PUPPETEER_CACHE_DIR) {
+  process.env.PUPPETEER_CACHE_DIR = "/opt/render/.cache/puppeteer";
+}
+
 const escapeHtml = (value = "") =>
   String(value)
     .replaceAll("&", "&amp;")
