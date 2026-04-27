@@ -1,0 +1,315 @@
+const express = require("express");
+const router = express.Router();
+const QRCode = require("qrcode");
+const puppeteer = require("puppeteer");
+const fs = require("fs");
+const os = require("os");
+const path = require("path");
+
+const Label = require("../models/Label");
+const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN || "http://localhost:3000";
+const PUBLIC_API_ORIGIN = process.env.PUBLIC_API_ORIGIN || "http://localhost:5050";
+
+const escapeHtml = (value = "") =>
+  String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+
+const fillTemplate = (template, values) =>
+  template.replace(/\{\{(\w+)\}\}/g, (_, key) => values[key] || "");
+
+const getDrumNumbers = (value = "") =>
+  String(value)
+    .split(/[\n,]+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+const parseWeight = (value = "") => {
+  const match = String(value).trim().match(/^(-?\d+(?:\.\d+)?)\s*(.*)$/);
+
+  if (!match) {
+    return null;
+  }
+
+  return {
+    amountText: match[1],
+    amount: Number(match[1]),
+    decimals: match[1].includes(".") ? match[1].split(".")[1].length : 0,
+    unit: match[2].trim(),
+  };
+};
+
+const formatWeight = (value = "") => {
+  const parsed = parseWeight(value);
+
+  if (!parsed) {
+    return "";
+  }
+
+  return `${parsed.amountText} ${parsed.unit || "KGS."}`;
+};
+
+const calculateGrossWeight = (netWt, tareWt) => {
+  const net = parseWeight(netWt);
+  const tare = parseWeight(tareWt);
+
+  if (!net || !tare) {
+    return "";
+  }
+
+  const decimals = Math.max(net.decimals, tare.decimals);
+  const unit = net.unit || tare.unit || "KGS.";
+
+  return `${(net.amount + tare.amount).toFixed(decimals)} ${unit}`;
+};
+
+const getDrumItems = (data) => {
+  if (Array.isArray(data.drumItems)) {
+    return data.drumItems
+      .map((item) => ({
+        drumNo: String(item.drumNo || "").trim(),
+        netWt: formatWeight(item.netWt || data.netWt),
+        tareWt: formatWeight(item.tareWt || data.tareWt),
+        grossWt:
+          formatWeight(item.grossWt || data.grossWt) ||
+          calculateGrossWeight(item.netWt || data.netWt, item.tareWt || data.tareWt),
+      }))
+      .filter((item) => item.drumNo);
+  }
+
+  return getDrumNumbers(data.drumNo).map((drumNo) => ({
+    drumNo,
+    netWt: formatWeight(data.netWt),
+    tareWt: formatWeight(data.tareWt),
+    grossWt: formatWeight(data.grossWt) || calculateGrossWeight(data.netWt, data.tareWt),
+  }));
+};
+
+const labelPdfUrl = (id) => `${PUBLIC_API_ORIGIN}/api/labels/${id}/pdf`;
+
+const formatDate = (value = "") => {
+  const text = String(value).trim();
+
+  if (!text) {
+    return "";
+  }
+
+  const isoMatch = text.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+
+  if (isoMatch) {
+    return `${isoMatch[3]}/${isoMatch[2]}/${isoMatch[1]}`;
+  }
+
+  const slashMatch = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+
+  if (slashMatch) {
+    const day = slashMatch[1].padStart(2, "0");
+    const month = slashMatch[2].padStart(2, "0");
+    return `${day}/${month}/${slashMatch[3]}`;
+  }
+
+  return text;
+};
+
+const normalizeLabelData = (data) => ({
+  ...data,
+  mfgDate: formatDate(data.mfgDate),
+  bestBefore: formatDate(data.bestBefore),
+});
+
+const serializeLabel = (label) => {
+  const normalized = normalizeLabelData(label);
+  const createdAt = label.createdAt || label._id?.getTimestamp?.();
+
+  return {
+    ...normalized,
+    createdAt,
+  };
+};
+
+const templateValues = (data, qr) => ({
+  formatNo: escapeHtml(data.formatNo),
+  drumNo: escapeHtml(data.drumNo),
+  commodity: escapeHtml(data.commodity),
+  lotNo: escapeHtml(data.lotNo),
+  poNo: escapeHtml(data.poNo),
+  mfgDate: escapeHtml(data.mfgDate),
+  bestBefore: escapeHtml(data.bestBefore),
+  netWt: escapeHtml(data.netWt),
+  tareWt: escapeHtml(data.tareWt),
+  grossWt: escapeHtml(data.grossWt),
+  customerName: escapeHtml(data.customerName),
+  customerAddress: escapeHtml(data.customerAddress),
+  storage: escapeHtml(data.storage),
+  license: escapeHtml(data.license),
+  manufacturer: escapeHtml(data.manufacturer),
+  qrCode: qr,
+});
+
+const renderLabelsHtml = (template, labels) => {
+  const labelStart = template.indexOf('<div class="label">');
+  const labelEnd = template.lastIndexOf("</div>");
+
+  if (labelStart === -1 || labelEnd === -1) {
+    throw new Error("Label template wrapper not found");
+  }
+
+  const beforeLabel = template.slice(0, labelStart);
+  const labelBlock = template.slice(labelStart, labelEnd + 6);
+  const afterLabel = template.slice(labelEnd + 6);
+  const filledLabels = labels
+    .map(({ data, qr }) => fillTemplate(labelBlock, templateValues(data, qr)))
+    .join("\n");
+
+  return `${beforeLabel}${filledLabels}${afterLabel}`;
+};
+
+const createPdf = async (labels) => {
+  let browser;
+  let pdfPath;
+
+  try {
+    const template = fs.readFileSync(
+      path.join(__dirname, "../utils/template.html"),
+      "utf-8"
+    );
+    const renderedTemplate = renderLabelsHtml(template, labels);
+
+    browser = await puppeteer.launch();
+    const page = await browser.newPage();
+    await page.setContent(renderedTemplate, { waitUntil: "networkidle0" });
+
+    pdfPath = path.join(os.tmpdir(), `labels-${Date.now()}.pdf`);
+
+    await page.pdf({
+      path: pdfPath,
+      format: "A4",
+      landscape: true,
+      preferCSSPageSize: true,
+      printBackground: true,
+    });
+
+    await browser.close();
+    browser = null;
+
+    return pdfPath;
+  } catch (err) {
+    if (browser) {
+      await browser.close();
+    }
+
+    if (pdfPath) {
+      fs.unlink(pdfPath, () => {});
+    }
+
+    throw err;
+  }
+};
+
+const downloadPdf = (res, pdfPath, fileName) => {
+  res.download(pdfPath, fileName, (downloadErr) => {
+    fs.unlink(pdfPath, (unlinkErr) => {
+      if (unlinkErr) {
+        console.error("Could not delete temporary PDF:", unlinkErr.message);
+      }
+    });
+
+    if (downloadErr && !res.headersSent) {
+      res.status(500).send("Error downloading label");
+    }
+  });
+};
+
+router.get("/labels", async (req, res) => {
+  try {
+    const labels = await Label.find().sort({ _id: -1 }).limit(500).lean();
+
+    res.json(labels.map(serializeLabel));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Could not load label history" });
+  }
+});
+
+router.get("/labels/:id/pdf", async (req, res) => {
+  try {
+    const label = await Label.findById(req.params.id).lean();
+
+    if (!label) {
+      return res.status(404).send("Label not found");
+    }
+
+    const data = serializeLabel(label);
+    const qr = await QRCode.toDataURL(labelPdfUrl(label._id));
+    const pdfPath = await createPdf([{ data, qr }]);
+
+    downloadPdf(res, pdfPath, `label-${data.drumNo || label._id}.pdf`);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error generating label PDF");
+  }
+});
+
+router.get("/labels/:id", async (req, res) => {
+  try {
+    const label = await Label.findById(req.params.id).lean();
+
+    if (!label) {
+      return res.status(404).json({ message: "Label not found" });
+    }
+
+    res.json(serializeLabel(label));
+  } catch (err) {
+    console.error(err);
+    res.status(400).json({ message: "Invalid label id" });
+  }
+});
+
+router.post("/generate", async (req, res) => {
+  try {
+    const data = normalizeLabelData(req.body);
+    const drumItems = getDrumItems(data);
+
+    if (!drumItems.length) {
+      return res.status(400).send("At least one drum number is required");
+    }
+
+    const labels = [];
+
+    for (const drumItem of drumItems) {
+      const labelData = {
+        ...data,
+        drumNo: drumItem.drumNo,
+        netWt: drumItem.netWt,
+        tareWt: drumItem.tareWt,
+        grossWt: drumItem.grossWt,
+      };
+      const saved = await Label.create(labelData);
+      const qr = await QRCode.toDataURL(labelPdfUrl(saved._id));
+
+      labels.push({
+        data: labelData,
+        qr,
+        id: saved._id,
+      });
+    }
+
+    const pdfPath = await createPdf(
+      labels.map((label) => ({
+        data: label.data,
+        qr: label.qr,
+      }))
+    );
+
+    downloadPdf(res, pdfPath, labels.length > 1 ? "labels.pdf" : "label.pdf");
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error generating label");
+  }
+});
+
+module.exports = router;

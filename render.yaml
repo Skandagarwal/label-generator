@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: label-generator
+    env: node
+    plan: free
+    buildCommand: npm run install:all && npm run build
+    startCommand: npm run start:prod
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGO_URI
+        sync: false
+      - key: PUBLIC_API_ORIGIN
+        sync: false
+      - key: CLIENT_ORIGIN
+        sync: false

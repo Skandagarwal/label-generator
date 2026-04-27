@@ -1,0 +1,14 @@
+{
+  "scripts": {
+    "start": "concurrently \"npm run server\" \"npm run client\"",
+    "start:lan": "node scripts/start-lan.js",
+    "build": "npm run build --prefix client",
+    "install:all": "npm install && npm install --prefix server && npm install --prefix client",
+    "start:prod": "npm start --prefix server",
+    "server": "npm start --prefix server",
+    "client": "npm start --prefix client"
+  },
+  "dependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

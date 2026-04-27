@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    @page {
+      size: A4 landscape;
+      margin: 0;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "Times New Roman", serif;
+      margin: 0;
+      color: #202030;
+      background: #fff;
+    }
+
+    .label {
+      width: 297mm;
+      height: 210mm;
+      padding: 22mm 42mm 12mm 48mm;
+      position: relative;
+      overflow: hidden;
+      page-break-after: always;
+      page-break-inside: avoid;
+    }
+
+    .label:last-child {
+      page-break-after: avoid;
+    }
+
+    .top-right {
+      position: absolute;
+      top: 23mm;
+      right: 55mm;
+      font-family: Arial, sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .content {
+      display: flex;
+      align-items: flex-start;
+      justify-content: flex-start;
+      gap: 52mm;
+    }
+
+    .left {
+      width: 164mm;
+      font-size: 21px;
+      font-weight: 700;
+      letter-spacing: 0;
+      line-height: 1.26;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 62mm 7mm 1fr;
+      align-items: baseline;
+      min-height: 8.2mm;
+    }
+
+    .label-name {
+      white-space: nowrap;
+    }
+
+    .value {
+      overflow-wrap: anywhere;
+    }
+
+    .to-block {
+      margin-top: 2mm;
+      line-height: 1.32;
+    }
+
+    .address {
+      white-space: pre-line;
+    }
+
+    .right {
+      width: 42mm;
+      text-align: center;
+    }
+
+    .qr {
+      width: 32mm;
+      height: 32mm;
+      margin-top: 39mm;
+    }
+
+    .center-text {
+      text-align: center;
+      font-size: 20px;
+      font-weight: bold;
+      letter-spacing: 0;
+      line-height: 1.35;
+    }
+
+    .underline {
+      text-decoration: underline;
+    }
+
+    .warning {
+      margin-top: 2mm;
+    }
+
+    .storage-title {
+      margin-top: 1mm;
+    }
+
+    .storage-value {
+      margin-top: 1mm;
+      text-transform: uppercase;
+    }
+
+    .license-row {
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      gap: 5mm;
+      margin-top: 4mm;
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .fssai {
+      color: #40864a;
+      font-size: 34px;
+      font-style: italic;
+      font-weight: 400;
+      line-height: 1;
+      text-decoration: underline;
+    }
+
+    .bottom {
+      margin-top: 2mm;
+      text-align: center;
+      font-weight: bold;
+      font-size: 20px;
+    }
+
+    @media print {
+      body {
+        margin: 0;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="label">
+  <div class="top-right">
+    Format No: - {{formatNo}}
+  </div>
+
+  <div class="content">
+    <div class="left">
+      <div class="row"><div class="label-name">DRUM NO.</div><div>:</div><div class="value">{{drumNo}}</div></div>
+      <div class="row"><div class="label-name">COMMODITY</div><div>:</div><div class="value">{{commodity}}</div></div>
+      <div class="row"><div class="label-name">LOT NO.</div><div>:</div><div class="value">{{lotNo}}</div></div>
+      <div class="row"><div class="label-name">P.O. NO.</div><div>:</div><div class="value">{{poNo}}</div></div>
+      <div class="row"><div class="label-name">MFG. DATE</div><div>:</div><div class="value">{{mfgDate}}</div></div>
+      <div class="row"><div class="label-name">BEST BEFORE</div><div>:</div><div class="value">{{bestBefore}}</div></div>
+      <div class="row"><div class="label-name">NET WT.</div><div>:</div><div class="value">{{netWt}}</div></div>
+      <div class="row"><div class="label-name">TARE WT.</div><div>:</div><div class="value">{{tareWt}}</div></div>
+      <div class="row"><div class="label-name">GROSS WT.</div><div>:</div><div class="value">{{grossWt}}</div></div>
+
+      <div class="to-block">
+        <div><b>TO</b></div>
+        <div>{{customerName}}</div>
+        <div class="address">{{customerAddress}}</div>
+      </div>
+    </div>
+
+    <div class="right">
+      <img class="qr" src="{{qrCode}}" />
+    </div>
+  </div>
+
+  <div class="center-text underline warning">
+    "NOT FOR MEDICINAL USE"
+  </div>
+
+  <div class="center-text underline storage-title">
+    STORAGE CONDITION:-
+  </div>
+
+  <div class="center-text underline storage-value">
+    {{storage}}
+  </div>
+
+  <div class="license-row">
+    <div class="fssai">fssai</div>
+    <div>LICENSE NUMBER: {{license}}</div>
+  </div>
+
+  <div class="bottom">
+    MANUFACTURER: {{manufacturer}}
+  </div>
+
+</div>
+
+</body>
+</html>
