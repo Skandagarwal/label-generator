@@ -179,7 +179,14 @@ const createPdf = async (labels) => {
     const renderedTemplate = renderLabelsHtml(template, labels);
 
     browser = await puppeteer.launch({
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+      headless: "new",
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-gpu",
+      ],
     });
     const page = await browser.newPage();
     await page.setContent(renderedTemplate, { waitUntil: "networkidle0" });
@@ -199,6 +206,8 @@ const createPdf = async (labels) => {
 
     return pdfPath;
   } catch (err) {
+    console.error("PDF generation failed:", err.stack || err.message || err);
+
     if (browser) {
       await browser.close();
     }
