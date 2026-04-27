@@ -178,7 +178,9 @@ const createPdf = async (labels) => {
     );
     const renderedTemplate = renderLabelsHtml(template, labels);
 
-    browser = await puppeteer.launch();
+    browser = await puppeteer.launch({
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    });
     const page = await browser.newPage();
     await page.setContent(renderedTemplate, { waitUntil: "networkidle0" });
 

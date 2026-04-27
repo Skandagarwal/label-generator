@@ -22,13 +22,19 @@ PUBLIC_API_ORIGIN/api/labels/:id/pdf
 ## Build Command
 
 ```bash
-npm run install:all && npm run build
+npm install && npm run build
 ```
 
 ## Start Command
 
 ```bash
-npm run start:prod
+npm start
+```
+
+## Local Development
+
+```bash
+npm run dev
 ```
 
 ## Local LAN Testing

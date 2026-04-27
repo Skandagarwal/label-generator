@@ -1,10 +1,18 @@
 {
+  "private": true,
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "engines": {
+    "node": "20.x"
+  },
   "scripts": {
-    "start": "concurrently \"npm run server\" \"npm run client\"",
+    "start": "node server/server.js",
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
     "start:lan": "node scripts/start-lan.js",
-    "build": "npm run build --prefix client",
-    "install:all": "npm install && npm install --prefix server && npm install --prefix client",
-    "start:prod": "npm start --prefix server",
+    "build": "npm run build --workspace client",
+    "start:prod": "node server/server.js",
     "server": "npm start --prefix server",
     "client": "npm start --prefix client"
   },
