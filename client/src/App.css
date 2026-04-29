@@ -436,7 +436,8 @@ textarea:focus {
   outline: none;
 }
 
-input[readonly] {
+input[readonly],
+textarea[readonly] {
   color: #41534e;
   background: #eef4f1;
 }

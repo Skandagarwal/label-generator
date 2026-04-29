@@ -241,6 +241,15 @@ const getSavedUser = () =>
   window.localStorage.getItem("labelUserPhone") ||
   "";
 const getSavedPhone = () => window.localStorage.getItem("labelUserPhone") || "";
+const getSavedManufacturer = () =>
+  window.localStorage.getItem("labelUserManufacturer") ||
+  window.localStorage.getItem("labelUserName") ||
+  "";
+
+const applyUserDefaults = (values, userName = getSavedUser()) => ({
+  ...values,
+  manufacturer: getSavedManufacturer() || userName || "",
+});
 
 const downloadLabelPdf = async (label) => {
   const res = await axios.get(`${API_BASE}/labels/${label._id}/pdf`, {
@@ -319,9 +328,12 @@ function LoginPage({ onLogin }) {
       .post(`${API_BASE}/auth/verify-otp`, { name, phone, otp })
       .then((res) => {
         const userName = name.trim() || res.data.user?.name || phone;
+        const manufacturer =
+          window.localStorage.getItem("labelUserManufacturer") || userName;
 
         window.localStorage.setItem("labelUserName", userName);
         window.localStorage.setItem("labelUserPhone", phone);
+        window.localStorage.setItem("labelUserManufacturer", manufacturer);
         onLogin(userName);
         window.history.pushState({}, "", "/home");
       })
@@ -410,15 +422,18 @@ function LoginPage({ onLogin }) {
 function ProfilePage({ userName, onUserUpdate, onLogout }) {
   const [name, setName] = useState(userName);
   const [phone, setPhone] = useState(getSavedPhone);
+  const [manufacturer, setManufacturer] = useState(getSavedManufacturer);
   const [status, setStatus] = useState("");
 
   const handleSubmit = (e) => {
     e.preventDefault();
     const nextName = name.trim() || "Vendor";
     const nextPhone = phone.trim();
+    const nextManufacturer = manufacturer.trim() || nextName;
 
     window.localStorage.setItem("labelUserName", nextName);
     window.localStorage.setItem("labelUserPhone", nextPhone);
+    window.localStorage.setItem("labelUserManufacturer", nextManufacturer);
     onUserUpdate(nextName);
     setStatus("Profile updated.");
   };
@@ -448,6 +463,7 @@ function ProfilePage({ userName, onUserUpdate, onLogout }) {
             <p className="eyebrow">Vendor Profile</p>
             <h2>{name.trim() || "Vendor"}</h2>
             <p>{phone || "No phone number saved"}</p>
+            <p>Manufacturer: {manufacturer.trim() || name.trim() || "Vendor"}</p>
           </div>
         </div>
 
@@ -462,6 +478,15 @@ function ProfilePage({ userName, onUserUpdate, onLogout }) {
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               inputMode="tel"
+              required
+            />
+          </label>
+          <label className="field">
+            <span>Manufacturer Name</span>
+            <input
+              value={manufacturer}
+              onChange={(e) => setManufacturer(e.target.value)}
+              placeholder={name.trim() || "Manufacturer name"}
               required
             />
           </label>
@@ -901,10 +926,11 @@ function LabelDetails({ id }) {
 
 function App() {
   const [currentUser, setCurrentUser] = useState(getSavedUser);
-  const [form, setForm] = useState(emptyForm);
+  const [form, setForm] = useState(() => applyUserDefaults(emptyForm));
   const [drumItems, setDrumItems] = useState([emptyDrumItem()]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
+  const currentManufacturer = getSavedManufacturer() || currentUser;
   const currentPath = window.location.pathname;
   const isHistoryPage = currentPath === "/history";
   const isHomePage = currentPath === "/" || currentPath === "/home";
@@ -918,6 +944,12 @@ function App() {
     () => drumItems.filter((item) => item.drumNo.trim()),
     [drumItems]
   );
+
+  useEffect(() => {
+    if (currentUser) {
+      setForm((values) => applyUserDefaults(values, currentUser));
+    }
+  }, [currentUser]);
 
   const handleChange = (e) => {
     setStatusMessage("");
@@ -940,7 +972,7 @@ function App() {
   };
 
   const handleReset = () => {
-    setForm(emptyForm);
+    setForm(applyUserDefaults(emptyForm, currentUser));
     setDrumItems([emptyDrumItem()]);
     setStatusMessage("");
   };
@@ -989,6 +1021,7 @@ function App() {
     try {
       const payload = {
         ...form,
+        manufacturer: currentManufacturer,
         drumItems: validDrumItems.map(({ drumNo, netWt, tareWt, grossWt }) => ({
           drumNo,
           netWt: formatWeight(netWt),
@@ -1031,6 +1064,7 @@ function App() {
   const handleLogout = () => {
     window.localStorage.removeItem("labelUserName");
     window.localStorage.removeItem("labelUserPhone");
+    window.localStorage.removeItem("labelUserManufacturer");
     setCurrentUser("");
     window.history.pushState({}, "", "/login");
   };
@@ -1099,6 +1133,10 @@ function App() {
                 <div className="form-grid">
                   {group.fields.map((fieldName) => {
                     const field = fieldsByName[fieldName];
+                    const isManufacturerField = field.name === "manufacturer";
+                    const fieldValue = isManufacturerField
+                      ? currentManufacturer
+                      : form[field.name];
 
                     return (
                       <label
@@ -1109,9 +1147,10 @@ function App() {
                         {field.multiline ? (
                           <textarea
                             name={field.name}
-                            value={form[field.name]}
+                            value={fieldValue}
                             placeholder={field.placeholder}
-                            onChange={handleChange}
+                            onChange={isManufacturerField ? undefined : handleChange}
+                            readOnly={isManufacturerField}
                             required={field.required}
                             rows="3"
                           />
@@ -1119,17 +1158,23 @@ function App() {
                           <input
                             name={field.name}
                             type={field.type || "text"}
-                            value={form[field.name]}
+                            value={fieldValue}
                             placeholder={field.placeholder}
                             onChange={
-                              field.name === "mfgDate"
-                                ? handleMfgDateChange
-                                : handleChange
+                              isManufacturerField
+                                ? undefined
+                                : field.name === "mfgDate"
+                                  ? handleMfgDateChange
+                                  : handleChange
                             }
+                            readOnly={isManufacturerField}
                             required={field.required}
                           />
                         )}
-                        {field.helper && <small>{field.helper}</small>}
+                        {isManufacturerField && (
+                          <small>Controlled from Profile for this logged-in user.</small>
+                        )}
+                        {!isManufacturerField && field.helper && <small>{field.helper}</small>}
                       </label>
                     );
                   })}
@@ -1253,6 +1298,10 @@ function App() {
               <div>
                 <dt>Best Before</dt>
                 <dd>{normalizeDateValue(form.bestBefore) || "-"}</dd>
+              </div>
+              <div>
+                <dt>Manufacturer</dt>
+                <dd>{currentManufacturer || "-"}</dd>
               </div>
             </dl>
             {statusMessage && <p className="status-message">{statusMessage}</p>}
