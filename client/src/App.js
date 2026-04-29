@@ -1213,13 +1213,6 @@ function App() {
   const handleLogout = () => {
     window.localStorage.removeItem("labelUserName");
     window.localStorage.removeItem("labelUserPhone");
-    window.localStorage.removeItem("labelUserManufacturer");
-    window.localStorage.removeItem("labelUserManufacturerAddress");
-    window.localStorage.removeItem("labelUserManufacturerWebsite");
-    window.localStorage.removeItem("labelUserManufacturerEmail");
-    window.localStorage.removeItem("labelUserManufacturerPhone");
-    window.localStorage.removeItem("labelUserManufacturerTagline");
-    window.localStorage.removeItem("labelUserManufacturerLogo");
     setCurrentUser("");
     window.history.pushState({}, "", "/login");
   };
