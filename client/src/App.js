@@ -797,6 +797,8 @@ function HistoryPage() {
   const [downloadingId, setDownloadingId] = useState("");
   const [deletingId, setDeletingId] = useState("");
   const [labelToDelete, setLabelToDelete] = useState(null);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [bulkAction, setBulkAction] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -841,6 +843,31 @@ function HistoryPage() {
         .includes(term)
     );
   }, [labels, query]);
+  const selectedLabels = useMemo(
+    () => labels.filter((label) => selectedIds.includes(label._id)),
+    [labels, selectedIds]
+  );
+  const visibleIds = useMemo(() => filteredLabels.map((label) => label._id), [filteredLabels]);
+  const allVisibleSelected =
+    visibleIds.length > 0 && visibleIds.every((id) => selectedIds.includes(id));
+
+  const toggleSelected = (id) => {
+    setSelectedIds((ids) =>
+      ids.includes(id) ? ids.filter((item) => item !== id) : [...ids, id]
+    );
+  };
+
+  const toggleVisibleSelection = () => {
+    setSelectedIds((ids) => {
+      if (allVisibleSelected) {
+        return ids.filter((id) => !visibleIds.includes(id));
+      }
+
+      return Array.from(new Set([...ids, ...visibleIds]));
+    });
+  };
+
+  const clearSelection = () => setSelectedIds([]);
 
   const handleHistoryDownload = async (label) => {
     setDownloadingId(label._id);
@@ -874,6 +901,52 @@ function HistoryPage() {
     }
   };
 
+  const handleBulkDownload = async () => {
+    if (!selectedLabels.length) {
+      return;
+    }
+
+    setBulkAction("download");
+
+    try {
+      for (const label of selectedLabels) {
+        await downloadLabelPdf(label);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Could not download all selected labels.");
+    } finally {
+      setBulkAction("");
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (!selectedLabels.length) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Delete ${selectedLabels.length} selected label(s)? This cannot be undone.`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setBulkAction("delete");
+
+    try {
+      await Promise.all(selectedLabels.map((label) => axios.delete(`${API_BASE}/labels/${label._id}`)));
+      setLabels((items) => items.filter((item) => !selectedIds.includes(item._id)));
+      clearSelection();
+    } catch (err) {
+      console.error(err);
+      alert("Could not delete all selected labels.");
+    } finally {
+      setBulkAction("");
+    }
+  };
+
   return (
     <main className="page-shell">
       <header className="site-header">
@@ -904,6 +977,46 @@ function HistoryPage() {
           </label>
         </div>
 
+        {status === "ready" && filteredLabels.length > 0 && (
+          <div className="bulk-toolbar">
+            <label className="select-all-control">
+              <input
+                type="checkbox"
+                checked={allVisibleSelected}
+                onChange={toggleVisibleSelection}
+              />
+              <span>Select visible</span>
+            </label>
+            <p>{selectedIds.length} selected</p>
+            <button
+              className="secondary-button"
+              type="button"
+              onClick={handleBulkDownload}
+              disabled={!selectedIds.length || Boolean(bulkAction)}
+            >
+              {bulkAction === "download" ? "Downloading..." : "Download Selected"}
+            </button>
+            <button
+              className="danger-button"
+              type="button"
+              onClick={handleBulkDelete}
+              disabled={!selectedIds.length || Boolean(bulkAction)}
+            >
+              {bulkAction === "delete" ? "Deleting..." : "Delete Selected"}
+            </button>
+            {selectedIds.length > 0 && (
+              <button
+                className="secondary-button"
+                type="button"
+                onClick={clearSelection}
+                disabled={Boolean(bulkAction)}
+              >
+                Clear
+              </button>
+            )}
+          </div>
+        )}
+
         {status === "loading" && <p className="empty-state">Loading history...</p>}
         {status === "error" && (
           <p className="empty-state">Could not load history. Check the backend server.</p>
@@ -915,7 +1028,14 @@ function HistoryPage() {
         {status === "ready" && filteredLabels.length > 0 && (
           <div className="history-list">
             {filteredLabels.map((label) => (
-              <article className="history-row" key={label._id}>
+              <article className="history-row selectable-history-row" key={label._id}>
+                <label className="row-select" aria-label={`Select ${getLabelName(label)}`}>
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.includes(label._id)}
+                    onChange={() => toggleSelected(label._id)}
+                  />
+                </label>
                 <div>
                   <p className="history-title">{label.commodity || "Untitled Label"}</p>
                   <p className="history-meta">
