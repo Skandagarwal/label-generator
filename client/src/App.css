@@ -551,8 +551,8 @@ dd {
 
 .history-row {
   display: grid;
-  grid-template-columns: minmax(210px, 1.4fr) minmax(160px, 1fr) minmax(160px, 1fr) auto;
-  gap: 16px;
+  grid-template-columns: minmax(180px, 1.25fr) minmax(130px, 0.85fr) minmax(160px, 0.9fr) minmax(300px, auto);
+  gap: 14px;
   align-items: center;
   padding: 16px 0;
   border-bottom: 1px solid #edf1ef;
@@ -576,12 +576,13 @@ dd {
   display: flex;
   gap: 8px;
   justify-content: flex-end;
+  flex-wrap: wrap;
 }
 
 .row-action {
   justify-content: center;
   min-height: 38px;
-  padding: 0 14px;
+  padding: 0 12px;
 }
 
 .empty-state {
