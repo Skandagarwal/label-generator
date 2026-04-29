@@ -328,6 +328,18 @@ function DeleteConfirmDialog({ labelName, onCancel, onConfirm, busy }) {
   );
 }
 
+function BrandLockup({ compact = false }) {
+  return (
+    <div className={compact ? "brand-lockup compact-brand" : "brand-lockup"}>
+      <span className="brand-mark" aria-hidden="true">BM</span>
+      <div>
+        <p>BatchMark</p>
+        {!compact && <span>Batch Label System</span>}
+      </div>
+    </div>
+  );
+}
+
 function LoginPage({ onLogin }) {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -378,7 +390,7 @@ function LoginPage({ onLogin }) {
     <main className="auth-shell">
       <section className="login-card">
         <div>
-          <p className="eyebrow">PDF Label Tool</p>
+          <BrandLockup />
           <h1>Sign in</h1>
           <p className="login-copy">Enter your name and phone number, verify the OTP, and continue to the label workspace.</p>
         </div>
@@ -529,7 +541,7 @@ function ProfilePage({ userName, onUserUpdate, onLogout }) {
     <main className="page-shell">
       <header className="app-topbar">
         <div>
-          <p className="eyebrow">Account</p>
+          <BrandLockup compact />
           <h1>Profile</h1>
         </div>
         <nav className="topbar-actions">
@@ -694,7 +706,7 @@ function HomePage({ userName, onLogout }) {
     <main className="page-shell">
       <header className="app-topbar">
         <div>
-          <p className="eyebrow">PDF Label Tool</p>
+          <BrandLockup compact />
           <h1>Dashboard</h1>
         </div>
         <nav className="topbar-actions">
@@ -866,7 +878,7 @@ function HistoryPage() {
     <main className="page-shell">
       <header className="site-header">
         <div>
-          <p className="eyebrow">Label History</p>
+          <BrandLockup compact />
           <h1>Created Labels</h1>
         </div>
         <div className="header-actions history-header-actions">
@@ -1253,7 +1265,7 @@ function App() {
     <main className="page-shell">
       <header className="site-header">
         <div>
-          <p className="eyebrow">PDF Label Tool</p>
+          <BrandLockup compact />
           <h1>Label Generator</h1>
         </div>
         <div className="header-actions">
