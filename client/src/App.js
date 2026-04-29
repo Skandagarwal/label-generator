@@ -234,6 +234,8 @@ const safeFilePart = (value) =>
     .replace(/^-+|-+$/g, "")
     .toLowerCase() || "label";
 
+const getLabelName = (label = {}) => label.commodity || label.drumNo || "this label";
+
 const getSavedUser = () =>
   window.localStorage.getItem("labelUserName") ||
   window.localStorage.getItem("labelUserPhone") ||
@@ -252,6 +254,36 @@ const downloadLabelPdf = async (label) => {
   a.click();
   window.URL.revokeObjectURL(url);
 };
+
+function DeleteConfirmDialog({ labelName, onCancel, onConfirm, busy }) {
+  return (
+    <div className="modal-backdrop" role="presentation">
+      <section className="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="delete-title">
+        <p className="eyebrow">Delete label</p>
+        <h2 id="delete-title">Remove this label?</h2>
+        <p>{labelName} will be deleted from history. This action cannot be undone.</p>
+        <div className="confirm-actions">
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={onCancel}
+            disabled={busy}
+          >
+            Cancel
+          </button>
+          <button
+            className="danger-button"
+            type="button"
+            onClick={onConfirm}
+            disabled={busy}
+          >
+            {busy ? "Deleting..." : "Delete"}
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}
 
 function LoginPage({ onLogin }) {
   const [name, setName] = useState("");
@@ -576,6 +608,7 @@ function HistoryPage() {
   const [status, setStatus] = useState("loading");
   const [downloadingId, setDownloadingId] = useState("");
   const [deletingId, setDeletingId] = useState("");
+  const [labelToDelete, setLabelToDelete] = useState(null);
 
   useEffect(() => {
     let active = true;
@@ -634,21 +667,17 @@ function HistoryPage() {
     }
   };
 
-  const handleHistoryDelete = async (label) => {
-    const labelName = label.commodity || label.drumNo || "this label";
-    const shouldDelete = window.confirm(
-      `Delete ${labelName} from history? This cannot be undone.`
-    );
-
-    if (!shouldDelete) {
+  const confirmHistoryDelete = async () => {
+    if (!labelToDelete) {
       return;
     }
 
-    setDeletingId(label._id);
+    setDeletingId(labelToDelete._id);
 
     try {
-      await axios.delete(`${API_BASE}/labels/${label._id}`);
-      setLabels((items) => items.filter((item) => item._id !== label._id));
+      await axios.delete(`${API_BASE}/labels/${labelToDelete._id}`);
+      setLabels((items) => items.filter((item) => item._id !== labelToDelete._id));
+      setLabelToDelete(null);
     } catch (err) {
       console.error(err);
       alert("Could not delete this label.");
@@ -728,7 +757,7 @@ function HistoryPage() {
                   <button
                     className="row-action danger-button"
                     type="button"
-                    onClick={() => handleHistoryDelete(label)}
+                    onClick={() => setLabelToDelete(label)}
                     disabled={deletingId === label._id || downloadingId === label._id}
                   >
                     {deletingId === label._id ? "Deleting..." : "Delete"}
@@ -739,6 +768,15 @@ function HistoryPage() {
           </div>
         )}
       </section>
+
+      {labelToDelete && (
+        <DeleteConfirmDialog
+          labelName={getLabelName(labelToDelete)}
+          onCancel={() => setLabelToDelete(null)}
+          onConfirm={confirmHistoryDelete}
+          busy={deletingId === labelToDelete._id}
+        />
+      )}
     </main>
   );
 }
@@ -748,6 +786,7 @@ function LabelDetails({ id }) {
   const [status, setStatus] = useState("loading");
   const [isDownloading, setIsDownloading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -800,13 +839,6 @@ function LabelDetails({ id }) {
   };
 
   const handleDetailDelete = async () => {
-    const labelName = label.commodity || label.drumNo || "this label";
-    const confirmed = window.confirm(`Delete ${labelName} from history? This cannot be undone.`);
-
-    if (!confirmed) {
-      return;
-    }
-
     setIsDeleting(true);
 
     try {
@@ -845,7 +877,7 @@ function LabelDetails({ id }) {
           <button
             className="danger-button"
             type="button"
-            onClick={handleDetailDelete}
+            onClick={() => setShowDeleteDialog(true)}
             disabled={isDeleting || isDownloading}
           >
             {isDeleting ? "Deleting..." : "Delete"}
@@ -854,6 +886,15 @@ function LabelDetails({ id }) {
           <a className="button-link secondary-link" href="/history">History</a>
         </div>
       </section>
+
+      {showDeleteDialog && (
+        <DeleteConfirmDialog
+          labelName={getLabelName(label)}
+          onCancel={() => setShowDeleteDialog(false)}
+          onConfirm={handleDetailDelete}
+          busy={isDeleting}
+        />
+      )}
     </main>
   );
 }
