@@ -104,7 +104,7 @@ router.post("/verify-otp", async (req, res) => {
           name: name || record.name || phone,
         },
       },
-      { new: true, upsert: true }
+      { returnDocument: "after", upsert: true }
     ).lean();
 
     res.json({
@@ -156,7 +156,7 @@ router.put("/profile", async (req, res) => {
           manufacturerPhone: fields.manufacturerPhone || phone,
         },
       },
-      { new: true, upsert: true }
+      { returnDocument: "after", upsert: true }
     ).lean();
 
     res.json({ message: "Profile saved", user: serializeUser(user) });
