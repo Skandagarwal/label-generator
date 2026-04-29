@@ -165,16 +165,10 @@
     }
 
     .manufacturer-logo {
-      margin-bottom: 2mm;
-      font-size: 34px;
-      line-height: 1;
-    }
-
-    .manufacturer-tagline {
-      padding-bottom: 1mm;
-      border-bottom: 1px solid #000;
-      font-size: 13px;
-      line-height: 1.2;
+      display: block;
+      width: 46mm;
+      max-height: 31mm;
+      object-fit: contain;
     }
 
     .manufacturer-copy {
@@ -263,8 +257,7 @@
     <div class="manufacturer-title">MANUFACTURER:</div>
     <div class="manufacturer-details">
       <div class="manufacturer-brand">
-        <div class="manufacturer-logo">{{manufacturer}}</div>
-        <div class="manufacturer-tagline">{{manufacturerTagline}}</div>
+        <img class="manufacturer-logo" src="{{manufacturerLogo}}" />
       </div>
       <div class="manufacturer-copy">
         <div class="manufacturer-name">{{manufacturer}}</div>

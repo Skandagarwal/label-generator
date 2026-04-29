@@ -131,6 +131,18 @@ const normalizeLabelData = (data) => ({
   bestBefore: formatDate(data.bestBefore),
 });
 
+const imageDataUrl = (fileName, mimeType) => {
+  const filePath = path.join(__dirname, "../utils", fileName);
+
+  if (!fs.existsSync(filePath)) {
+    return "";
+  }
+
+  return `data:${mimeType};base64,${fs.readFileSync(filePath).toString("base64")}`;
+};
+
+const manufacturerLogo = imageDataUrl("logoAgEx.png", "image/png");
+
 const serializeLabel = (label) => {
   const normalized = normalizeLabelData(label);
   const createdAt = label.createdAt || label._id?.getTimestamp?.();
@@ -162,6 +174,7 @@ const templateValues = (data, qr) => ({
   manufacturerEmail: escapeHtml(data.manufacturerEmail),
   manufacturerPhone: escapeHtml(data.manufacturerPhone),
   manufacturerTagline: escapeHtml(data.manufacturerTagline),
+  manufacturerLogo,
   qrCode: qr,
 });
 
