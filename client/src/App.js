@@ -44,7 +44,6 @@ const fields = [
   { name: "manufacturerWebsite", label: "Manufacturer Website" },
   { name: "manufacturerEmail", label: "Manufacturer Email" },
   { name: "manufacturerPhone", label: "Manufacturer Phone" },
-  { name: "manufacturerTagline", label: "Manufacturer Tagline" },
 ];
 
 const fieldGroups = [
@@ -258,7 +257,6 @@ const getSavedManufacturerDetails = (userName = getSavedUser()) => ({
   manufacturerWebsite: window.localStorage.getItem("labelUserManufacturerWebsite") || "",
   manufacturerEmail: window.localStorage.getItem("labelUserManufacturerEmail") || "",
   manufacturerPhone: window.localStorage.getItem("labelUserManufacturerPhone") || "",
-  manufacturerTagline: window.localStorage.getItem("labelUserManufacturerTagline") || "",
   manufacturerLogo: window.localStorage.getItem("labelUserManufacturerLogo") || "",
 });
 
@@ -478,10 +476,6 @@ function ProfilePage({ userName, onUserUpdate, onLogout }) {
       manufacturerDetails.manufacturerPhone.trim()
     );
     window.localStorage.setItem(
-      "labelUserManufacturerTagline",
-      manufacturerDetails.manufacturerTagline.trim()
-    );
-    window.localStorage.setItem(
       "labelUserManufacturerLogo",
       manufacturerDetails.manufacturerLogo
     );
@@ -623,16 +617,6 @@ function ProfilePage({ userName, onUserUpdate, onLogout }) {
                 handleManufacturerChange("manufacturerPhone", e.target.value)
               }
               placeholder="+91-9876543210"
-            />
-          </label>
-          <label className="field">
-            <span>Tagline</span>
-            <input
-              value={manufacturerDetails.manufacturerTagline}
-              onChange={(e) =>
-                handleManufacturerChange("manufacturerTagline", e.target.value)
-              }
-              placeholder="Manufacturer of Chiral Molecules"
             />
           </label>
           {status && <p className="login-status">{status}</p>}

@@ -189,7 +189,6 @@ const templateValues = (data, qr) => ({
       { label: "CELL", value: data.manufacturerPhone }
     )
   ),
-  manufacturerTagline: escapeHtml(data.manufacturerTagline),
   manufacturerLogo: getManufacturerLogo(data.manufacturerLogo),
   qrCode: qr,
 });
