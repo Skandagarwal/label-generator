@@ -280,6 +280,25 @@ const saveUserProfileLocally = (user = {}) => {
   window.localStorage.setItem("labelUserManufacturerLogo", user.manufacturerLogo || "");
 };
 
+const mergeProfileDetails = (serverUser = {}, localDetails = getSavedManufacturerDetails()) => ({
+  phone: serverUser.phone || getSavedPhone(),
+  name: serverUser.name || getSavedUser(),
+  manufacturer: serverUser.manufacturer || localDetails.manufacturer || serverUser.name || "",
+  manufacturerAddress: serverUser.manufacturerAddress || localDetails.manufacturerAddress || "",
+  manufacturerWebsite: serverUser.manufacturerWebsite || localDetails.manufacturerWebsite || "",
+  manufacturerEmail: serverUser.manufacturerEmail || localDetails.manufacturerEmail || "",
+  manufacturerPhone:
+    serverUser.manufacturerPhone ||
+    localDetails.manufacturerPhone ||
+    serverUser.phone ||
+    getSavedPhone(),
+  manufacturerLogo: serverUser.manufacturerLogo || localDetails.manufacturerLogo || "",
+});
+
+const hasProfileBackfill = (serverUser = {}, mergedUser = {}) =>
+  ["manufacturer", "manufacturerAddress", "manufacturerWebsite", "manufacturerEmail", "manufacturerPhone", "manufacturerLogo"]
+    .some((field) => !serverUser[field] && Boolean(mergedUser[field]));
+
 const applyUserDefaults = (values, userName = getSavedUser()) => ({
   ...values,
   ...getSavedManufacturerDetails(userName),
@@ -375,9 +394,19 @@ function LoginPage({ onLogin }) {
       .then((res) => {
         const user = res.data.user || {};
         const userName = user.name || name.trim() || phone;
+        const localDetails = getSavedManufacturerDetails(userName);
+        const mergedUser = mergeProfileDetails(
+          { ...user, name: userName, phone: user.phone || phone },
+          localDetails
+        );
 
-        saveUserProfileLocally({ ...user, name: userName, phone: user.phone || phone });
-        onLogin(userName);
+        saveUserProfileLocally(mergedUser);
+        if (hasProfileBackfill(user, mergedUser)) {
+          axios.put(`${API_BASE}/auth/profile`, mergedUser).catch((err) => {
+            console.error("Could not migrate local profile to MongoDB", err);
+          });
+        }
+        onLogin(mergedUser.name || userName);
         window.history.pushState({}, "", "/home");
       })
       .catch((err) => {
