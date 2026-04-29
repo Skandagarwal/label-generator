@@ -1,4 +1,5 @@
 const express = require("express");
+const User = require("../models/User");
 
 const router = express.Router();
 const otpStore = new Map();
@@ -14,6 +15,31 @@ const sendOtp = async (phone, otp) => {
   // Plug a real SMS provider here later. Keep this local-only until credentials are added.
   console.log(`OTP for ${phone}: ${otp}`);
 };
+
+const cleanText = (value = "") => String(value || "").trim();
+
+const profileFields = (body = {}) => ({
+  name: cleanText(body.name),
+  manufacturer: cleanText(body.manufacturer || body.name),
+  manufacturerAddress: cleanText(body.manufacturerAddress),
+  manufacturerWebsite: cleanText(body.manufacturerWebsite),
+  manufacturerEmail: cleanText(body.manufacturerEmail),
+  manufacturerPhone: cleanText(body.manufacturerPhone),
+  manufacturerLogo: String(body.manufacturerLogo || "").startsWith("data:image/")
+    ? String(body.manufacturerLogo)
+    : "",
+});
+
+const serializeUser = (user) => ({
+  phone: user.phone,
+  name: user.name || user.phone,
+  manufacturer: user.manufacturer || user.name || user.phone,
+  manufacturerAddress: user.manufacturerAddress || "",
+  manufacturerWebsite: user.manufacturerWebsite || "",
+  manufacturerEmail: user.manufacturerEmail || "",
+  manufacturerPhone: user.manufacturerPhone || user.phone || "",
+  manufacturerLogo: user.manufacturerLogo || "",
+});
 
 router.post("/request-otp", async (req, res) => {
   try {
@@ -48,7 +74,7 @@ router.post("/request-otp", async (req, res) => {
   }
 });
 
-router.post("/verify-otp", (req, res) => {
+router.post("/verify-otp", async (req, res) => {
   const phone = normalizePhone(req.body.phone);
   const name = String(req.body.name || "").trim();
   const otp = String(req.body.otp || "").trim();
@@ -64,13 +90,80 @@ router.post("/verify-otp", (req, res) => {
   }
 
   otpStore.delete(phone);
-  res.json({
-    message: "Login successful",
-    user: {
-      phone,
-      name: name || record.name || phone,
-    },
-  });
+
+  try {
+    const user = await User.findOneAndUpdate(
+      { phone },
+      {
+        $setOnInsert: {
+          phone,
+          manufacturer: name || record.name || phone,
+          manufacturerPhone: phone,
+        },
+        $set: {
+          name: name || record.name || phone,
+        },
+      },
+      { new: true, upsert: true }
+    ).lean();
+
+    res.json({
+      message: "Login successful",
+      user: serializeUser(user),
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Could not load user profile" });
+  }
+});
+
+router.get("/profile/:phone", async (req, res) => {
+  try {
+    const phone = normalizePhone(req.params.phone);
+
+    if (!isValidPhone(phone)) {
+      return res.status(400).json({ message: "Enter a valid phone number" });
+    }
+
+    const user = await User.findOne({ phone }).lean();
+
+    if (!user) {
+      return res.status(404).json({ message: "Profile not found" });
+    }
+
+    res.json({ user: serializeUser(user) });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Could not load profile" });
+  }
+});
+
+router.put("/profile", async (req, res) => {
+  try {
+    const phone = normalizePhone(req.body.phone);
+
+    if (!isValidPhone(phone)) {
+      return res.status(400).json({ message: "Enter a valid phone number" });
+    }
+
+    const fields = profileFields(req.body);
+    const user = await User.findOneAndUpdate(
+      { phone },
+      {
+        $set: {
+          phone,
+          ...fields,
+          manufacturerPhone: fields.manufacturerPhone || phone,
+        },
+      },
+      { new: true, upsert: true }
+    ).lean();
+
+    res.json({ message: "Profile saved", user: serializeUser(user) });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Could not save profile" });
+  }
 });
 
 module.exports = router;

@@ -260,6 +260,26 @@ const getSavedManufacturerDetails = (userName = getSavedUser()) => ({
   manufacturerLogo: window.localStorage.getItem("labelUserManufacturerLogo") || "",
 });
 
+const saveUserProfileLocally = (user = {}) => {
+  if (user.name) {
+    window.localStorage.setItem("labelUserName", user.name);
+  }
+
+  if (user.phone) {
+    window.localStorage.setItem("labelUserPhone", user.phone);
+  }
+
+  window.localStorage.setItem("labelUserManufacturer", user.manufacturer || user.name || "");
+  window.localStorage.setItem("labelUserManufacturerAddress", user.manufacturerAddress || "");
+  window.localStorage.setItem("labelUserManufacturerWebsite", user.manufacturerWebsite || "");
+  window.localStorage.setItem("labelUserManufacturerEmail", user.manufacturerEmail || "");
+  window.localStorage.setItem(
+    "labelUserManufacturerPhone",
+    user.manufacturerPhone || user.phone || ""
+  );
+  window.localStorage.setItem("labelUserManufacturerLogo", user.manufacturerLogo || "");
+};
+
 const applyUserDefaults = (values, userName = getSavedUser()) => ({
   ...values,
   ...getSavedManufacturerDetails(userName),
@@ -341,17 +361,10 @@ function LoginPage({ onLogin }) {
     axios
       .post(`${API_BASE}/auth/verify-otp`, { name, phone, otp })
       .then((res) => {
-        const userName = name.trim() || res.data.user?.name || phone;
-        const manufacturer =
-          window.localStorage.getItem("labelUserManufacturer") || userName;
+        const user = res.data.user || {};
+        const userName = user.name || name.trim() || phone;
 
-        window.localStorage.setItem("labelUserName", userName);
-        window.localStorage.setItem("labelUserPhone", phone);
-        window.localStorage.setItem("labelUserManufacturer", manufacturer);
-        window.localStorage.setItem(
-          "labelUserManufacturerPhone",
-          window.localStorage.getItem("labelUserManufacturerPhone") || phone
-        );
+        saveUserProfileLocally({ ...user, name: userName, phone: user.phone || phone });
         onLogin(userName);
         window.history.pushState({}, "", "/home");
       })
@@ -444,43 +457,50 @@ function ProfilePage({ userName, onUserUpdate, onLogout }) {
     getSavedManufacturerDetails(userName)
   );
   const [status, setStatus] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
   const manufacturer = manufacturerDetails.manufacturer;
 
   const handleManufacturerChange = (field, value) => {
     setManufacturerDetails((details) => ({ ...details, [field]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const nextName = name.trim() || "Vendor";
     const nextPhone = phone.trim();
     const nextManufacturer = manufacturer.trim() || nextName;
+    const payload = {
+      phone: nextPhone,
+      name: nextName,
+      manufacturer: nextManufacturer,
+      manufacturerAddress: manufacturerDetails.manufacturerAddress.trim(),
+      manufacturerWebsite: manufacturerDetails.manufacturerWebsite.trim(),
+      manufacturerEmail: manufacturerDetails.manufacturerEmail.trim(),
+      manufacturerPhone: manufacturerDetails.manufacturerPhone.trim() || nextPhone,
+      manufacturerLogo: manufacturerDetails.manufacturerLogo,
+    };
 
-    window.localStorage.setItem("labelUserName", nextName);
-    window.localStorage.setItem("labelUserPhone", nextPhone);
-    window.localStorage.setItem("labelUserManufacturer", nextManufacturer);
-    window.localStorage.setItem(
-      "labelUserManufacturerAddress",
-      manufacturerDetails.manufacturerAddress.trim()
-    );
-    window.localStorage.setItem(
-      "labelUserManufacturerWebsite",
-      manufacturerDetails.manufacturerWebsite.trim()
-    );
-    window.localStorage.setItem(
-      "labelUserManufacturerEmail",
-      manufacturerDetails.manufacturerEmail.trim()
-    );
-    window.localStorage.setItem(
-      "labelUserManufacturerPhone",
-      manufacturerDetails.manufacturerPhone.trim()
-    );
-    window.localStorage.setItem(
-      "labelUserManufacturerLogo",
-      manufacturerDetails.manufacturerLogo
-    );
-    onUserUpdate(nextName);
-    setStatus("Profile updated.");
+    setIsSaving(true);
+    setStatus("");
+
+    try {
+      const res = await axios.put(`${API_BASE}/auth/profile`, payload);
+      const savedUser = res.data.user || payload;
+
+      saveUserProfileLocally(savedUser);
+      setName(savedUser.name || nextName);
+      setPhone(savedUser.phone || nextPhone);
+      setManufacturerDetails(getSavedManufacturerDetails(savedUser.name || nextName));
+      onUserUpdate(savedUser.name || nextName);
+      setStatus("Profile saved to MongoDB.");
+    } catch (err) {
+      console.error(err);
+      saveUserProfileLocally(payload);
+      onUserUpdate(nextName);
+      setStatus("Profile saved on this device. MongoDB save failed.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleLogoUpload = (e) => {
@@ -620,7 +640,9 @@ function ProfilePage({ userName, onUserUpdate, onLogout }) {
             />
           </label>
           {status && <p className="login-status">{status}</p>}
-          <button type="submit">Save Profile</button>
+          <button type="submit" disabled={isSaving}>
+            {isSaving ? "Saving..." : "Save Profile"}
+          </button>
         </form>
       </section>
     </main>
