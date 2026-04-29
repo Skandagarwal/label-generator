@@ -150,6 +150,11 @@ const templateValues = (data, qr) => ({
   storage: escapeHtml(data.storage),
   license: escapeHtml(data.license),
   manufacturer: escapeHtml(data.manufacturer),
+  manufacturerAddress: escapeHtml(data.manufacturerAddress),
+  manufacturerWebsite: escapeHtml(data.manufacturerWebsite),
+  manufacturerEmail: escapeHtml(data.manufacturerEmail),
+  manufacturerPhone: escapeHtml(data.manufacturerPhone),
+  manufacturerTagline: escapeHtml(data.manufacturerTagline),
   qrCode: qr,
 });
 

@@ -40,6 +40,11 @@ const fields = [
   },
   { name: "license", label: "License Number" },
   { name: "manufacturer", label: "Manufacturer", multiline: true },
+  { name: "manufacturerAddress", label: "Manufacturer Address", multiline: true },
+  { name: "manufacturerWebsite", label: "Manufacturer Website" },
+  { name: "manufacturerEmail", label: "Manufacturer Email" },
+  { name: "manufacturerPhone", label: "Manufacturer Phone" },
+  { name: "manufacturerTagline", label: "Manufacturer Tagline" },
 ];
 
 const fieldGroups = [
@@ -245,10 +250,18 @@ const getSavedManufacturer = () =>
   window.localStorage.getItem("labelUserManufacturer") ||
   window.localStorage.getItem("labelUserName") ||
   "";
+const getSavedManufacturerDetails = (userName = getSavedUser()) => ({
+  manufacturer: getSavedManufacturer() || userName || "",
+  manufacturerAddress: window.localStorage.getItem("labelUserManufacturerAddress") || "",
+  manufacturerWebsite: window.localStorage.getItem("labelUserManufacturerWebsite") || "",
+  manufacturerEmail: window.localStorage.getItem("labelUserManufacturerEmail") || "",
+  manufacturerPhone: window.localStorage.getItem("labelUserManufacturerPhone") || "",
+  manufacturerTagline: window.localStorage.getItem("labelUserManufacturerTagline") || "",
+});
 
 const applyUserDefaults = (values, userName = getSavedUser()) => ({
   ...values,
-  manufacturer: getSavedManufacturer() || userName || "",
+  ...getSavedManufacturerDetails(userName),
 });
 
 const downloadLabelPdf = async (label) => {
@@ -334,6 +347,10 @@ function LoginPage({ onLogin }) {
         window.localStorage.setItem("labelUserName", userName);
         window.localStorage.setItem("labelUserPhone", phone);
         window.localStorage.setItem("labelUserManufacturer", manufacturer);
+        window.localStorage.setItem(
+          "labelUserManufacturerPhone",
+          window.localStorage.getItem("labelUserManufacturerPhone") || phone
+        );
         onLogin(userName);
         window.history.pushState({}, "", "/home");
       })
@@ -422,8 +439,15 @@ function LoginPage({ onLogin }) {
 function ProfilePage({ userName, onUserUpdate, onLogout }) {
   const [name, setName] = useState(userName);
   const [phone, setPhone] = useState(getSavedPhone);
-  const [manufacturer, setManufacturer] = useState(getSavedManufacturer);
+  const [manufacturerDetails, setManufacturerDetails] = useState(() =>
+    getSavedManufacturerDetails(userName)
+  );
   const [status, setStatus] = useState("");
+  const manufacturer = manufacturerDetails.manufacturer;
+
+  const handleManufacturerChange = (field, value) => {
+    setManufacturerDetails((details) => ({ ...details, [field]: value }));
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -434,6 +458,26 @@ function ProfilePage({ userName, onUserUpdate, onLogout }) {
     window.localStorage.setItem("labelUserName", nextName);
     window.localStorage.setItem("labelUserPhone", nextPhone);
     window.localStorage.setItem("labelUserManufacturer", nextManufacturer);
+    window.localStorage.setItem(
+      "labelUserManufacturerAddress",
+      manufacturerDetails.manufacturerAddress.trim()
+    );
+    window.localStorage.setItem(
+      "labelUserManufacturerWebsite",
+      manufacturerDetails.manufacturerWebsite.trim()
+    );
+    window.localStorage.setItem(
+      "labelUserManufacturerEmail",
+      manufacturerDetails.manufacturerEmail.trim()
+    );
+    window.localStorage.setItem(
+      "labelUserManufacturerPhone",
+      manufacturerDetails.manufacturerPhone.trim()
+    );
+    window.localStorage.setItem(
+      "labelUserManufacturerTagline",
+      manufacturerDetails.manufacturerTagline.trim()
+    );
     onUserUpdate(nextName);
     setStatus("Profile updated.");
   };
@@ -485,9 +529,60 @@ function ProfilePage({ userName, onUserUpdate, onLogout }) {
             <span>Manufacturer Name</span>
             <input
               value={manufacturer}
-              onChange={(e) => setManufacturer(e.target.value)}
+              onChange={(e) => handleManufacturerChange("manufacturer", e.target.value)}
               placeholder={name.trim() || "Manufacturer name"}
               required
+            />
+          </label>
+          <label className="field">
+            <span>Manufacturer Address</span>
+            <textarea
+              value={manufacturerDetails.manufacturerAddress}
+              onChange={(e) =>
+                handleManufacturerChange("manufacturerAddress", e.target.value)
+              }
+              placeholder="B/6-9, Roshan Bagh Industrial Estate, Rampur-244901, (U.P.) India"
+              rows="3"
+            />
+          </label>
+          <label className="field">
+            <span>Website</span>
+            <input
+              value={manufacturerDetails.manufacturerWebsite}
+              onChange={(e) =>
+                handleManufacturerChange("manufacturerWebsite", e.target.value)
+              }
+              placeholder="www.example.com"
+            />
+          </label>
+          <label className="field">
+            <span>Email</span>
+            <input
+              value={manufacturerDetails.manufacturerEmail}
+              onChange={(e) =>
+                handleManufacturerChange("manufacturerEmail", e.target.value)
+              }
+              placeholder="email@example.com"
+            />
+          </label>
+          <label className="field">
+            <span>Cell / Phone</span>
+            <input
+              value={manufacturerDetails.manufacturerPhone}
+              onChange={(e) =>
+                handleManufacturerChange("manufacturerPhone", e.target.value)
+              }
+              placeholder="+91-9876543210"
+            />
+          </label>
+          <label className="field">
+            <span>Tagline</span>
+            <input
+              value={manufacturerDetails.manufacturerTagline}
+              onChange={(e) =>
+                handleManufacturerChange("manufacturerTagline", e.target.value)
+              }
+              placeholder="Manufacturer of Chiral Molecules"
             />
           </label>
           {status && <p className="login-status">{status}</p>}
@@ -930,7 +1025,8 @@ function App() {
   const [drumItems, setDrumItems] = useState([emptyDrumItem()]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
-  const currentManufacturer = getSavedManufacturer() || currentUser;
+  const currentManufacturerDetails = getSavedManufacturerDetails(currentUser);
+  const currentManufacturer = currentManufacturerDetails.manufacturer || currentUser;
   const currentPath = window.location.pathname;
   const isHistoryPage = currentPath === "/history";
   const isHomePage = currentPath === "/" || currentPath === "/home";
@@ -1021,6 +1117,7 @@ function App() {
     try {
       const payload = {
         ...form,
+        ...currentManufacturerDetails,
         manufacturer: currentManufacturer,
         drumItems: validDrumItems.map(({ drumNo, netWt, tareWt, grossWt }) => ({
           drumNo,
@@ -1065,6 +1162,11 @@ function App() {
     window.localStorage.removeItem("labelUserName");
     window.localStorage.removeItem("labelUserPhone");
     window.localStorage.removeItem("labelUserManufacturer");
+    window.localStorage.removeItem("labelUserManufacturerAddress");
+    window.localStorage.removeItem("labelUserManufacturerWebsite");
+    window.localStorage.removeItem("labelUserManufacturerEmail");
+    window.localStorage.removeItem("labelUserManufacturerPhone");
+    window.localStorage.removeItem("labelUserManufacturerTagline");
     setCurrentUser("");
     window.history.pushState({}, "", "/login");
   };

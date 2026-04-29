@@ -17,6 +17,11 @@ const LabelSchema = new mongoose.Schema(
     storage: String,
     license: String,
     manufacturer: String,
+    manufacturerAddress: String,
+    manufacturerWebsite: String,
+    manufacturerEmail: String,
+    manufacturerPhone: String,
+    manufacturerTagline: String,
   },
   { timestamps: true }
 );

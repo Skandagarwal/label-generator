@@ -21,7 +21,7 @@
     .label {
       width: 297mm;
       height: 210mm;
-      padding: 22mm 42mm 12mm 48mm;
+      padding: 22mm 42mm 10mm 48mm;
       position: relative;
       overflow: hidden;
       page-break-after: always;
@@ -135,11 +135,72 @@
       text-decoration: underline;
     }
 
-    .bottom {
-      margin-top: 2mm;
+    .manufacturer-block {
+      position: absolute;
+      left: 34mm;
+      right: 34mm;
+      bottom: 9mm;
       text-align: center;
-      font-weight: bold;
-      font-size: 20px;
+      color: #000;
+    }
+
+    .manufacturer-title {
+      margin-bottom: 6mm;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+
+    .manufacturer-details {
+      display: grid;
+      grid-template-columns: 55mm 1fr;
+      align-items: end;
+      gap: 16mm;
+    }
+
+    .manufacturer-brand {
+      text-align: center;
+      font-family: Arial, sans-serif;
+      font-weight: 700;
+    }
+
+    .manufacturer-logo {
+      margin-bottom: 2mm;
+      font-size: 34px;
+      line-height: 1;
+    }
+
+    .manufacturer-tagline {
+      padding-bottom: 1mm;
+      border-bottom: 1px solid #000;
+      font-size: 13px;
+      line-height: 1.2;
+    }
+
+    .manufacturer-copy {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      font-size: 14px;
+      line-height: 1.35;
+    }
+
+    .manufacturer-name {
+      font-size: 21px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .manufacturer-address {
+      margin-top: 1mm;
+      font-size: 15px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .manufacturer-contact {
+      margin-top: 1mm;
+      font-size: 14px;
+      font-weight: 400;
     }
 
     @media print {
@@ -198,8 +259,21 @@
     <div>LICENSE NUMBER: {{license}}</div>
   </div>
 
-  <div class="bottom">
-    MANUFACTURER: {{manufacturer}}
+  <div class="manufacturer-block">
+    <div class="manufacturer-title">MANUFACTURER:</div>
+    <div class="manufacturer-details">
+      <div class="manufacturer-brand">
+        <div class="manufacturer-logo">{{manufacturer}}</div>
+        <div class="manufacturer-tagline">{{manufacturerTagline}}</div>
+      </div>
+      <div class="manufacturer-copy">
+        <div class="manufacturer-name">{{manufacturer}}</div>
+        <div class="manufacturer-address">{{manufacturerAddress}}</div>
+        <div class="manufacturer-contact">
+          WEBSITE: {{manufacturerWebsite}} &nbsp; EMAIL: {{manufacturerEmail}} &nbsp; CELL: {{manufacturerPhone}}
+        </div>
+      </div>
+    </div>
   </div>
 
 </div>
