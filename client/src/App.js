@@ -126,7 +126,7 @@ const calculateGrossWeight = (netWt, tareWt) => {
 };
 
 const getNextDrumNo = (drumNo = "") => {
-  const match = String(drumNo).trim().match(/^(.*?)(\d+)(\/\d+)?([^0-9]*)$/);
+  const match = String(drumNo).trim().match(/^(.*?)(\d+)(?:\/\d+)?([^0-9]*)$/);
 
   if (!match) {
     return "";
@@ -134,8 +134,10 @@ const getNextDrumNo = (drumNo = "") => {
 
   const nextNumber = String(Number(match[2]) + 1).padStart(match[2].length, "0");
 
-  return `${match[1]}${nextNumber}${match[3] || ""}${match[4] || ""}`;
+  return `${match[1]}${nextNumber}${match[3] || ""}`;
 };
+
+const formatDrumSequence = (index, total) => `${index + 1}/${Math.max(total, 1)}`;
 
 const parseDate = (value) => {
   const text = String(value || "").trim();
@@ -1119,13 +1121,15 @@ function App() {
         ...form,
         ...currentManufacturerDetails,
         manufacturer: currentManufacturer,
-        drumItems: validDrumItems.map(({ drumNo, netWt, tareWt, grossWt }) => ({
-          drumNo,
+        drumItems: validDrumItems.map(({ netWt, tareWt, grossWt }, index) => ({
+          drumNo: formatDrumSequence(index, validDrumItems.length),
           netWt: formatWeight(netWt),
           tareWt: formatWeight(tareWt),
           grossWt: grossWt || calculateGrossWeight(netWt, tareWt),
         })),
-        drumNo: validDrumItems.map((item) => item.drumNo).join("\n"),
+        drumNo: validDrumItems
+          .map((_, index) => formatDrumSequence(index, validDrumItems.length))
+          .join("\n"),
         mfgDate: normalizeDateValue(form.mfgDate),
         bestBefore:
           normalizeDateValue(form.bestBefore) ||

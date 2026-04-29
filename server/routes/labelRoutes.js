@@ -70,22 +70,29 @@ const calculateGrossWeight = (netWt, tareWt) => {
   return `${(net.amount + tare.amount).toFixed(decimals)} ${unit}`;
 };
 
+const formatDrumSequence = (index, total) => `${index + 1}/${Math.max(total, 1)}`;
+
 const getDrumItems = (data) => {
   if (Array.isArray(data.drumItems)) {
-    return data.drumItems
-      .map((item) => ({
-        drumNo: String(item.drumNo || "").trim(),
+    const items = data.drumItems.filter((item) => String(item.drumNo || "").trim());
+    const total = items.length;
+
+    return items
+      .map((item, index) => ({
+        drumNo: formatDrumSequence(index, total),
         netWt: formatWeight(item.netWt || data.netWt),
         tareWt: formatWeight(item.tareWt || data.tareWt),
         grossWt:
           formatWeight(item.grossWt || data.grossWt) ||
           calculateGrossWeight(item.netWt || data.netWt, item.tareWt || data.tareWt),
-      }))
-      .filter((item) => item.drumNo);
+      }));
   }
 
-  return getDrumNumbers(data.drumNo).map((drumNo) => ({
-    drumNo,
+  const drumNumbers = getDrumNumbers(data.drumNo);
+  const total = drumNumbers.length;
+
+  return drumNumbers.map((_, index) => ({
+    drumNo: formatDrumSequence(index, total),
     netWt: formatWeight(data.netWt),
     tareWt: formatWeight(data.tareWt),
     grossWt: formatWeight(data.grossWt) || calculateGrossWeight(data.netWt, data.tareWt),
