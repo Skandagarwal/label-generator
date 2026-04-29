@@ -575,6 +575,7 @@ function HistoryPage() {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("loading");
   const [downloadingId, setDownloadingId] = useState("");
+  const [deletingId, setDeletingId] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -630,6 +631,29 @@ function HistoryPage() {
       alert("Could not download this label.");
     } finally {
       setDownloadingId("");
+    }
+  };
+
+  const handleHistoryDelete = async (label) => {
+    const labelName = label.commodity || label.drumNo || "this label";
+    const shouldDelete = window.confirm(
+      `Delete ${labelName} from history? This cannot be undone.`
+    );
+
+    if (!shouldDelete) {
+      return;
+    }
+
+    setDeletingId(label._id);
+
+    try {
+      await axios.delete(`${API_BASE}/labels/${label._id}`);
+      setLabels((items) => items.filter((item) => item._id !== label._id));
+    } catch (err) {
+      console.error(err);
+      alert("Could not delete this label.");
+    } finally {
+      setDeletingId("");
     }
   };
 
@@ -697,9 +721,17 @@ function HistoryPage() {
                     className="row-action"
                     type="button"
                     onClick={() => handleHistoryDownload(label)}
-                    disabled={downloadingId === label._id}
+                    disabled={downloadingId === label._id || deletingId === label._id}
                   >
                     {downloadingId === label._id ? "Downloading..." : "Download"}
+                  </button>
+                  <button
+                    className="row-action danger-button"
+                    type="button"
+                    onClick={() => handleHistoryDelete(label)}
+                    disabled={deletingId === label._id || downloadingId === label._id}
+                  >
+                    {deletingId === label._id ? "Deleting..." : "Delete"}
                   </button>
                 </div>
               </article>
@@ -715,6 +747,7 @@ function LabelDetails({ id }) {
   const [label, setLabel] = useState(null);
   const [status, setStatus] = useState("loading");
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -766,6 +799,26 @@ function LabelDetails({ id }) {
     }
   };
 
+  const handleDetailDelete = async () => {
+    const labelName = label.commodity || label.drumNo || "this label";
+    const confirmed = window.confirm(`Delete ${labelName} from history? This cannot be undone.`);
+
+    if (!confirmed) {
+      return;
+    }
+
+    setIsDeleting(true);
+
+    try {
+      await axios.delete(`${API_BASE}/labels/${label._id}`);
+      window.location.href = "/history";
+    } catch (err) {
+      console.error(err);
+      alert("Could not delete this label.");
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <main className="page-shell">
       <section className="label-preview">
@@ -786,8 +839,16 @@ function LabelDetails({ id }) {
         </dl>
 
         <div className="detail-actions">
-          <button type="button" onClick={handleDetailDownload} disabled={isDownloading}>
+          <button type="button" onClick={handleDetailDownload} disabled={isDownloading || isDeleting}>
             {isDownloading ? "Downloading..." : "Download PDF"}
+          </button>
+          <button
+            className="danger-button"
+            type="button"
+            onClick={handleDetailDelete}
+            disabled={isDeleting || isDownloading}
+          >
+            {isDeleting ? "Deleting..." : "Delete"}
           </button>
           <a className="button-link" href="/create">Create another label</a>
           <a className="button-link secondary-link" href="/history">History</a>

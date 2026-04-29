@@ -283,6 +283,21 @@ router.get("/labels/:id", async (req, res) => {
   }
 });
 
+router.delete("/labels/:id", async (req, res) => {
+  try {
+    const label = await Label.findByIdAndDelete(req.params.id).lean();
+
+    if (!label) {
+      return res.status(404).json({ message: "Label not found" });
+    }
+
+    res.json({ message: "Label deleted" });
+  } catch (err) {
+    console.error(err);
+    res.status(400).json({ message: "Invalid label id" });
+  }
+});
+
 router.post("/generate", async (req, res) => {
   try {
     const data = normalizeLabelData(req.body);

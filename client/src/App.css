@@ -288,6 +288,17 @@ button:hover,
   background: #eef4f1;
 }
 
+.danger-button {
+  color: #8b1e1e;
+  background: #fff7f7;
+  border: 1px solid #e3b9b9;
+}
+
+.danger-button:hover {
+  color: #ffffff;
+  background: #9f2424;
+}
+
 button:disabled {
   cursor: not-allowed;
   opacity: 0.65;
