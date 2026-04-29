@@ -143,6 +143,9 @@ const imageDataUrl = (fileName, mimeType) => {
 
 const manufacturerLogo = imageDataUrl("logoAgEx.png", "image/png");
 
+const getManufacturerLogo = (value = "") =>
+  String(value).startsWith("data:image/") ? value : manufacturerLogo;
+
 const joinContactParts = (...parts) =>
   parts
     .filter((part) => String(part.value || "").trim())
@@ -187,7 +190,7 @@ const templateValues = (data, qr) => ({
     )
   ),
   manufacturerTagline: escapeHtml(data.manufacturerTagline),
-  manufacturerLogo,
+  manufacturerLogo: getManufacturerLogo(data.manufacturerLogo),
   qrCode: qr,
 });
 

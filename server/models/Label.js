@@ -22,6 +22,7 @@ const LabelSchema = new mongoose.Schema(
     manufacturerEmail: String,
     manufacturerPhone: String,
     manufacturerTagline: String,
+    manufacturerLogo: String,
   },
   { timestamps: true }
 );

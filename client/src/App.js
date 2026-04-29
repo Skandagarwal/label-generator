@@ -259,6 +259,7 @@ const getSavedManufacturerDetails = (userName = getSavedUser()) => ({
   manufacturerEmail: window.localStorage.getItem("labelUserManufacturerEmail") || "",
   manufacturerPhone: window.localStorage.getItem("labelUserManufacturerPhone") || "",
   manufacturerTagline: window.localStorage.getItem("labelUserManufacturerTagline") || "",
+  manufacturerLogo: window.localStorage.getItem("labelUserManufacturerLogo") || "",
 });
 
 const applyUserDefaults = (values, userName = getSavedUser()) => ({
@@ -480,8 +481,34 @@ function ProfilePage({ userName, onUserUpdate, onLogout }) {
       "labelUserManufacturerTagline",
       manufacturerDetails.manufacturerTagline.trim()
     );
+    window.localStorage.setItem(
+      "labelUserManufacturerLogo",
+      manufacturerDetails.manufacturerLogo
+    );
     onUserUpdate(nextName);
     setStatus("Profile updated.");
+  };
+
+  const handleLogoUpload = (e) => {
+    const file = e.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      setStatus("Please choose an image file for the logo.");
+      return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      handleManufacturerChange("manufacturerLogo", reader.result || "");
+      setStatus("Logo selected. Save profile to keep it.");
+    };
+    reader.onerror = () => setStatus("Could not read this logo file.");
+    reader.readAsDataURL(file);
   };
 
   return (
@@ -503,7 +530,11 @@ function ProfilePage({ userName, onUserUpdate, onLogout }) {
       <section className="profile-card">
         <div className="profile-summary">
           <div className="profile-avatar" aria-hidden="true">
-            {(name.trim() || "V").slice(0, 1).toUpperCase()}
+            {manufacturerDetails.manufacturerLogo ? (
+              <img src={manufacturerDetails.manufacturerLogo} alt="" />
+            ) : (
+              (name.trim() || "V").slice(0, 1).toUpperCase()
+            )}
           </div>
           <div>
             <p className="eyebrow">Vendor Profile</p>
@@ -536,6 +567,23 @@ function ProfilePage({ userName, onUserUpdate, onLogout }) {
               required
             />
           </label>
+          <label className="field">
+            <span>Manufacturer Logo</span>
+            <input type="file" accept="image/*" onChange={handleLogoUpload} />
+            <small>Upload PNG or JPG. It will appear on the PDF manufacturer block.</small>
+          </label>
+          {manufacturerDetails.manufacturerLogo && (
+            <div className="logo-preview">
+              <img src={manufacturerDetails.manufacturerLogo} alt="Manufacturer logo preview" />
+              <button
+                className="secondary-button"
+                type="button"
+                onClick={() => handleManufacturerChange("manufacturerLogo", "")}
+              >
+                Remove Logo
+              </button>
+            </div>
+          )}
           <label className="field">
             <span>Manufacturer Address</span>
             <textarea
@@ -1171,6 +1219,7 @@ function App() {
     window.localStorage.removeItem("labelUserManufacturerEmail");
     window.localStorage.removeItem("labelUserManufacturerPhone");
     window.localStorage.removeItem("labelUserManufacturerTagline");
+    window.localStorage.removeItem("labelUserManufacturerLogo");
     setCurrentUser("");
     window.history.pushState({}, "", "/login");
   };
