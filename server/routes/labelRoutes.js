@@ -143,6 +143,12 @@ const imageDataUrl = (fileName, mimeType) => {
 
 const manufacturerLogo = imageDataUrl("logoAgEx.png", "image/png");
 
+const joinContactParts = (...parts) =>
+  parts
+    .filter((part) => String(part.value || "").trim())
+    .map((part) => `${part.label}: ${part.value}`)
+    .join("  •  ");
+
 const serializeLabel = (label) => {
   const normalized = normalizeLabelData(label);
   const createdAt = label.createdAt || label._id?.getTimestamp?.();
@@ -173,6 +179,13 @@ const templateValues = (data, qr) => ({
   manufacturerWebsite: escapeHtml(data.manufacturerWebsite),
   manufacturerEmail: escapeHtml(data.manufacturerEmail),
   manufacturerPhone: escapeHtml(data.manufacturerPhone),
+  manufacturerContact: escapeHtml(
+    joinContactParts(
+      { label: "WEBSITE", value: data.manufacturerWebsite },
+      { label: "EMAIL", value: data.manufacturerEmail },
+      { label: "CELL", value: data.manufacturerPhone }
+    )
+  ),
   manufacturerTagline: escapeHtml(data.manufacturerTagline),
   manufacturerLogo,
   qrCode: qr,
