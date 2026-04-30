@@ -828,6 +828,7 @@ function HistoryPage() {
   const [labelToDelete, setLabelToDelete] = useState(null);
   const [selectedIds, setSelectedIds] = useState([]);
   const [bulkAction, setBulkAction] = useState("");
+  const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -954,20 +955,13 @@ function HistoryPage() {
       return;
     }
 
-    const confirmed = window.confirm(
-      `Delete ${selectedLabels.length} selected label(s)? This cannot be undone.`
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
     setBulkAction("delete");
 
     try {
       await Promise.all(selectedLabels.map((label) => axios.delete(`${API_BASE}/labels/${label._id}`)));
       setLabels((items) => items.filter((item) => !selectedIds.includes(item._id)));
       clearSelection();
+      setShowBulkDeleteDialog(false);
     } catch (err) {
       console.error(err);
       alert("Could not delete all selected labels.");
@@ -1028,7 +1022,7 @@ function HistoryPage() {
             <button
               className="danger-button"
               type="button"
-              onClick={handleBulkDelete}
+              onClick={() => setShowBulkDeleteDialog(true)}
               disabled={!selectedIds.length || Boolean(bulkAction)}
             >
               {bulkAction === "delete" ? "Deleting..." : "Delete Selected"}
@@ -1112,6 +1106,14 @@ function HistoryPage() {
           onCancel={() => setLabelToDelete(null)}
           onConfirm={confirmHistoryDelete}
           busy={deletingId === labelToDelete._id}
+        />
+      )}
+      {showBulkDeleteDialog && (
+        <DeleteConfirmDialog
+          labelName={`${selectedLabels.length} selected label(s)`}
+          onCancel={() => setShowBulkDeleteDialog(false)}
+          onConfirm={handleBulkDelete}
+          busy={bulkAction === "delete"}
         />
       )}
     </main>
