@@ -12,6 +12,8 @@ const CLIENT_ORIGINS = (process.env.CLIENT_ORIGIN || "http://localhost:3000")
   .filter(Boolean);
 const clientBuildPath = path.join(__dirname, "..", "client", "build");
 
+mongoose.set("bufferCommands", false);
+
 app.use(
   cors({
     origin(origin, callback) {
@@ -42,12 +44,13 @@ app.get(/^\/(?!api).*/, (req, res) => {
   res.sendFile(path.join(clientBuildPath, "index.html"));
 });
 
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
 mongoose
-  .connect(MONGO_URI)
+  .connect(MONGO_URI, { serverSelectionTimeoutMS: 10000 })
   .then(() => {
-    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+    console.log("MongoDB connected");
   })
   .catch((err) => {
     console.error("MongoDB connection failed:", err.message);
-    process.exit(1);
   });
