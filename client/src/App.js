@@ -38,6 +38,12 @@ const fields = [
     multiline: true,
     placeholder: "HIGHLY HYGROSCOPIC POWDER. STORE AT COOL AND DRY PLACE.",
   },
+  {
+    name: "warningText",
+    label: "Warning Text",
+    placeholder: '"NOT FOR MEDICINAL USE"',
+    defaultValue: '"NOT FOR MEDICINAL USE"',
+  },
   { name: "license", label: "License Number" },
   { name: "manufacturer", label: "Manufacturer", multiline: true },
   { name: "manufacturerAddress", label: "Manufacturer Address", multiline: true },
@@ -60,7 +66,7 @@ const fieldGroups = [
   },
   {
     title: "Customer And Compliance",
-    fields: ["customerName", "customerAddress", "storage", "license", "manufacturer"],
+    fields: ["customerName", "customerAddress", "warningText", "storage", "license", "manufacturer"],
   },
 ];
 

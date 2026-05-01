@@ -14,6 +14,7 @@ const LabelSchema = new mongoose.Schema(
     grossWt: String,
     customerName: String,
     customerAddress: String,
+    warningText: String,
     storage: String,
     license: String,
     manufacturer: String,

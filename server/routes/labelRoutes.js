@@ -186,6 +186,7 @@ const templateValues = (data, qr) => ({
   grossWt: escapeHtml(data.grossWt),
   customerName: escapeHtml(data.customerName),
   customerAddress: escapeHtml(data.customerAddress),
+  warningText: escapeHtml(data.warningText),
   storage: escapeHtml(data.storage),
   license: escapeHtml(data.license),
   manufacturer: escapeHtml(data.manufacturer),
@@ -244,7 +245,24 @@ const createPdf = async (labels) => {
       ],
     });
     const page = await browser.newPage();
-    await page.setContent(renderedTemplate, { waitUntil: "networkidle0" });
+    await page.setContent(renderedTemplate, {
+      waitUntil: "domcontentloaded",
+      timeout: 0,
+    });
+
+    await page.evaluate(() =>
+      Promise.all(
+        Array.from(document.images)
+          .filter((image) => !image.complete)
+          .map(
+            (image) =>
+              new Promise((resolve) => {
+                image.onload = resolve;
+                image.onerror = resolve;
+              })
+          )
+      )
+    );
 
     pdfPath = path.join(os.tmpdir(), `labels-${Date.now()}.pdf`);
 
