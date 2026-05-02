@@ -91,12 +91,12 @@ const emptyForm = fields.reduce((values, field) => {
   return values;
 }, {});
 
-const emptyDrumItem = (drumNo = "") => ({
+const emptyDrumItem = (drumNo = "", netWt = "", tareWt = "") => ({
   id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
   drumNo,
-  netWt: "",
-  tareWt: "",
-  grossWt: "",
+  netWt,
+  tareWt,
+  grossWt: calculateGrossWeight(netWt, tareWt),
 });
 
 const parseWeight = (value = "") => {
@@ -154,6 +154,21 @@ const getNextDrumNo = (drumNo = "") => {
 };
 
 const formatDrumSequence = (index, total) => `${index + 1}/${Math.max(total, 1)}`;
+
+const parseBulkDrumRows = (value = "") =>
+  String(value)
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => line.split(/[,|\t]+|\s{2,}/).map((part) => part.trim()).filter(Boolean))
+    .map((parts, index) => {
+      const hasDrumNo = parts.length >= 3;
+      const netWt = hasDrumNo ? parts[1] : parts[0];
+      const tareWt = hasDrumNo ? parts[2] : parts[1];
+
+      return emptyDrumItem(hasDrumNo ? parts[0] : String(index + 1), netWt || "", tareWt || "");
+    })
+    .filter((item) => item.netWt || item.tareWt);
 
 const parseDate = (value) => {
   const text = String(value || "").trim();
@@ -1260,6 +1275,7 @@ function App() {
   const [currentUser, setCurrentUser] = useState(getSavedUser);
   const [form, setForm] = useState(() => applyUserDefaults(emptyForm));
   const [drumItems, setDrumItems] = useState([emptyDrumItem()]);
+  const [bulkDrumText, setBulkDrumText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
   const currentManufacturerDetails = getSavedManufacturerDetails(currentUser);
@@ -1315,6 +1331,7 @@ function App() {
   const handleReset = () => {
     setForm(applyUserDefaults(emptyForm, currentUser));
     setDrumItems([emptyDrumItem()]);
+    setBulkDrumText("");
     setStatusMessage("");
   };
 
@@ -1353,6 +1370,20 @@ function App() {
     setDrumItems((items) =>
       items.length === 1 ? [emptyDrumItem()] : items.filter((item) => item.id !== id)
     );
+  };
+
+  const importBulkDrumRows = () => {
+    const nextItems = parseBulkDrumRows(bulkDrumText);
+
+    setStatusMessage("");
+
+    if (!nextItems.length) {
+      setStatusMessage("Paste one drum per line, for example: 25, 3.640");
+      return;
+    }
+
+    setDrumItems(nextItems);
+    setStatusMessage(`${nextItems.length} drum row(s) added from the pasted weights.`);
   };
 
   const handleSubmit = async (e) => {
@@ -1551,6 +1582,24 @@ function App() {
               <button className="secondary-button" type="button" onClick={addDrumItem}>
                 Add Drum
               </button>
+            </div>
+
+            <div className="bulk-drum-import">
+              <label>
+                <span>Paste Weight List</span>
+                <textarea
+                  value={bulkDrumText}
+                  onChange={(e) => setBulkDrumText(e.target.value)}
+                  placeholder={"25, 3.640\n24.950, 3.640\n25.100, 3.640"}
+                  rows="4"
+                />
+              </label>
+              <div className="bulk-drum-actions">
+                <small>Use one line per drum: Net Wt., Tare Wt. Gross Wt. is calculated automatically.</small>
+                <button className="secondary-button" type="button" onClick={importBulkDrumRows}>
+                  Import Weights
+                </button>
+              </div>
             </div>
 
             <div className="drum-table">
