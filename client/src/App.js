@@ -7,6 +7,7 @@ const API_BASE =
   (window.location.hostname === "localhost" && window.location.port === "3000"
     ? "http://localhost:5050/api"
     : "/api");
+const DRUM_ROWS_BATCH_SIZE = 10;
 
 const fields = [
   {
@@ -1275,6 +1276,7 @@ function App() {
   const [currentUser, setCurrentUser] = useState(getSavedUser);
   const [form, setForm] = useState(() => applyUserDefaults(emptyForm));
   const [drumItems, setDrumItems] = useState([emptyDrumItem()]);
+  const [visibleDrumCount, setVisibleDrumCount] = useState(DRUM_ROWS_BATCH_SIZE);
   const [bulkDrumText, setBulkDrumText] = useState("");
   const [quickDrumSetup, setQuickDrumSetup] = useState({
     count: "",
@@ -1298,6 +1300,11 @@ function App() {
     () => drumItems.filter((item) => item.drumNo.trim()),
     [drumItems]
   );
+  const visibleDrumItems = useMemo(
+    () => drumItems.slice(0, visibleDrumCount),
+    [drumItems, visibleDrumCount]
+  );
+  const hiddenDrumCount = Math.max(drumItems.length - visibleDrumItems.length, 0);
 
   useEffect(() => {
     if (currentUser) {
@@ -1336,6 +1343,7 @@ function App() {
   const handleReset = () => {
     setForm(applyUserDefaults(emptyForm, currentUser));
     setDrumItems([emptyDrumItem()]);
+    setVisibleDrumCount(DRUM_ROWS_BATCH_SIZE);
     setBulkDrumText("");
     setQuickDrumSetup({ count: "", netWt: "", tareWt: "" });
     setStatusMessage("");
@@ -1369,6 +1377,7 @@ function App() {
 
       return [...items, emptyDrumItem(getNextDrumNo(lastDrumNo))];
     });
+    setVisibleDrumCount((count) => count + 1);
   };
 
   const removeDrumItem = (id) => {
@@ -1376,9 +1385,10 @@ function App() {
     setDrumItems((items) =>
       items.length === 1 ? [emptyDrumItem()] : items.filter((item) => item.id !== id)
     );
+    setVisibleDrumCount((count) => Math.max(DRUM_ROWS_BATCH_SIZE, count - 1));
   };
 
-  const importBulkDrumRows = () => {
+  const applyPastedDrumWeights = () => {
     const nextItems = parseBulkDrumRows(bulkDrumText);
 
     setStatusMessage("");
@@ -1389,7 +1399,8 @@ function App() {
     }
 
     setDrumItems(nextItems);
-    setStatusMessage(`${nextItems.length} drum row(s) added from the pasted weights.`);
+    setVisibleDrumCount(DRUM_ROWS_BATCH_SIZE);
+    setStatusMessage(`${nextItems.length} drum row(s) prepared from the pasted weights.`);
   };
 
   const handleQuickDrumSetupChange = (field, value) => {
@@ -1413,6 +1424,7 @@ function App() {
     );
 
     setDrumItems(nextItems);
+    setVisibleDrumCount(DRUM_ROWS_BATCH_SIZE);
     setStatusMessage(
       `${limitedCount} drum row(s) generated. You can edit any row that has a different weight.`
     );
@@ -1650,7 +1662,7 @@ function App() {
                 </button>
               </div>
               <label>
-                <span>Paste Weight List</span>
+                <span>Paste Different Weights</span>
                 <textarea
                   value={bulkDrumText}
                   onChange={(e) => setBulkDrumText(e.target.value)}
@@ -1660,8 +1672,8 @@ function App() {
               </label>
               <div className="bulk-drum-actions">
                 <small>Use one line per drum: Net Wt., Tare Wt. Gross Wt. is calculated automatically.</small>
-                <button className="secondary-button" type="button" onClick={importBulkDrumRows}>
-                  Import Weights
+                <button className="secondary-button" type="button" onClick={applyPastedDrumWeights}>
+                  Apply Weight List
                 </button>
               </div>
             </div>
@@ -1675,7 +1687,7 @@ function App() {
                 <span></span>
               </div>
 
-              {drumItems.map((item, index) => (
+              {visibleDrumItems.map((item, index) => (
                 <div className="drum-row" key={item.id}>
                   <label>
                     <span>Drum No</span>
@@ -1727,6 +1739,34 @@ function App() {
                 </div>
               ))}
             </div>
+            {drumItems.length > DRUM_ROWS_BATCH_SIZE && (
+              <div className="drum-load-more">
+                <span>
+                  Showing {visibleDrumItems.length} of {drumItems.length} drum rows
+                </span>
+                {hiddenDrumCount > 0 ? (
+                  <button
+                    className="secondary-button"
+                    type="button"
+                    onClick={() =>
+                      setVisibleDrumCount((count) =>
+                        Math.min(count + DRUM_ROWS_BATCH_SIZE, drumItems.length)
+                      )
+                    }
+                  >
+                    Load More
+                  </button>
+                ) : (
+                  <button
+                    className="secondary-button"
+                    type="button"
+                    onClick={() => setVisibleDrumCount(DRUM_ROWS_BATCH_SIZE)}
+                  >
+                    Show Less
+                  </button>
+                )}
+              </div>
+            )}
                 </section>
               )}
             </div>

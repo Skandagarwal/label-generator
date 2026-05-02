@@ -510,6 +510,21 @@ dt {
   text-transform: uppercase;
 }
 
+.drum-load-more {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  margin-top: 10px;
+  color: #556a64;
+  background: #fbfcfb;
+  border: 1px solid #edf1ef;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
 .icon-button {
   min-height: 42px;
   padding: 0 12px;
@@ -884,6 +899,11 @@ dd {
 
   .drum-row label span {
     display: block;
+  }
+
+  .drum-load-more {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .history-toolbar,
