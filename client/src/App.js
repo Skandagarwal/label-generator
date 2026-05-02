@@ -1276,6 +1276,11 @@ function App() {
   const [form, setForm] = useState(() => applyUserDefaults(emptyForm));
   const [drumItems, setDrumItems] = useState([emptyDrumItem()]);
   const [bulkDrumText, setBulkDrumText] = useState("");
+  const [quickDrumSetup, setQuickDrumSetup] = useState({
+    count: "",
+    netWt: "",
+    tareWt: "",
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
   const currentManufacturerDetails = getSavedManufacturerDetails(currentUser);
@@ -1332,6 +1337,7 @@ function App() {
     setForm(applyUserDefaults(emptyForm, currentUser));
     setDrumItems([emptyDrumItem()]);
     setBulkDrumText("");
+    setQuickDrumSetup({ count: "", netWt: "", tareWt: "" });
     setStatusMessage("");
   };
 
@@ -1384,6 +1390,32 @@ function App() {
 
     setDrumItems(nextItems);
     setStatusMessage(`${nextItems.length} drum row(s) added from the pasted weights.`);
+  };
+
+  const handleQuickDrumSetupChange = (field, value) => {
+    setStatusMessage("");
+    setQuickDrumSetup((values) => ({ ...values, [field]: value }));
+  };
+
+  const generateQuickDrumRows = () => {
+    const count = Number.parseInt(quickDrumSetup.count, 10);
+
+    setStatusMessage("");
+
+    if (!Number.isFinite(count) || count < 1) {
+      setStatusMessage("Enter how many drums you want to generate.");
+      return;
+    }
+
+    const limitedCount = Math.min(count, 500);
+    const nextItems = Array.from({ length: limitedCount }, (_, index) =>
+      emptyDrumItem(String(index + 1), quickDrumSetup.netWt, quickDrumSetup.tareWt)
+    );
+
+    setDrumItems(nextItems);
+    setStatusMessage(
+      `${limitedCount} drum row(s) generated. You can edit any row that has a different weight.`
+    );
   };
 
   const handleSubmit = async (e) => {
@@ -1585,6 +1617,38 @@ function App() {
             </div>
 
             <div className="bulk-drum-import">
+              <div className="quick-drum-grid">
+                <label>
+                  <span>Total Drums</span>
+                  <input
+                    type="number"
+                    min="1"
+                    max="500"
+                    value={quickDrumSetup.count}
+                    onChange={(e) => handleQuickDrumSetupChange("count", e.target.value)}
+                    placeholder="100"
+                  />
+                </label>
+                <label>
+                  <span>Same Net Wt.</span>
+                  <input
+                    value={quickDrumSetup.netWt}
+                    onChange={(e) => handleQuickDrumSetupChange("netWt", e.target.value)}
+                    placeholder="25.000"
+                  />
+                </label>
+                <label>
+                  <span>Same Tare Wt.</span>
+                  <input
+                    value={quickDrumSetup.tareWt}
+                    onChange={(e) => handleQuickDrumSetupChange("tareWt", e.target.value)}
+                    placeholder="3.640"
+                  />
+                </label>
+                <button className="secondary-button" type="button" onClick={generateQuickDrumRows}>
+                  Generate Rows
+                </button>
+              </div>
               <label>
                 <span>Paste Weight List</span>
                 <textarea
