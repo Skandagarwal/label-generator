@@ -469,7 +469,8 @@ dt {
 }
 
 input,
-textarea {
+textarea,
+select {
   width: 100%;
   box-sizing: border-box;
   color: #17221f;
@@ -481,7 +482,8 @@ textarea {
 }
 
 input:focus,
-textarea:focus {
+textarea:focus,
+select:focus {
   border-color: #126346;
   box-shadow: 0 0 0 3px rgba(18, 99, 70, 0.14);
   outline: none;

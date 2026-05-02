@@ -26,6 +26,16 @@ const fields = [
   { name: "lotNo", label: "Lot No", required: true },
   { name: "poNo", label: "P.O. No" },
   { name: "mfgDate", label: "Mfg. Date", type: "date" },
+  {
+    name: "bestBeforeGap",
+    label: "Best Before Gap",
+    type: "select",
+    defaultValue: "2",
+    options: Array.from({ length: 10 }, (_, index) => ({
+      value: String(index + 1),
+      label: `${index + 1} year${index === 0 ? "" : "s"}`,
+    })),
+  },
   { name: "bestBefore", label: "Best Before", type: "date" },
   { name: "netWt", label: "Net Wt.", placeholder: "25.000 KGS." },
   { name: "tareWt", label: "Tare Wt.", placeholder: "3.640 KGS." },
@@ -61,6 +71,7 @@ const fieldGroups = [
       "lotNo",
       "poNo",
       "mfgDate",
+      "bestBeforeGap",
       "bestBefore",
     ],
   },
@@ -191,15 +202,16 @@ const normalizeDateValue = (value) => {
   return parsed ? formatDate(parsed) : value;
 };
 
-const calculateBestBefore = (mfgDate) => {
+const calculateBestBefore = (mfgDate, yearGap = 2) => {
   const parsed = parseDate(mfgDate);
 
   if (!parsed) {
     return "";
   }
 
+  const years = Math.max(1, Number(yearGap) || 2);
   const bestBefore = new Date(parsed);
-  bestBefore.setFullYear(bestBefore.getFullYear() + 2);
+  bestBefore.setFullYear(bestBefore.getFullYear() + years);
   bestBefore.setDate(bestBefore.getDate() - 1);
 
   return formatDate(bestBefore);
@@ -1282,14 +1294,22 @@ function App() {
     const nextForm = {
       ...form,
       mfgDate: value,
+      bestBefore: toInputDate(calculateBestBefore(value, form.bestBeforeGap)),
     };
-
-    if (!form.bestBefore.trim()) {
-      nextForm.bestBefore = toInputDate(calculateBestBefore(value));
-    }
 
     setStatusMessage("");
     setForm(nextForm);
+  };
+
+  const handleBestBeforeGapChange = (e) => {
+    const { value } = e.target;
+
+    setStatusMessage("");
+    setForm({
+      ...form,
+      bestBeforeGap: value,
+      bestBefore: toInputDate(calculateBestBefore(form.mfgDate, value)),
+    });
   };
 
   const handleReset = () => {
@@ -1356,7 +1376,7 @@ function App() {
         mfgDate: normalizeDateValue(form.mfgDate),
         bestBefore:
           normalizeDateValue(form.bestBefore) ||
-          calculateBestBefore(form.mfgDate),
+          calculateBestBefore(form.mfgDate, form.bestBeforeGap),
       };
 
       const res = await axios.post(
@@ -1467,7 +1487,24 @@ function App() {
                         className={field.multiline ? "field field-wide" : "field"}
                       >
                         <span>{field.label}</span>
-                        {field.multiline ? (
+                        {field.type === "select" ? (
+                          <select
+                            name={field.name}
+                            value={fieldValue}
+                            onChange={
+                              field.name === "bestBeforeGap"
+                                ? handleBestBeforeGapChange
+                                : handleChange
+                            }
+                            required={field.required}
+                          >
+                            {field.options.map((option) => (
+                              <option key={option.value} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </select>
+                        ) : field.multiline ? (
                           <textarea
                             name={field.name}
                             value={fieldValue}

@@ -8,6 +8,7 @@ const LabelSchema = new mongoose.Schema(
     lotNo: String,
     poNo: String,
     mfgDate: String,
+    bestBeforeGap: String,
     bestBefore: String,
     netWt: String,
     tareWt: String,
