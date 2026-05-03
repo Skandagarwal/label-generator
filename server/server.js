@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const path = require("node:path");
-const { connectDatabase } = require("./services/dataStore");
+const { connectDatabase, getDatabaseProvider } = require("./services/dataStore");
 
 const app = express();
 const PORT = process.env.PORT || 5050;
@@ -33,6 +33,13 @@ app.use("/api", labelRoutes);
 
 app.get("/test", (req, res) => {
   res.send("TEST WORKING");
+});
+
+app.get("/api/status", (req, res) => {
+  res.json({
+    database: getDatabaseProvider(),
+    firebaseConfigured: getDatabaseProvider() === "firebase",
+  });
 });
 
 app.use(express.static(clientBuildPath));

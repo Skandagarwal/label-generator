@@ -13,6 +13,8 @@ const hasFirebaseConfig = () =>
         process.env.FIREBASE_PRIVATE_KEY)
   );
 
+const getDatabaseProvider = () => (hasFirebaseConfig() ? "firebase" : "mongodb");
+
 const parseServiceAccount = () => {
   if (process.env.FIREBASE_SERVICE_ACCOUNT_BASE64) {
     return JSON.parse(
@@ -233,6 +235,7 @@ const userStore = {
 
 module.exports = {
   connectDatabase,
+  getDatabaseProvider,
   labelStore,
   userStore,
 };
