@@ -1,5 +1,5 @@
 const express = require("express");
-const { userStore } = require("../services/dataStore");
+const { userStore, verifyFirebaseIdToken } = require("../services/dataStore");
 
 const router = express.Router();
 const otpStore = new Map();
@@ -101,6 +101,38 @@ router.post("/verify-otp", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Could not load user profile" });
+  }
+});
+
+router.post("/firebase-login", async (req, res) => {
+  try {
+    const name = String(req.body.name || "").trim();
+    const idToken = String(req.body.idToken || "").trim();
+
+    if (!name) {
+      return res.status(400).json({ message: "Enter your name" });
+    }
+
+    if (!idToken) {
+      return res.status(400).json({ message: "Missing Firebase login token" });
+    }
+
+    const decodedToken = await verifyFirebaseIdToken(idToken);
+    const phone = normalizePhone(decodedToken.phone_number);
+
+    if (!isValidPhone(phone)) {
+      return res.status(400).json({ message: "Firebase phone number is invalid" });
+    }
+
+    const user = await userStore.saveLogin(phone, name || phone);
+
+    res.json({
+      message: "Login successful",
+      user: serializeUser(user),
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Could not verify Firebase OTP" });
   }
 });
 

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
+import { hasFirebaseWebConfig, sendFirebaseOtp } from "./firebaseAuth";
 import "./App.css";
 
 const API_BASE =
@@ -401,6 +402,7 @@ function LoginPage({ onLogin }) {
   const [devOtp, setDevOtp] = useState("");
   const [status, setStatus] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [firebaseConfirmation, setFirebaseConfirmation] = useState(null);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -408,6 +410,23 @@ function LoginPage({ onLogin }) {
     setIsSubmitting(true);
 
     if (step === "phone") {
+      if (hasFirebaseWebConfig) {
+        sendFirebaseOtp(phone)
+          .then((confirmation) => {
+            setFirebaseConfirmation(confirmation);
+            setDevOtp("");
+            setStep("otp");
+            setStatus("OTP sent to the phone number.");
+          })
+          .catch((err) => {
+            console.error(err);
+            setStatus("Could not send OTP. Check the phone number and try again.");
+          })
+          .finally(() => setIsSubmitting(false));
+
+        return;
+      }
+
       axios
         .post(`${API_BASE}/auth/request-otp`, { name, phone })
         .then((res) => {
@@ -417,6 +436,38 @@ function LoginPage({ onLogin }) {
         })
         .catch((err) => {
           setStatus(err.response?.data?.message || "Could not send OTP.");
+        })
+        .finally(() => setIsSubmitting(false));
+
+      return;
+    }
+
+    if (firebaseConfirmation) {
+      firebaseConfirmation
+        .confirm(otp)
+        .then((result) => result.user.getIdToken())
+        .then((idToken) => axios.post(`${API_BASE}/auth/firebase-login`, { name, idToken }))
+        .then((res) => {
+          const user = res.data.user || {};
+          const userName = user.name || name.trim() || phone;
+          const localDetails = getSavedManufacturerDetails(userName);
+          const mergedUser = mergeProfileDetails(
+            { ...user, name: userName, phone: user.phone || phone },
+            localDetails
+          );
+
+          saveUserProfileLocally(mergedUser);
+          if (hasProfileBackfill(user, mergedUser)) {
+            axios.put(`${API_BASE}/auth/profile`, mergedUser).catch((err) => {
+              console.error("Could not migrate local profile to Firebase", err);
+            });
+          }
+          onLogin(mergedUser.name || userName);
+          window.history.pushState({}, "", "/home");
+        })
+        .catch((err) => {
+          console.error(err);
+          setStatus("Could not verify OTP.");
         })
         .finally(() => setIsSubmitting(false));
 
@@ -510,6 +561,7 @@ function LoginPage({ onLogin }) {
                   setOtp("");
                   setDevOtp("");
                   setStatus("");
+                  setFirebaseConfirmation(null);
                 }}
               >
                 Change Number
@@ -519,6 +571,7 @@ function LoginPage({ onLogin }) {
               {isSubmitting ? "Please wait..." : step === "phone" ? "Send OTP" : "Verify OTP"}
             </button>
           </div>
+          <div id="firebase-recaptcha" />
         </form>
       </section>
     </main>

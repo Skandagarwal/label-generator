@@ -80,6 +80,11 @@ const getFirebaseDb = () => {
   return firebaseDb;
 };
 
+const verifyFirebaseIdToken = async (idToken) => {
+  getFirebaseDb();
+  return admin.auth().verifyIdToken(idToken);
+};
+
 const connectDatabase = async () => {
   if (hasFirebaseConfig()) {
     getFirebaseDb();
@@ -236,6 +241,7 @@ const userStore = {
 module.exports = {
   connectDatabase,
   getDatabaseProvider,
+  verifyFirebaseIdToken,
   labelStore,
   userStore,
 };
