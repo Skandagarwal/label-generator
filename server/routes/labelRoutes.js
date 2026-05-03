@@ -31,6 +31,8 @@ const getDrumNumbers = (value = "") =>
     .map((item) => item.trim())
     .filter(Boolean);
 
+const normalizePhone = (phone = "") => String(phone).replace(/[^\d+]/g, "").trim();
+
 const parseWeight = (value = "") => {
   const match = String(value).trim().match(/^(-?\d+(?:\.\d+)?)\s*(.*)$/);
 
@@ -138,6 +140,7 @@ const formatDate = (value = "") => {
 
 const normalizeLabelData = (data) => ({
   ...data,
+  ownerPhone: normalizePhone(data.ownerPhone),
   mfgDate: formatDate(data.mfgDate),
   bestBefore: formatDate(data.bestBefore),
 });
@@ -310,7 +313,7 @@ const downloadPdf = (res, pdfPath, fileName) => {
 
 router.get("/labels", async (req, res) => {
   try {
-    const labels = await labelStore.list();
+    const labels = await labelStore.list(normalizePhone(req.query.ownerPhone));
 
     res.json(labels.map(serializeLabel));
   } catch (err) {

@@ -48,6 +48,9 @@ const toSerializableDate = (value) => {
   return value;
 };
 
+const scopedQuery = (query = {}, ownerPhone = "") =>
+  ownerPhone ? { ...query, ownerPhone } : query;
+
 const fromFirebaseDoc = (doc) => {
   if (!doc.exists) {
     return null;
@@ -101,18 +104,25 @@ const serverTimestamp = () =>
   admin ? admin.firestore.FieldValue.serverTimestamp() : new Date();
 
 const labelStore = {
-  async list() {
+  async list(ownerPhone = "") {
     if (hasFirebaseConfig()) {
-      const snapshot = await getFirebaseDb()
-        .collection("labels")
-        .orderBy("createdAt", "desc")
-        .limit(500)
-        .get();
+      let query = getFirebaseDb().collection("labels");
+
+      if (ownerPhone) {
+        query = query.where("ownerPhone", "==", ownerPhone);
+        const snapshot = await query.limit(500).get();
+
+        return snapshot.docs
+          .map(fromFirebaseDoc)
+          .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+      }
+
+      const snapshot = await query.orderBy("createdAt", "desc").limit(500).get();
 
       return snapshot.docs.map(fromFirebaseDoc);
     }
 
-    return Label.find().sort({ _id: -1 }).limit(500).lean();
+    return Label.find(scopedQuery({}, ownerPhone)).sort({ _id: -1 }).limit(500).lean();
   },
 
   async getById(id) {

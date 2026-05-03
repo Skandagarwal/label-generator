@@ -24,6 +24,7 @@ const LabelSchema = new mongoose.Schema(
     manufacturerEmail: String,
     manufacturerPhone: String,
     manufacturerLogo: String,
+    ownerPhone: { type: String, index: true },
   },
   { timestamps: true }
 );

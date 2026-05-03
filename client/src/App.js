@@ -282,18 +282,59 @@ const getSavedUser = () =>
   window.localStorage.getItem("labelUserPhone") ||
   "";
 const getSavedPhone = () => window.localStorage.getItem("labelUserPhone") || "";
-const getSavedManufacturer = () =>
-  window.localStorage.getItem("labelUserManufacturer") ||
-  window.localStorage.getItem("labelUserName") ||
-  "";
-const getSavedManufacturerDetails = (userName = getSavedUser()) => ({
-  manufacturer: getSavedManufacturer() || userName || "",
+const getProfileStorageKey = (phone = getSavedPhone()) =>
+  phone ? `labelUserProfile:${phone}` : "";
+const emptyManufacturerDetails = (userName = "", phone = "") => ({
+  manufacturer: userName || "",
+  manufacturerAddress: "",
+  manufacturerWebsite: "",
+  manufacturerEmail: "",
+  manufacturerPhone: phone || "",
+  manufacturerLogo: "",
+});
+const getLegacyManufacturerDetails = (userName = getSavedUser(), phone = getSavedPhone()) => ({
+  manufacturer:
+    window.localStorage.getItem("labelUserManufacturer") ||
+    window.localStorage.getItem("labelUserName") ||
+    userName ||
+    "",
   manufacturerAddress: window.localStorage.getItem("labelUserManufacturerAddress") || "",
   manufacturerWebsite: window.localStorage.getItem("labelUserManufacturerWebsite") || "",
   manufacturerEmail: window.localStorage.getItem("labelUserManufacturerEmail") || "",
-  manufacturerPhone: window.localStorage.getItem("labelUserManufacturerPhone") || "",
+  manufacturerPhone: window.localStorage.getItem("labelUserManufacturerPhone") || phone || "",
   manufacturerLogo: window.localStorage.getItem("labelUserManufacturerLogo") || "",
 });
+const getSavedManufacturerDetails = (userName = getSavedUser(), phone = getSavedPhone()) => {
+  const key = getProfileStorageKey(phone);
+
+  if (key) {
+    try {
+      const savedProfile = JSON.parse(window.localStorage.getItem(key) || "null");
+
+      if (savedProfile) {
+        return {
+          ...emptyManufacturerDetails(userName, phone),
+          manufacturer: savedProfile.manufacturer || savedProfile.name || userName || "",
+          manufacturerAddress: savedProfile.manufacturerAddress || "",
+          manufacturerWebsite: savedProfile.manufacturerWebsite || "",
+          manufacturerEmail: savedProfile.manufacturerEmail || "",
+          manufacturerPhone: savedProfile.manufacturerPhone || savedProfile.phone || phone || "",
+          manufacturerLogo: savedProfile.manufacturerLogo || "",
+        };
+      }
+    } catch (err) {
+      console.error("Could not read saved profile", err);
+    }
+  }
+
+  // Only use the old unscoped localStorage profile for the same phone number.
+  // This avoids leaking one vendor's manufacturer details into another login.
+  if (phone && window.localStorage.getItem("labelUserPhone") === phone) {
+    return getLegacyManufacturerDetails(userName, phone);
+  }
+
+  return emptyManufacturerDetails(userName, phone);
+};
 
 const saveUserProfileLocally = (user = {}) => {
   if (user.name) {
@@ -313,6 +354,22 @@ const saveUserProfileLocally = (user = {}) => {
     user.manufacturerPhone || user.phone || ""
   );
   window.localStorage.setItem("labelUserManufacturerLogo", user.manufacturerLogo || "");
+
+  if (user.phone) {
+    window.localStorage.setItem(
+      getProfileStorageKey(user.phone),
+      JSON.stringify({
+        phone: user.phone,
+        name: user.name || user.phone,
+        manufacturer: user.manufacturer || user.name || "",
+        manufacturerAddress: user.manufacturerAddress || "",
+        manufacturerWebsite: user.manufacturerWebsite || "",
+        manufacturerEmail: user.manufacturerEmail || "",
+        manufacturerPhone: user.manufacturerPhone || user.phone || "",
+        manufacturerLogo: user.manufacturerLogo || "",
+      })
+    );
+  }
 };
 
 const mergeProfileDetails = (serverUser = {}, localDetails = getSavedManufacturerDetails()) => ({
@@ -350,6 +407,13 @@ const downloadLabelPdf = async (label) => {
   a.download = `label-${safeFilePart(label.drumNo || label._id)}.pdf`;
   a.click();
   window.URL.revokeObjectURL(url);
+};
+
+const labelsApiUrl = () => {
+  const ownerPhone = getSavedPhone();
+  const params = ownerPhone ? `?ownerPhone=${encodeURIComponent(ownerPhone)}` : "";
+
+  return `${API_BASE}/labels${params}`;
 };
 
 const firebaseOtpErrorMessage = (err = {}) => {
@@ -476,9 +540,10 @@ function LoginPage({ onLogin }) {
         .then((res) => {
           const user = res.data.user || {};
           const userName = user.name || name.trim() || phone;
-          const localDetails = getSavedManufacturerDetails(userName);
+          const userPhone = user.phone || phone;
+          const localDetails = getSavedManufacturerDetails(userName, userPhone);
           const mergedUser = mergeProfileDetails(
-            { ...user, name: userName, phone: user.phone || phone },
+            { ...user, name: userName, phone: userPhone },
             localDetails
           );
 
@@ -505,9 +570,10 @@ function LoginPage({ onLogin }) {
       .then((res) => {
         const user = res.data.user || {};
         const userName = user.name || name.trim() || phone;
-        const localDetails = getSavedManufacturerDetails(userName);
+        const userPhone = user.phone || phone;
+        const localDetails = getSavedManufacturerDetails(userName, userPhone);
         const mergedUser = mergeProfileDetails(
-          { ...user, name: userName, phone: user.phone || phone },
+          { ...user, name: userName, phone: userPhone },
           localDetails
         );
 
@@ -644,14 +710,14 @@ function ProfilePage({ userName, onUserUpdate, onLogout }) {
       saveUserProfileLocally(savedUser);
       setName(savedUser.name || nextName);
       setPhone(savedUser.phone || nextPhone);
-      setManufacturerDetails(getSavedManufacturerDetails(savedUser.name || nextName));
+      setManufacturerDetails(getSavedManufacturerDetails(savedUser.name || nextName, savedUser.phone || nextPhone));
       onUserUpdate(savedUser.name || nextName);
-      setStatus("Profile saved to MongoDB.");
+      setStatus("Profile saved.");
     } catch (err) {
       console.error(err);
       saveUserProfileLocally(payload);
       onUserUpdate(nextName);
-      setStatus("Profile saved on this device. MongoDB save failed.");
+      setStatus("Profile saved on this device. Server save failed.");
     } finally {
       setIsSaving(false);
     }
@@ -811,7 +877,7 @@ function HomePage({ userName, onLogout }) {
     let active = true;
 
     axios
-      .get(`${API_BASE}/labels`)
+      .get(labelsApiUrl())
       .then((res) => {
         if (active) {
           setLabels(res.data);
@@ -947,7 +1013,7 @@ function HistoryPage() {
     let active = true;
 
     axios
-      .get(`${API_BASE}/labels`)
+      .get(labelsApiUrl())
       .then((res) => {
         if (active) {
           setLabels(res.data);
@@ -1517,6 +1583,7 @@ function App() {
       const payload = {
         ...form,
         ...currentManufacturerDetails,
+        ownerPhone: getSavedPhone(),
         manufacturer: currentManufacturer,
         drumItems: validDrumItems.map(({ netWt, tareWt, grossWt }, index) => ({
           drumNo: formatDrumSequence(index, validDrumItems.length),
