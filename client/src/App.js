@@ -352,6 +352,32 @@ const downloadLabelPdf = async (label) => {
   window.URL.revokeObjectURL(url);
 };
 
+const firebaseOtpErrorMessage = (err = {}) => {
+  const code = err.code || "";
+
+  if (code === "auth/operation-not-allowed") {
+    return "Phone OTP is not enabled in Firebase Authentication.";
+  }
+
+  if (code === "auth/unauthorized-domain") {
+    return "This website domain is not authorized in Firebase Authentication.";
+  }
+
+  if (code === "auth/invalid-phone-number") {
+    return "Enter phone number with country code, for example +919639011349.";
+  }
+
+  if (code === "auth/too-many-requests") {
+    return "Too many OTP attempts. Please wait and try again.";
+  }
+
+  if (code === "auth/billing-not-enabled") {
+    return "Firebase phone OTP needs billing enabled for this project.";
+  }
+
+  return err.message ? `${err.message} (${code || "Firebase OTP"})` : "Could not send OTP.";
+};
+
 function DeleteConfirmDialog({ labelName, onCancel, onConfirm, busy }) {
   return (
     <div className="modal-backdrop" role="presentation">
@@ -420,7 +446,7 @@ function LoginPage({ onLogin }) {
           })
           .catch((err) => {
             console.error(err);
-            setStatus("Could not send OTP. Check the phone number and try again.");
+            setStatus(firebaseOtpErrorMessage(err));
           })
           .finally(() => setIsSubmitting(false));
 
