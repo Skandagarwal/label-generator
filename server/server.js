@@ -1,18 +1,15 @@
 const express = require("express");
-const mongoose = require("mongoose");
 const cors = require("cors");
 const path = require("node:path");
+const { connectDatabase } = require("./services/dataStore");
 
 const app = express();
 const PORT = process.env.PORT || 5050;
-const MONGO_URI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/labels";
 const CLIENT_ORIGINS = (process.env.CLIENT_ORIGIN || "http://localhost:3000")
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
 const clientBuildPath = path.join(__dirname, "..", "client", "build");
-
-mongoose.set("bufferCommands", false);
 
 app.use(
   cors({
@@ -46,11 +43,10 @@ app.get(/^\/(?!api).*/, (req, res) => {
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
-mongoose
-  .connect(MONGO_URI, { serverSelectionTimeoutMS: 10000 })
+connectDatabase()
   .then(() => {
-    console.log("MongoDB connected");
+    console.log("Database ready");
   })
   .catch((err) => {
-    console.error("MongoDB connection failed:", err.message);
+    console.error("Database connection failed:", err.message);
   });

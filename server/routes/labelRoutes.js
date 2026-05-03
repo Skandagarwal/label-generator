@@ -6,7 +6,7 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 
-const Label = require("../models/Label");
+const { labelStore } = require("../services/dataStore");
 const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN || "http://localhost:3000";
 const PUBLIC_API_ORIGIN = process.env.PUBLIC_API_ORIGIN || "http://localhost:5050";
 
@@ -169,6 +169,7 @@ const serializeLabel = (label) => {
 
   return {
     ...normalized,
+    _id: String(label._id || label.id || ""),
     createdAt,
   };
 };
@@ -309,7 +310,7 @@ const downloadPdf = (res, pdfPath, fileName) => {
 
 router.get("/labels", async (req, res) => {
   try {
-    const labels = await Label.find().sort({ _id: -1 }).limit(500).lean();
+    const labels = await labelStore.list();
 
     res.json(labels.map(serializeLabel));
   } catch (err) {
@@ -320,7 +321,7 @@ router.get("/labels", async (req, res) => {
 
 router.get("/labels/:id/pdf", async (req, res) => {
   try {
-    const label = await Label.findById(req.params.id).lean();
+    const label = await labelStore.getById(req.params.id);
 
     if (!label) {
       return res.status(404).send("Label not found");
@@ -339,7 +340,7 @@ router.get("/labels/:id/pdf", async (req, res) => {
 
 router.get("/labels/:id", async (req, res) => {
   try {
-    const label = await Label.findById(req.params.id).lean();
+    const label = await labelStore.getById(req.params.id);
 
     if (!label) {
       return res.status(404).json({ message: "Label not found" });
@@ -354,7 +355,7 @@ router.get("/labels/:id", async (req, res) => {
 
 router.delete("/labels/:id", async (req, res) => {
   try {
-    const label = await Label.findByIdAndDelete(req.params.id).lean();
+    const label = await labelStore.deleteById(req.params.id);
 
     if (!label) {
       return res.status(404).json({ message: "Label not found" });
@@ -386,7 +387,7 @@ router.post("/generate", async (req, res) => {
         tareWt: drumItem.tareWt,
         grossWt: drumItem.grossWt,
       };
-      const saved = await Label.create(labelData);
+      const saved = await labelStore.create(labelData);
       const qr = await QRCode.toDataURL(labelPdfUrl(req, saved._id));
 
       labels.push({

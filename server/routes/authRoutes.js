@@ -1,5 +1,5 @@
 const express = require("express");
-const User = require("../models/User");
+const { userStore } = require("../services/dataStore");
 
 const router = express.Router();
 const otpStore = new Map();
@@ -92,20 +92,7 @@ router.post("/verify-otp", async (req, res) => {
   otpStore.delete(phone);
 
   try {
-    const user = await User.findOneAndUpdate(
-      { phone },
-      {
-        $setOnInsert: {
-          phone,
-          manufacturer: name || record.name || phone,
-          manufacturerPhone: phone,
-        },
-        $set: {
-          name: name || record.name || phone,
-        },
-      },
-      { returnDocument: "after", upsert: true }
-    ).lean();
+    const user = await userStore.saveLogin(phone, name || record.name || phone);
 
     res.json({
       message: "Login successful",
@@ -125,7 +112,7 @@ router.get("/profile/:phone", async (req, res) => {
       return res.status(400).json({ message: "Enter a valid phone number" });
     }
 
-    const user = await User.findOne({ phone }).lean();
+    const user = await userStore.getByPhone(phone);
 
     if (!user) {
       return res.status(404).json({ message: "Profile not found" });
@@ -147,17 +134,7 @@ router.put("/profile", async (req, res) => {
     }
 
     const fields = profileFields(req.body);
-    const user = await User.findOneAndUpdate(
-      { phone },
-      {
-        $set: {
-          phone,
-          ...fields,
-          manufacturerPhone: fields.manufacturerPhone || phone,
-        },
-      },
-      { returnDocument: "after", upsert: true }
-    ).lean();
+    const user = await userStore.saveProfile(phone, fields);
 
     res.json({ message: "Profile saved", user: serializeUser(user) });
   } catch (err) {
