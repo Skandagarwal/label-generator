@@ -20,6 +20,25 @@ export const hasFirebaseWebConfig = Boolean(
 );
 
 let auth;
+const RECAPTCHA_CONTAINER_ID = "firebase-recaptcha";
+
+const resetRecaptchaContainer = () => {
+  if (window.batchmarkRecaptchaVerifier) {
+    try {
+      window.batchmarkRecaptchaVerifier.clear();
+    } catch (err) {
+      console.warn("Could not clear Firebase reCAPTCHA verifier", err);
+    }
+
+    window.batchmarkRecaptchaVerifier = null;
+  }
+
+  const container = document.getElementById(RECAPTCHA_CONTAINER_ID);
+
+  if (container) {
+    container.innerHTML = "";
+  }
+};
 
 const getFirebaseAuth = () => {
   if (!hasFirebaseWebConfig) {
@@ -54,21 +73,24 @@ export const sendFirebaseOtp = async (phone) => {
     throw new Error("Firebase web config is missing.");
   }
 
-  if (window.batchmarkRecaptchaVerifier) {
-    window.batchmarkRecaptchaVerifier.clear();
-  }
+  resetRecaptchaContainer();
 
   window.batchmarkRecaptchaVerifier = new RecaptchaVerifier(
     firebaseAuth,
-    "firebase-recaptcha",
+    RECAPTCHA_CONTAINER_ID,
     {
       size: "invisible",
     }
   );
 
-  return signInWithPhoneNumber(
-    firebaseAuth,
-    normalizePhoneForFirebase(phone),
-    window.batchmarkRecaptchaVerifier
-  );
+  try {
+    return await signInWithPhoneNumber(
+      firebaseAuth,
+      normalizePhoneForFirebase(phone),
+      window.batchmarkRecaptchaVerifier
+    );
+  } catch (err) {
+    resetRecaptchaContainer();
+    throw err;
+  }
 };
