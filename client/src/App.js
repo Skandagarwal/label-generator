@@ -277,6 +277,83 @@ const safeFilePart = (value) =>
 
 const getLabelName = (label = {}) => label.commodity || label.drumNo || "this label";
 
+const getHistoryDay = (value) => {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "Unknown date";
+  }
+
+  return date.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+};
+
+const getHistoryTime = (value) => {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "-";
+  }
+
+  return date.toLocaleTimeString("en-IN", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
+const getBatchGroupKey = (label = {}) => {
+  const created = new Date(label.createdAt);
+  const createdMinute = Number.isNaN(created.getTime())
+    ? "unknown"
+    : created.toISOString().slice(0, 16);
+
+  return [
+    label.commodity || "untitled",
+    label.lotNo || "no-lot",
+    label.poNo || "no-po",
+    label.customerName || "no-customer",
+    label.mfgDate || "no-mfg",
+    label.bestBefore || "no-best-before",
+    createdMinute,
+  ].join("|");
+};
+
+const groupHistoryLabels = (items = []) => {
+  const groups = new Map();
+
+  items.forEach((label) => {
+    const key = getBatchGroupKey(label);
+    const existing = groups.get(key);
+
+    if (existing) {
+      existing.labels.push(label);
+      return;
+    }
+
+    groups.set(key, {
+      key,
+      commodity: label.commodity || "Untitled Label",
+      lotNo: label.lotNo || "-",
+      poNo: label.poNo || "-",
+      customerName: label.customerName || "-",
+      createdAt: label.createdAt,
+      labels: [label],
+    });
+  });
+
+  return Array.from(groups.values()).map((group) => ({
+    ...group,
+    labels: group.labels.slice().sort((a, b) =>
+      String(a.drumNo || "").localeCompare(String(b.drumNo || ""), undefined, {
+        numeric: true,
+      })
+    ),
+  }));
+};
+
 const getSavedUser = () =>
   window.localStorage.getItem("labelUserName") ||
   window.localStorage.getItem("labelUserPhone") ||
@@ -1008,6 +1085,7 @@ function HistoryPage() {
   const [selectedIds, setSelectedIds] = useState([]);
   const [bulkAction, setBulkAction] = useState("");
   const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
+  const [expandedGroupKeys, setExpandedGroupKeys] = useState([]);
 
   useEffect(() => {
     let active = true;
@@ -1052,6 +1130,7 @@ function HistoryPage() {
         .includes(term)
     );
   }, [labels, query]);
+  const historyGroups = useMemo(() => groupHistoryLabels(filteredLabels), [filteredLabels]);
   const selectedLabels = useMemo(
     () => labels.filter((label) => selectedIds.includes(label._id)),
     [labels, selectedIds]
@@ -1064,6 +1143,25 @@ function HistoryPage() {
     setSelectedIds((ids) =>
       ids.includes(id) ? ids.filter((item) => item !== id) : [...ids, id]
     );
+  };
+
+  const toggleGroupExpanded = (key) => {
+    setExpandedGroupKeys((keys) =>
+      keys.includes(key) ? keys.filter((item) => item !== key) : [...keys, key]
+    );
+  };
+
+  const toggleGroupSelection = (group) => {
+    const groupIds = group.labels.map((label) => label._id);
+    const groupSelected = groupIds.every((id) => selectedIds.includes(id));
+
+    setSelectedIds((ids) => {
+      if (groupSelected) {
+        return ids.filter((id) => !groupIds.includes(id));
+      }
+
+      return Array.from(new Set([...ids, ...groupIds]));
+    });
   };
 
   const toggleVisibleSelection = () => {
@@ -1089,6 +1187,26 @@ function HistoryPage() {
     } finally {
       setDownloadingId("");
     }
+  };
+
+  const handleGroupDownload = async (group) => {
+    setBulkAction(`download:${group.key}`);
+
+    try {
+      for (const label of group.labels) {
+        await downloadLabelPdf(label);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Could not download this batch.");
+    } finally {
+      setBulkAction("");
+    }
+  };
+
+  const handleGroupDeleteRequest = (group) => {
+    setSelectedIds(group.labels.map((label) => label._id));
+    setShowBulkDeleteDialog(true);
   };
 
   const confirmHistoryDelete = async () => {
@@ -1189,7 +1307,9 @@ function HistoryPage() {
               />
               <span>Select visible</span>
             </label>
-            <p>{selectedIds.length} selected</p>
+            <p>
+              {historyGroups.length} batch group(s) · {selectedIds.length} selected
+            </p>
             <button
               className="secondary-button"
               type="button"
@@ -1228,53 +1348,126 @@ function HistoryPage() {
         )}
 
         {status === "ready" && filteredLabels.length > 0 && (
-          <div className="history-list">
-            {filteredLabels.map((label) => (
-              <article className="history-row selectable-history-row" key={label._id}>
-                <label className="row-select" aria-label={`Select ${getLabelName(label)}`}>
-                  <input
-                    type="checkbox"
-                    checked={selectedIds.includes(label._id)}
-                    onChange={() => toggleSelected(label._id)}
-                  />
-                </label>
-                <div>
-                  <p className="history-title">{label.commodity || "Untitled Label"}</p>
-                  <p className="history-meta">
-                    Drum {label.drumNo || "-"} · Lot {label.lotNo || "-"}
-                  </p>
-                </div>
-                <div>
-                  <dt>Customer</dt>
-                  <dd>{label.customerName || "-"}</dd>
-                </div>
-                <div>
-                  <dt>Created</dt>
-                  <dd>{formatHistoryDate(label.createdAt)}</dd>
-                </div>
-                <div className="row-actions">
-                  <a className="button-link row-action secondary-link" href={`/label/${label._id}`}>
-                    View
-                  </a>
-                  <button
-                    className="row-action"
-                    type="button"
-                    onClick={() => handleHistoryDownload(label)}
-                    disabled={downloadingId === label._id || deletingId === label._id}
-                  >
-                    {downloadingId === label._id ? "Downloading..." : "Download"}
-                  </button>
-                  <button
-                    className="row-action danger-button"
-                    type="button"
-                    onClick={() => setLabelToDelete(label)}
-                    disabled={deletingId === label._id || downloadingId === label._id}
-                  >
-                    {deletingId === label._id ? "Deleting..." : "Delete"}
-                  </button>
-                </div>
-              </article>
-            ))}
+          <div className="history-groups">
+            {historyGroups.map((group, index) => {
+              const isExpanded =
+                expandedGroupKeys.includes(group.key) ||
+                (query.trim() && historyGroups.length <= 3) ||
+                (!expandedGroupKeys.length && index === 0);
+              const groupIds = group.labels.map((label) => label._id);
+              const groupSelected = groupIds.every((id) => selectedIds.includes(id));
+              const someGroupSelected = groupIds.some((id) => selectedIds.includes(id));
+
+              return (
+                <article className="history-group" key={group.key}>
+                  <div className="history-group-main">
+                    <label className="row-select" aria-label={`Select ${group.commodity}`}>
+                      <input
+                        type="checkbox"
+                        checked={groupSelected}
+                        ref={(input) => {
+                          if (input) {
+                            input.indeterminate = someGroupSelected && !groupSelected;
+                          }
+                        }}
+                        onChange={() => toggleGroupSelection(group)}
+                      />
+                    </label>
+                    <button
+                      className="group-toggle"
+                      type="button"
+                      onClick={() => toggleGroupExpanded(group.key)}
+                      aria-expanded={isExpanded}
+                    >
+                      <span aria-hidden="true">{isExpanded ? "−" : "+"}</span>
+                    </button>
+                    <div className="history-group-title">
+                      <p className="history-title">{group.commodity}</p>
+                      <p className="history-meta">
+                        Lot {group.lotNo} · P.O. {group.poNo} · {group.labels.length} label(s)
+                      </p>
+                    </div>
+                    <div>
+                      <dt>Customer</dt>
+                      <dd>{group.customerName}</dd>
+                    </div>
+                    <div>
+                      <dt>Created</dt>
+                      <dd>{getHistoryDay(group.createdAt)} · {getHistoryTime(group.createdAt)}</dd>
+                    </div>
+                    <div className="row-actions">
+                      <button
+                        className="row-action secondary-button"
+                        type="button"
+                        onClick={() => handleGroupDownload(group)}
+                        disabled={Boolean(bulkAction)}
+                      >
+                        {bulkAction === `download:${group.key}` ? "Downloading..." : "Download Batch"}
+                      </button>
+                      <button
+                        className="row-action danger-button"
+                        type="button"
+                        onClick={() => handleGroupDeleteRequest(group)}
+                        disabled={Boolean(bulkAction)}
+                      >
+                        Delete Batch
+                      </button>
+                    </div>
+                  </div>
+
+                  {isExpanded && (
+                    <div className="history-group-items">
+                      {group.labels.map((label) => (
+                        <article className="history-row selectable-history-row" key={label._id}>
+                          <label className="row-select" aria-label={`Select ${getLabelName(label)}`}>
+                            <input
+                              type="checkbox"
+                              checked={selectedIds.includes(label._id)}
+                              onChange={() => toggleSelected(label._id)}
+                            />
+                          </label>
+                          <div>
+                            <p className="history-title">Drum {label.drumNo || "-"}</p>
+                            <p className="history-meta">
+                              {label.netWt || "-"} net · {label.grossWt || "-"} gross
+                            </p>
+                          </div>
+                          <div>
+                            <dt>Lot</dt>
+                            <dd>{label.lotNo || "-"}</dd>
+                          </div>
+                          <div>
+                            <dt>Created</dt>
+                            <dd>{formatHistoryDate(label.createdAt)}</dd>
+                          </div>
+                          <div className="row-actions">
+                            <a className="button-link row-action secondary-link" href={`/label/${label._id}`}>
+                              View
+                            </a>
+                            <button
+                              className="row-action"
+                              type="button"
+                              onClick={() => handleHistoryDownload(label)}
+                              disabled={downloadingId === label._id || deletingId === label._id}
+                            >
+                              {downloadingId === label._id ? "Downloading..." : "Download"}
+                            </button>
+                            <button
+                              className="row-action danger-button"
+                              type="button"
+                              onClick={() => setLabelToDelete(label)}
+                              disabled={deletingId === label._id || downloadingId === label._id}
+                            >
+                              {deletingId === label._id ? "Deleting..." : "Delete"}
+                            </button>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  )}
+                </article>
+              );
+            })}
           </div>
         )}
       </section>
