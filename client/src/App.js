@@ -276,7 +276,6 @@ const safeFilePart = (value) =>
     .toLowerCase() || "label";
 
 const getLabelName = (label = {}) => label.commodity || label.drumNo || "this label";
-const normalizePhoneValue = (phone = "") => String(phone).replace(/[^\d+]/g, "").trim();
 
 const getHistoryDay = (value) => {
   const date = new Date(value);
@@ -1500,12 +1499,10 @@ function HistoryPage() {
   );
 }
 
-function LabelDetails({ id, currentUser = "" }) {
+function LabelDetails({ id }) {
   const [label, setLabel] = useState(null);
   const [status, setStatus] = useState("loading");
   const [isDownloading, setIsDownloading] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -1557,19 +1554,6 @@ function LabelDetails({ id, currentUser = "" }) {
     }
   };
 
-  const handleDetailDelete = async () => {
-    setIsDeleting(true);
-
-    try {
-      await axios.delete(labelDeleteUrl(label._id));
-      window.location.href = "/history";
-    } catch (err) {
-      console.error(err);
-      alert("Could not delete this label.");
-      setIsDeleting(false);
-    }
-  };
-
   const verificationItems = [
     { label: "Commodity", value: label.commodity },
     { label: "Lot No", value: label.lotNo },
@@ -1589,10 +1573,6 @@ function LabelDetails({ id, currentUser = "" }) {
     { label: "Manufacturer", value: label.manufacturer },
     { label: "Address", value: label.manufacturerAddress },
   ];
-  const isOwner =
-    Boolean(currentUser) &&
-    normalizePhoneValue(label.ownerPhone) &&
-    normalizePhoneValue(label.ownerPhone) === normalizePhoneValue(getSavedPhone());
 
   return (
     <main className="page-shell public-label-shell">
@@ -1688,7 +1668,7 @@ function LabelDetails({ id, currentUser = "" }) {
                 <dd>{label.license || "-"}</dd>
               </div>
               <div>
-                <dt>Format No</dt>
+              <dt>Format No</dt>
                 <dd>{label.formatNo || "-"}</dd>
               </div>
             </dl>
@@ -1696,34 +1676,11 @@ function LabelDetails({ id, currentUser = "" }) {
         )}
 
         <div className="detail-actions">
-          <button type="button" onClick={handleDetailDownload} disabled={isDownloading || isDeleting}>
+          <button type="button" onClick={handleDetailDownload} disabled={isDownloading}>
             {isDownloading ? "Downloading..." : "Download PDF"}
           </button>
-          {isOwner && (
-            <>
-              <button
-                className="danger-button"
-                type="button"
-                onClick={() => setShowDeleteDialog(true)}
-                disabled={isDeleting || isDownloading}
-              >
-                {isDeleting ? "Deleting..." : "Delete"}
-              </button>
-              <a className="button-link secondary-link" href="/create">Create another label</a>
-              <a className="button-link secondary-link" href="/history">History</a>
-            </>
-          )}
         </div>
       </section>
-
-      {showDeleteDialog && (
-        <DeleteConfirmDialog
-          labelName={getLabelName(label)}
-          onCancel={() => setShowDeleteDialog(false)}
-          onConfirm={handleDetailDelete}
-          busy={isDeleting}
-        />
-      )}
     </main>
   );
 }
@@ -1945,7 +1902,7 @@ function App() {
   };
 
   if (labelId) {
-    return <LabelDetails id={labelId} currentUser={currentUser} />;
+    return <LabelDetails id={labelId} />;
   }
 
   if (!currentUser) {
