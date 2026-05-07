@@ -358,11 +358,20 @@ router.get("/labels/:id", async (req, res) => {
 
 router.delete("/labels/:id", async (req, res) => {
   try {
-    const label = await labelStore.deleteById(req.params.id);
+    const existingLabel = await labelStore.getById(req.params.id);
 
-    if (!label) {
+    if (!existingLabel) {
       return res.status(404).json({ message: "Label not found" });
     }
+
+    const requestOwnerPhone = normalizePhone(req.query.ownerPhone || req.body?.ownerPhone);
+    const labelOwnerPhone = normalizePhone(existingLabel.ownerPhone);
+
+    if (!requestOwnerPhone || (labelOwnerPhone && requestOwnerPhone !== labelOwnerPhone)) {
+      return res.status(403).json({ message: "Only the label owner can delete this record" });
+    }
+
+    const label = await labelStore.deleteById(req.params.id);
 
     res.json({ message: "Label deleted" });
   } catch (err) {

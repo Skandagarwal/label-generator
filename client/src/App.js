@@ -276,6 +276,7 @@ const safeFilePart = (value) =>
     .toLowerCase() || "label";
 
 const getLabelName = (label = {}) => label.commodity || label.drumNo || "this label";
+const normalizePhoneValue = (phone = "") => String(phone).replace(/[^\d+]/g, "").trim();
 
 const getHistoryDay = (value) => {
   const date = new Date(value);
@@ -491,6 +492,13 @@ const labelsApiUrl = () => {
   const params = ownerPhone ? `?ownerPhone=${encodeURIComponent(ownerPhone)}` : "";
 
   return `${API_BASE}/labels${params}`;
+};
+
+const labelDeleteUrl = (id) => {
+  const ownerPhone = getSavedPhone();
+  const params = ownerPhone ? `?ownerPhone=${encodeURIComponent(ownerPhone)}` : "";
+
+  return `${API_BASE}/labels/${id}${params}`;
 };
 
 const firebaseOtpErrorMessage = (err = {}) => {
@@ -1217,7 +1225,7 @@ function HistoryPage() {
     setDeletingId(labelToDelete._id);
 
     try {
-      await axios.delete(`${API_BASE}/labels/${labelToDelete._id}`);
+      await axios.delete(labelDeleteUrl(labelToDelete._id));
       setLabels((items) => items.filter((item) => item._id !== labelToDelete._id));
       setLabelToDelete(null);
     } catch (err) {
@@ -1255,7 +1263,7 @@ function HistoryPage() {
     setBulkAction("delete");
 
     try {
-      await Promise.all(selectedLabels.map((label) => axios.delete(`${API_BASE}/labels/${label._id}`)));
+      await Promise.all(selectedLabels.map((label) => axios.delete(labelDeleteUrl(label._id))));
       setLabels((items) => items.filter((item) => !selectedIds.includes(item._id)));
       clearSelection();
       setShowBulkDeleteDialog(false);
@@ -1492,7 +1500,7 @@ function HistoryPage() {
   );
 }
 
-function LabelDetails({ id }) {
+function LabelDetails({ id, currentUser = "" }) {
   const [label, setLabel] = useState(null);
   const [status, setStatus] = useState("loading");
   const [isDownloading, setIsDownloading] = useState(false);
@@ -1553,7 +1561,7 @@ function LabelDetails({ id }) {
     setIsDeleting(true);
 
     try {
-      await axios.delete(`${API_BASE}/labels/${label._id}`);
+      await axios.delete(labelDeleteUrl(label._id));
       window.location.href = "/history";
     } catch (err) {
       console.error(err);
@@ -1580,10 +1588,11 @@ function LabelDetails({ id }) {
   const manufacturerItems = [
     { label: "Manufacturer", value: label.manufacturer },
     { label: "Address", value: label.manufacturerAddress },
-    { label: "Website", value: label.manufacturerWebsite },
-    { label: "Email", value: label.manufacturerEmail },
-    { label: "Phone", value: label.manufacturerPhone },
   ];
+  const isOwner =
+    Boolean(currentUser) &&
+    normalizePhoneValue(label.ownerPhone) &&
+    normalizePhoneValue(label.ownerPhone) === normalizePhoneValue(getSavedPhone());
 
   return (
     <main className="page-shell public-label-shell">
@@ -1690,16 +1699,20 @@ function LabelDetails({ id }) {
           <button type="button" onClick={handleDetailDownload} disabled={isDownloading || isDeleting}>
             {isDownloading ? "Downloading..." : "Download PDF"}
           </button>
-          <button
-            className="danger-button"
-            type="button"
-            onClick={() => setShowDeleteDialog(true)}
-            disabled={isDeleting || isDownloading}
-          >
-            {isDeleting ? "Deleting..." : "Delete"}
-          </button>
-          <a className="button-link secondary-link" href="/create">Create another label</a>
-          <a className="button-link secondary-link" href="/history">History</a>
+          {isOwner && (
+            <>
+              <button
+                className="danger-button"
+                type="button"
+                onClick={() => setShowDeleteDialog(true)}
+                disabled={isDeleting || isDownloading}
+              >
+                {isDeleting ? "Deleting..." : "Delete"}
+              </button>
+              <a className="button-link secondary-link" href="/create">Create another label</a>
+              <a className="button-link secondary-link" href="/history">History</a>
+            </>
+          )}
         </div>
       </section>
 
@@ -1931,12 +1944,12 @@ function App() {
     window.history.pushState({}, "", "/login");
   };
 
-  if (!currentUser) {
-    return <LoginPage onLogin={setCurrentUser} />;
+  if (labelId) {
+    return <LabelDetails id={labelId} currentUser={currentUser} />;
   }
 
-  if (labelId) {
-    return <LabelDetails id={labelId} />;
+  if (!currentUser) {
+    return <LoginPage onLogin={setCurrentUser} />;
   }
 
   if (isHomePage) {
