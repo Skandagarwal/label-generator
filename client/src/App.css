@@ -619,6 +619,119 @@ dd {
   padding: 24px;
 }
 
+.public-label-shell {
+  padding-top: 22px;
+}
+
+.public-label-card {
+  display: grid;
+  gap: 22px;
+  overflow: hidden;
+}
+
+.public-verify-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 20px;
+  align-items: center;
+  padding: 24px;
+  margin: -24px -24px 0;
+  background: #eef5f1;
+  border-bottom: 1px solid var(--line);
+}
+
+.public-verify-hero h1 {
+  margin: 18px 0 8px;
+  font-size: 38px;
+  line-height: 1.08;
+}
+
+.public-verify-hero p {
+  max-width: 680px;
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.verify-badge {
+  display: inline-flex;
+  width: max-content;
+  margin-top: 18px;
+  padding: 7px 10px;
+  color: var(--green-dark);
+  background: #ffffff;
+  border: 1px solid #c7e5d8;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.verify-stamp {
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  width: 128px;
+  height: 128px;
+  color: var(--green);
+  background: #ffffff;
+  border: 1px solid #c7e5d8;
+  border-radius: 50%;
+  font-weight: 900;
+  text-transform: uppercase;
+  box-shadow: var(--shadow-soft);
+}
+
+.verify-stamp span {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  color: #ffffff;
+  background: var(--green);
+  border-radius: 50%;
+  font-size: 28px;
+}
+
+.public-label-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.public-data-tile {
+  padding: 16px;
+  background: #fbfdfc;
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+}
+
+.public-data-tile dd {
+  font-size: 20px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.public-label-sections {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.public-label-sections section,
+.public-manufacturer-panel {
+  padding: 18px;
+  background: #ffffff;
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+}
+
+.mini-details-grid {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+}
+
 .summary-card {
   border-top: 5px solid var(--green);
 }
@@ -986,11 +1099,28 @@ dd {
   }
 
   .stats-grid,
+  .public-label-summary,
+  .public-label-sections,
   .form-grid,
   .details-grid,
   .quick-drum-grid,
   .bulk-drum-actions {
     grid-template-columns: 1fr;
+  }
+
+  .public-verify-hero {
+    grid-template-columns: 1fr;
+    margin: -18px -18px 0;
+    padding: 18px;
+  }
+
+  .public-verify-hero h1 {
+    font-size: 30px;
+  }
+
+  .verify-stamp {
+    width: 112px;
+    height: 112px;
   }
 
   .field-wide {

@@ -1562,24 +1562,129 @@ function LabelDetails({ id }) {
     }
   };
 
+  const verificationItems = [
+    { label: "Commodity", value: label.commodity },
+    { label: "Lot No", value: label.lotNo },
+    { label: "Drum No", value: label.drumNo },
+    { label: "P.O. No", value: label.poNo },
+    { label: "Mfg. Date", value: label.mfgDate },
+    { label: "Best Before", value: label.bestBefore },
+  ];
+
+  const weightItems = [
+    { label: "Net Wt.", value: label.netWt },
+    { label: "Tare Wt.", value: label.tareWt },
+    { label: "Gross Wt.", value: label.grossWt },
+  ];
+
+  const manufacturerItems = [
+    { label: "Manufacturer", value: label.manufacturer },
+    { label: "Address", value: label.manufacturerAddress },
+    { label: "Website", value: label.manufacturerWebsite },
+    { label: "Email", value: label.manufacturerEmail },
+    { label: "Phone", value: label.manufacturerPhone },
+  ];
+
   return (
-    <main className="page-shell">
-      <section className="label-preview">
-        <div className="preview-header">
-          <h1>{label.commodity || "Generated Label"}</h1>
-          <span className="eyebrow">Format No: {label.formatNo || "-"}</span>
+    <main className="page-shell public-label-shell">
+      <section className="label-preview public-label-card">
+        <div className="public-verify-hero">
+          <div>
+            <BrandLockup compact />
+            <p className="verify-badge">Verified Label Record</p>
+            <h1>{label.commodity || "Generated Label"}</h1>
+            <p>
+              This QR code is linked to a saved BatchMark label record. Use the
+              details below to verify the drum and batch information.
+            </p>
+          </div>
+          <div className="verify-stamp" aria-hidden="true">
+            <span>✓</span>
+            Verified
+          </div>
         </div>
 
-        <dl className="details-grid">
-          {fields
-            .filter((field) => field.name !== "formatNo")
-            .map((field) => (
-              <div key={field.name}>
-                <dt>{field.label}</dt>
-                <dd>{label[field.name] || "-"}</dd>
+        <div className="public-label-summary">
+          {verificationItems.map((item) => (
+            <div className="public-data-tile" key={item.label}>
+              <dt>{item.label}</dt>
+              <dd>{item.value || "-"}</dd>
+            </div>
+          ))}
+        </div>
+
+        <div className="public-label-sections">
+          <section>
+            <div className="section-heading">
+              <h2>Weight Details</h2>
+            </div>
+            <dl className="mini-details-grid">
+              {weightItems.map((item) => (
+                <div key={item.label}>
+                  <dt>{item.label}</dt>
+                  <dd>{item.value || "-"}</dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+
+          <section>
+            <div className="section-heading">
+              <h2>Customer</h2>
+            </div>
+            <dl className="mini-details-grid">
+              <div>
+                <dt>Name</dt>
+                <dd>{label.customerName || "-"}</dd>
+              </div>
+              <div>
+                <dt>Address</dt>
+                <dd>{label.customerAddress || "-"}</dd>
+              </div>
+            </dl>
+          </section>
+        </div>
+
+        <section className="public-manufacturer-panel">
+          <div className="section-heading">
+            <h2>Manufacturer Details</h2>
+            <p>Manufacturer information saved by the label owner.</p>
+          </div>
+          <dl className="details-grid">
+            {manufacturerItems.map((item) => (
+              <div key={item.label}>
+                <dt>{item.label}</dt>
+                <dd>{item.value || "-"}</dd>
               </div>
             ))}
-        </dl>
+          </dl>
+        </section>
+
+        {(label.warningText || label.storage || label.license) && (
+          <section className="public-manufacturer-panel">
+            <div className="section-heading">
+              <h2>Compliance</h2>
+            </div>
+            <dl className="details-grid">
+              <div>
+                <dt>Warning</dt>
+                <dd>{label.warningText || "-"}</dd>
+              </div>
+              <div>
+                <dt>Storage Condition</dt>
+                <dd>{label.storage || "-"}</dd>
+              </div>
+              <div>
+                <dt>License Number</dt>
+                <dd>{label.license || "-"}</dd>
+              </div>
+              <div>
+                <dt>Format No</dt>
+                <dd>{label.formatNo || "-"}</dd>
+              </div>
+            </dl>
+          </section>
+        )}
 
         <div className="detail-actions">
           <button type="button" onClick={handleDetailDownload} disabled={isDownloading || isDeleting}>
@@ -1593,7 +1698,7 @@ function LabelDetails({ id }) {
           >
             {isDeleting ? "Deleting..." : "Delete"}
           </button>
-          <a className="button-link" href="/create">Create another label</a>
+          <a className="button-link secondary-link" href="/create">Create another label</a>
           <a className="button-link secondary-link" href="/history">History</a>
         </div>
       </section>
