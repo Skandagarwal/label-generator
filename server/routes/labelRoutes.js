@@ -112,7 +112,7 @@ const requestOrigin = (req) => {
   return `${protocol}://${req.get("host")}`;
 };
 
-const labelPdfUrl = (req, id) => `${requestOrigin(req)}/api/labels/${id}/pdf`;
+const labelPublicUrl = (req, id) => `${requestOrigin(req)}/label/${id}`;
 
 const formatDate = (value = "") => {
   const text = String(value).trim();
@@ -331,7 +331,7 @@ router.get("/labels/:id/pdf", async (req, res) => {
     }
 
     const data = serializeLabel(label);
-    const qr = await QRCode.toDataURL(labelPdfUrl(req, label._id));
+    const qr = await QRCode.toDataURL(labelPublicUrl(req, label._id));
     const pdfPath = await createPdf([{ data, qr }]);
 
     downloadPdf(res, pdfPath, `label-${data.drumNo || label._id}.pdf`);
@@ -391,7 +391,7 @@ router.post("/generate", async (req, res) => {
         grossWt: drumItem.grossWt,
       };
       const saved = await labelStore.create(labelData);
-      const qr = await QRCode.toDataURL(labelPdfUrl(req, saved._id));
+      const qr = await QRCode.toDataURL(labelPublicUrl(req, saved._id));
 
       labels.push({
         data: labelData,
