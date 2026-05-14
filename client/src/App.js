@@ -682,7 +682,9 @@ function LoginPage({ onLogin }) {
         <div>
           <BrandLockup />
           <h1>Sign in</h1>
-          <p className="login-copy">Enter your name and phone number, verify the OTP, and continue to the label workspace.</p>
+          <p className="login-copy">
+            Verify your phone number and continue to your secure label workspace.
+          </p>
         </div>
 
         <form className="login-form" onSubmit={handleSubmit}>
@@ -835,6 +837,7 @@ function ProfilePage({ userName, onUserUpdate, onLogout }) {
         <div>
           <BrandLockup compact />
           <h1>Profile</h1>
+          <p className="header-copy">Manage the manufacturer details printed on every label.</p>
         </div>
         <nav className="topbar-actions">
           <a className="button-link secondary-link" href="/home">Home</a>
@@ -1000,6 +1003,7 @@ function HomePage({ userName, onLogout }) {
         <div>
           <BrandLockup compact />
           <h1>Dashboard</h1>
+          <p className="header-copy">A quick view of your latest BatchMark activity.</p>
         </div>
         <nav className="topbar-actions">
           <a className="button-link" href="/create">Create Label</a>
@@ -1015,6 +1019,14 @@ function HomePage({ userName, onLogout }) {
         <div>
           <p className="eyebrow">Welcome, {userName}</p>
           <h2>Manage drum labels in one place.</h2>
+          <p>
+            Create batch PDFs, keep manufacturer details ready, and find old labels without
+            digging through downloads.
+          </p>
+        </div>
+        <div className="quick-actions">
+          <a className="button-link" href="/create">New Batch</a>
+          <a className="button-link secondary-link" href="/history">Open History</a>
         </div>
       </section>
 
@@ -1280,6 +1292,7 @@ function HistoryPage() {
         <div>
           <BrandLockup compact />
           <h1>Created Labels</h1>
+          <p className="header-copy">Grouped by batch so old PDF labels stay easy to find.</p>
         </div>
         <div className="header-actions history-header-actions">
           <a className="button-link secondary-link" href="/create">
@@ -1929,6 +1942,7 @@ function App() {
         <div>
           <BrandLockup compact />
           <h1>Label Generator</h1>
+          <p className="header-copy">Enter batch details once, then generate one PDF per drum.</p>
         </div>
         <div className="header-actions">
           <a className="button-link secondary-link" href="/home">
