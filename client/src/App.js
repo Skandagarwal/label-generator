@@ -354,6 +354,33 @@ const groupHistoryLabels = (items = []) => {
   }));
 };
 
+const groupHistoryByDay = (groups = []) => {
+  const sections = new Map();
+
+  groups.forEach((group) => {
+    const day = getHistoryDay(group.createdAt);
+    const existing = sections.get(day);
+
+    if (existing) {
+      existing.groups.push(group);
+      existing.labelCount += group.labels.length;
+      return;
+    }
+
+    sections.set(day, {
+      day,
+      createdAt: group.createdAt,
+      labelCount: group.labels.length,
+      groups: [group],
+    });
+  });
+
+  return Array.from(sections.values());
+};
+
+const pluralize = (count, singular, plural = `${singular}s`) =>
+  `${count} ${count === 1 ? singular : plural}`;
+
 const getSavedUser = () =>
   window.localStorage.getItem("labelUserName") ||
   window.localStorage.getItem("labelUserPhone") ||
@@ -1150,6 +1177,7 @@ function HistoryPage() {
     );
   }, [labels, query]);
   const historyGroups = useMemo(() => groupHistoryLabels(filteredLabels), [filteredLabels]);
+  const historySections = useMemo(() => groupHistoryByDay(historyGroups), [historyGroups]);
   const selectedLabels = useMemo(
     () => labels.filter((label) => selectedIds.includes(label._id)),
     [labels, selectedIds]
@@ -1304,8 +1332,10 @@ function HistoryPage() {
       <section className="history-card">
         <div className="history-toolbar">
           <div>
-            <h2>All labels</h2>
-            <p>{labels.length} saved label record(s)</p>
+            <h2>Batch archive</h2>
+            <p>
+              {pluralize(labels.length, "label")} · {pluralize(historyGroups.length, "batch")}
+            </p>
           </div>
           <label className="search-field">
             <span>Search</span>
@@ -1328,7 +1358,7 @@ function HistoryPage() {
               <span>Select visible</span>
             </label>
             <p>
-              {historyGroups.length} batch group(s) · {selectedIds.length} selected
+              {pluralize(historyGroups.length, "batch")} visible · {selectedIds.length} selected
             </p>
             <button
               className="secondary-button"
@@ -1368,8 +1398,22 @@ function HistoryPage() {
         )}
 
         {status === "ready" && filteredLabels.length > 0 && (
-          <div className="history-groups">
-            {historyGroups.map((group) => {
+          <div className="history-archive">
+            {historySections.map((section) => (
+              <section className="history-day-section" key={section.day}>
+                <div className="history-day-heading">
+                  <div>
+                    <p className="eyebrow">Created</p>
+                    <h2>{section.day}</h2>
+                  </div>
+                  <span>
+                    {pluralize(section.groups.length, "batch")} ·{" "}
+                    {pluralize(section.labelCount, "label")}
+                  </span>
+                </div>
+
+                <div className="history-groups">
+                  {section.groups.map((group) => {
               const isExpanded =
                 expandedGroupKeys.includes(group.key) ||
                 (query.trim() && historyGroups.length <= 3);
@@ -1402,14 +1446,16 @@ function HistoryPage() {
                     </button>
                     <div className="history-group-title">
                       <p className="history-title">{group.commodity}</p>
-                      <p className="history-meta">
-                        Lot {group.lotNo} · P.O. {group.poNo} · Customer: {group.customerName} ·{" "}
-                        {group.labels.length} label(s)
-                      </p>
+                      <div className="history-chips" aria-label="Batch details">
+                        <span>Lot {group.lotNo}</span>
+                        <span>P.O. {group.poNo}</span>
+                        <span>{pluralize(group.labels.length, "label")}</span>
+                        <span>{group.customerName}</span>
+                      </div>
                     </div>
                     <div>
-                      <dt>Created</dt>
-                      <dd>{getHistoryDay(group.createdAt)} · {getHistoryTime(group.createdAt)}</dd>
+                      <dt>Time</dt>
+                      <dd>{getHistoryTime(group.createdAt)}</dd>
                     </div>
                     <div className="row-actions">
                       <button
@@ -1483,7 +1529,10 @@ function HistoryPage() {
                   )}
                 </article>
               );
-            })}
+                  })}
+                </div>
+              </section>
+            ))}
           </div>
         )}
       </section>
