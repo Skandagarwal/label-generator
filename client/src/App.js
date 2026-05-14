@@ -1756,6 +1756,7 @@ function App() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
+  const [generationProgress, setGenerationProgress] = useState(null);
   const currentManufacturerDetails = getSavedManufacturerDetails(currentUser);
   const currentManufacturer = currentManufacturerDetails.manufacturer || currentUser;
   const currentPath = window.location.pathname;
@@ -1904,6 +1905,26 @@ function App() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
+    const totalLabels = Math.max(validDrumItems.length, 1);
+    let progressTimer;
+
+    setGenerationProgress({ current: 1, total: totalLabels });
+    setStatusMessage(`Generating label 1 of ${totalLabels}...`);
+
+    if (totalLabels > 1) {
+      progressTimer = window.setInterval(() => {
+        setGenerationProgress((progress) => {
+          if (!progress) {
+            return progress;
+          }
+
+          const nextCurrent = Math.min(progress.current + 1, progress.total);
+          setStatusMessage(`Generating label ${nextCurrent} of ${progress.total}...`);
+
+          return { ...progress, current: nextCurrent };
+        });
+      }, 1200);
+    }
 
     try {
       const payload = {
@@ -1948,6 +1969,10 @@ function App() {
       console.error(err);
       setStatusMessage("Could not generate the PDF. Check the server and try again.");
     } finally {
+      if (progressTimer) {
+        window.clearInterval(progressTimer);
+      }
+      setGenerationProgress(null);
       setIsSubmitting(false);
     }
   };
@@ -2290,6 +2315,19 @@ function App() {
                 <dd>{currentManufacturer || "-"}</dd>
               </div>
             </dl>
+            {generationProgress && (
+              <div className="generation-progress" aria-live="polite">
+                <div>
+                  <span>
+                    Generating label {generationProgress.current} of {generationProgress.total}
+                  </span>
+                  <strong>
+                    {Math.round((generationProgress.current / generationProgress.total) * 100)}%
+                  </strong>
+                </div>
+                <progress value={generationProgress.current} max={generationProgress.total} />
+              </div>
+            )}
             {statusMessage && <p className="status-message">{statusMessage}</p>}
           </div>
         </aside>

@@ -783,6 +783,53 @@ dd {
   margin-top: 18px;
 }
 
+.generation-progress {
+  display: grid;
+  gap: 9px;
+  padding: 13px 14px;
+  margin-top: 18px;
+  color: #24433b;
+  background: var(--blue-soft);
+  border: 1px solid #d5e2f5;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.generation-progress div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.generation-progress strong {
+  color: #4977a6;
+}
+
+.generation-progress progress {
+  width: 100%;
+  height: 10px;
+  overflow: hidden;
+  appearance: none;
+  border: 0;
+  border-radius: 999px;
+}
+
+.generation-progress progress::-webkit-progress-bar {
+  background: #ffffff;
+  border-radius: 999px;
+}
+
+.generation-progress progress::-webkit-progress-value {
+  background: #4977a6;
+  border-radius: 999px;
+}
+
+.generation-progress progress::-moz-progress-bar {
+  background: #4977a6;
+  border-radius: 999px;
+}
+
 .page-status {
   display: grid;
   place-items: center;
