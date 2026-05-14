@@ -896,19 +896,24 @@ dd {
 
 .history-group-main {
   display: grid;
-  grid-template-columns: 32px 42px minmax(180px, 1.2fr) minmax(130px, 0.8fr) minmax(170px, 0.9fr) minmax(260px, auto);
+  grid-template-columns: 32px 40px minmax(280px, 1fr) minmax(150px, auto) minmax(160px, auto);
   gap: 12px;
   align-items: center;
-  padding: 14px;
+  padding: 12px 14px;
 }
 
 .history-group-title {
   min-width: 0;
 }
 
+.history-group-title .history-meta {
+  max-width: 640px;
+  line-height: 1.35;
+}
+
 .group-toggle {
-  width: 42px;
-  min-height: 42px;
+  width: 40px;
+  min-height: 40px;
   padding: 0;
   color: var(--green);
   background: var(--green-soft);
@@ -928,14 +933,14 @@ dd {
 
 .history-group-items {
   display: grid;
-  padding: 0 14px 14px 88px;
+  padding: 0 14px 12px 86px;
   background: #fbfdfc;
   border-top: 1px solid var(--line-soft);
 }
 
 .history-group-items .history-row {
-  grid-template-columns: 32px minmax(150px, 1.05fr) minmax(110px, 0.7fr) minmax(150px, 0.9fr) minmax(280px, auto);
-  padding: 13px 0;
+  grid-template-columns: 32px minmax(180px, 1fr) minmax(95px, 0.55fr) minmax(160px, 0.85fr) minmax(190px, auto);
+  padding: 12px 0;
 }
 
 .history-row {
@@ -1004,13 +1009,15 @@ dd {
   display: flex;
   gap: 8px;
   justify-content: flex-end;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .row-action {
   justify-content: center;
-  min-height: 40px;
-  padding: 0 12px;
+  min-height: 36px;
+  padding: 0 10px;
+  font-size: 14px;
+  white-space: nowrap;
 }
 
 .empty-state {
@@ -1202,6 +1209,7 @@ dd {
 
   .row-actions {
     justify-content: flex-start;
+    flex-wrap: wrap;
   }
 
   .row-action {

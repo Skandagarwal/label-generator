@@ -1323,7 +1323,7 @@ function HistoryPage() {
               onClick={handleBulkDownload}
               disabled={!selectedIds.length || Boolean(bulkAction)}
             >
-              {bulkAction === "download" ? "Downloading..." : "Download Selected"}
+              {bulkAction === "download" ? "Downloading..." : "Download"}
             </button>
             <button
               className="danger-button"
@@ -1331,7 +1331,7 @@ function HistoryPage() {
               onClick={() => setShowBulkDeleteDialog(true)}
               disabled={!selectedIds.length || Boolean(bulkAction)}
             >
-              {bulkAction === "delete" ? "Deleting..." : "Delete Selected"}
+              {bulkAction === "delete" ? "Deleting..." : "Delete"}
             </button>
             {selectedIds.length > 0 && (
               <button
@@ -1356,11 +1356,10 @@ function HistoryPage() {
 
         {status === "ready" && filteredLabels.length > 0 && (
           <div className="history-groups">
-            {historyGroups.map((group, index) => {
+            {historyGroups.map((group) => {
               const isExpanded =
                 expandedGroupKeys.includes(group.key) ||
-                (query.trim() && historyGroups.length <= 3) ||
-                (!expandedGroupKeys.length && index === 0);
+                (query.trim() && historyGroups.length <= 3);
               const groupIds = group.labels.map((label) => label._id);
               const groupSelected = groupIds.every((id) => selectedIds.includes(id));
               const someGroupSelected = groupIds.some((id) => selectedIds.includes(id));
@@ -1391,12 +1390,9 @@ function HistoryPage() {
                     <div className="history-group-title">
                       <p className="history-title">{group.commodity}</p>
                       <p className="history-meta">
-                        Lot {group.lotNo} · P.O. {group.poNo} · {group.labels.length} label(s)
+                        Lot {group.lotNo} · P.O. {group.poNo} · Customer: {group.customerName} ·{" "}
+                        {group.labels.length} label(s)
                       </p>
-                    </div>
-                    <div>
-                      <dt>Customer</dt>
-                      <dd>{group.customerName}</dd>
                     </div>
                     <div>
                       <dt>Created</dt>
@@ -1409,7 +1405,7 @@ function HistoryPage() {
                         onClick={() => handleGroupDownload(group)}
                         disabled={Boolean(bulkAction)}
                       >
-                        {bulkAction === `download:${group.key}` ? "Downloading..." : "Download Batch"}
+                        {bulkAction === `download:${group.key}` ? "Downloading..." : "PDF"}
                       </button>
                       <button
                         className="row-action danger-button"
@@ -1417,7 +1413,7 @@ function HistoryPage() {
                         onClick={() => handleGroupDeleteRequest(group)}
                         disabled={Boolean(bulkAction)}
                       >
-                        Delete Batch
+                        Delete
                       </button>
                     </div>
                   </div>
@@ -1457,7 +1453,7 @@ function HistoryPage() {
                               onClick={() => handleHistoryDownload(label)}
                               disabled={downloadingId === label._id || deletingId === label._id}
                             >
-                              {downloadingId === label._id ? "Downloading..." : "Download"}
+                              {downloadingId === label._id ? "Downloading..." : "PDF"}
                             </button>
                             <button
                               className="row-action danger-button"
