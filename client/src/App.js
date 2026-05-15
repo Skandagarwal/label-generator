@@ -500,17 +500,38 @@ const applyUserDefaults = (values, userName = getSavedUser()) => ({
   ...getSavedManufacturerDetails(userName),
 });
 
+const downloadPdfBlob = (data, fileName) => {
+  const url = window.URL.createObjectURL(new Blob([data]));
+  const a = document.createElement("a");
+
+  a.href = url;
+  a.download = fileName;
+  a.click();
+  window.URL.revokeObjectURL(url);
+};
+
 const downloadLabelPdf = async (label) => {
   const res = await axios.get(`${API_BASE}/labels/${label._id}/pdf`, {
     responseType: "blob",
   });
-  const url = window.URL.createObjectURL(new Blob([res.data]));
-  const a = document.createElement("a");
 
-  a.href = url;
-  a.download = `label-${safeFilePart(label.drumNo || label._id)}.pdf`;
-  a.click();
-  window.URL.revokeObjectURL(url);
+  downloadPdfBlob(res.data, `label-${safeFilePart(label.drumNo || label._id)}.pdf`);
+};
+
+const downloadLabelBatchPdf = async (labels, fileName = "labels.pdf") => {
+  const ownerPhone = getSavedPhone();
+  const res = await axios.post(
+    `${API_BASE}/labels/batch/pdf`,
+    {
+      ids: labels.map((label) => label._id),
+      ownerPhone,
+    },
+    {
+      responseType: "blob",
+    }
+  );
+
+  downloadPdfBlob(res.data, fileName);
 };
 
 const labelsApiUrl = () => {
@@ -1240,9 +1261,10 @@ function HistoryPage() {
     setBulkAction(`download:${group.key}`);
 
     try {
-      for (const label of group.labels) {
-        await downloadLabelPdf(label);
-      }
+      await downloadLabelBatchPdf(
+        group.labels,
+        `batch-${safeFilePart(group.commodity)}-${safeFilePart(group.lotNo)}.pdf`
+      );
     } catch (err) {
       console.error(err);
       alert("Could not download this batch.");
@@ -1283,9 +1305,7 @@ function HistoryPage() {
     setBulkAction("download");
 
     try {
-      for (const label of selectedLabels) {
-        await downloadLabelPdf(label);
-      }
+      await downloadLabelBatchPdf(selectedLabels, `batchmark-${selectedLabels.length}-labels.pdf`);
     } catch (err) {
       console.error(err);
       alert("Could not download all selected labels.");

@@ -322,6 +322,50 @@ router.get("/labels", async (req, res) => {
   }
 });
 
+router.post("/labels/batch/pdf", async (req, res) => {
+  try {
+    const ids = Array.isArray(req.body?.ids)
+      ? req.body.ids.map((id) => String(id || "").trim()).filter(Boolean)
+      : [];
+
+    if (!ids.length) {
+      return res.status(400).send("At least one label id is required");
+    }
+
+    const requestOwnerPhone = normalizePhone(req.body?.ownerPhone || req.query.ownerPhone);
+    const labels = (await Promise.all(ids.map((id) => labelStore.getById(id)))).filter(Boolean);
+
+    if (!labels.length) {
+      return res.status(404).send("Labels not found");
+    }
+
+    if (requestOwnerPhone) {
+      const hasOtherOwner = labels.some((label) => {
+        const labelOwnerPhone = normalizePhone(label.ownerPhone);
+        return labelOwnerPhone && labelOwnerPhone !== requestOwnerPhone;
+      });
+
+      if (hasOtherOwner) {
+        return res.status(403).send("Only the label owner can download this batch");
+      }
+    }
+
+    const pdfPath = await createPdf(
+      await Promise.all(
+        labels.map(async (label) => ({
+          data: serializeLabel(label),
+          qr: await QRCode.toDataURL(labelPublicUrl(req, label._id)),
+        }))
+      )
+    );
+
+    downloadPdf(res, pdfPath, labels.length > 1 ? "batch-labels.pdf" : "label.pdf");
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error generating batch PDF");
+  }
+});
+
 router.get("/labels/:id/pdf", async (req, res) => {
   try {
     const label = await labelStore.getById(req.params.id);
