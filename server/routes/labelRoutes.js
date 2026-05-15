@@ -5,6 +5,7 @@ const puppeteer = require("puppeteer");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
+const { spawnSync } = require("child_process");
 
 const { labelStore } = require("../services/dataStore");
 const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN || "http://localhost:3000";
@@ -113,6 +114,58 @@ const requestOrigin = (req) => {
 };
 
 const labelPublicUrl = (req, id) => `${requestOrigin(req)}/label/${id}`;
+
+const chromeInstallErrorPattern = /could not find chrome|browser was not found|executable.*not found|enoent/i;
+
+const installChrome = () => {
+  const result = spawnSync(process.execPath, [path.join(__dirname, "../scripts/installChrome.js")], {
+    env: {
+      ...process.env,
+      INSTALL_PUPPETEER_CHROME: "1",
+    },
+    stdio: "inherit",
+  });
+
+  return result.status === 0;
+};
+
+const launchBrowser = async () => {
+  try {
+    return await puppeteer.launch({
+      headless: "new",
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-gpu",
+      ],
+    });
+  } catch (err) {
+    const message = String(err?.message || err);
+
+    if (!chromeInstallErrorPattern.test(message)) {
+      throw err;
+    }
+
+    console.warn("Chrome is unavailable for PDF generation. Installing and retrying...");
+
+    if (!installChrome()) {
+      throw err;
+    }
+
+    return puppeteer.launch({
+      headless: "new",
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-gpu",
+      ],
+    });
+  }
+};
 
 const formatDate = (value = "") => {
   const text = String(value).trim();
@@ -238,16 +291,7 @@ const createPdf = async (labels) => {
     );
     const renderedTemplate = renderLabelsHtml(template, labels);
 
-    browser = await puppeteer.launch({
-      headless: "new",
-      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
-      args: [
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage",
-        "--disable-gpu",
-      ],
-    });
+    browser = await launchBrowser();
     const page = await browser.newPage();
     await page.setContent(renderedTemplate, {
       waitUntil: "domcontentloaded",
