@@ -1006,7 +1006,6 @@ function ProfilePage({ userName, onUserUpdate, onLogout }) {
 
 function HomePage({ userName, onLogout }) {
   const [labels, setLabels] = useState([]);
-  const [downloadingId, setDownloadingId] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -1031,19 +1030,6 @@ function HomePage({ userName, onLogout }) {
 
   const recentLabels = labels.slice(0, 4);
   const latestLabel = labels[0];
-
-  const handleDownload = async (label) => {
-    setDownloadingId(label._id);
-
-    try {
-      await downloadLabelPdf(label);
-    } catch (err) {
-      console.error(err);
-      alert("Could not download this label.");
-    } finally {
-      setDownloadingId("");
-    }
-  };
 
   return (
     <main className="page-shell">
@@ -1072,10 +1058,6 @@ function HomePage({ userName, onLogout }) {
             digging through downloads.
           </p>
         </div>
-        <div className="quick-actions">
-          <a className="button-link" href="/create">New Batch</a>
-          <a className="button-link secondary-link" href="/history">Open History</a>
-        </div>
       </section>
 
       <section className="stats-grid">
@@ -1099,9 +1081,6 @@ function HomePage({ userName, onLogout }) {
             <h2>Recent labels</h2>
             <p>{labels.length} saved label record(s)</p>
           </div>
-          <a className="button-link secondary-link" href="/history">
-            View All
-          </a>
         </div>
 
         {recentLabels.length === 0 ? (
@@ -1124,14 +1103,6 @@ function HomePage({ userName, onLogout }) {
                   <a className="button-link row-action secondary-link" href={`/label/${label._id}`}>
                     View
                   </a>
-                  <button
-                    className="row-action"
-                    type="button"
-                    onClick={() => handleDownload(label)}
-                    disabled={downloadingId === label._id}
-                  >
-                    {downloadingId === label._id ? "Downloading..." : "Download"}
-                  </button>
                 </div>
               </article>
             ))}
