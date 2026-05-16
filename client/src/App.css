@@ -1318,6 +1318,113 @@ dd {
   padding: 22px 0 0;
 }
 
+.template-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
+  gap: 20px;
+  align-items: start;
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.template-form-card,
+.template-list-card {
+  padding: 24px;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+}
+
+.template-form {
+  display: grid;
+  gap: 22px;
+}
+
+.template-picker-section {
+  background: #ffffff;
+}
+
+.custom-field-builder {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  background: #fbfdfc;
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
+}
+
+.custom-field-builder h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.custom-field-row {
+  display: grid;
+  grid-template-columns: minmax(150px, 1.2fr) minmax(120px, 0.75fr) minmax(150px, 1fr) auto auto;
+  gap: 10px;
+  align-items: end;
+  padding: 12px;
+  background: #ffffff;
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+}
+
+.custom-field-row label {
+  display: grid;
+  gap: 7px;
+}
+
+.custom-field-row label span,
+.inline-check span {
+  color: #516760;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.inline-check {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+}
+
+.inline-check input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--green);
+}
+
+.template-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.template-list-card {
+  position: sticky;
+  top: 20px;
+}
+
+.template-list-card h2 {
+  margin: 0 0 14px;
+}
+
+.template-list {
+  display: grid;
+  gap: 10px;
+}
+
+.template-card {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  background: #fbfdfc;
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+}
+
 @media (max-width: 900px) {
   .workspace {
     grid-template-columns: 1fr;
@@ -1329,6 +1436,14 @@ dd {
 
   .profile-card {
     grid-template-columns: 1fr;
+  }
+
+  .template-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .template-list-card {
+    position: static;
   }
 }
 
@@ -1441,6 +1556,10 @@ dd {
   .details-grid,
   .quick-drum-grid,
   .bulk-drum-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .custom-field-row {
     grid-template-columns: 1fr;
   }
 

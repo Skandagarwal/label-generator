@@ -24,6 +24,16 @@ const LabelSchema = new mongoose.Schema(
     manufacturerEmail: String,
     manufacturerPhone: String,
     manufacturerLogo: String,
+    templateId: String,
+    templateName: String,
+    customFields: [
+      {
+        key: String,
+        label: String,
+        type: String,
+        value: String,
+      },
+    ],
     ownerPhone: { type: String, index: true },
   },
   { timestamps: true }

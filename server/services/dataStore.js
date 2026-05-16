@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const Label = require("../models/Label");
 const User = require("../models/User");
+const ProductTemplate = require("../models/ProductTemplate");
 
 const MONGO_URI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/labels";
 
@@ -248,10 +249,104 @@ const userStore = {
   },
 };
 
+const templateStore = {
+  async list(ownerPhone = "") {
+    if (hasFirebaseConfig()) {
+      let query = getFirebaseDb().collection("productTemplates");
+
+      if (ownerPhone) {
+        query = query.where("ownerPhone", "==", ownerPhone);
+        const snapshot = await query.limit(200).get();
+
+        return snapshot.docs
+          .map(fromFirebaseDoc)
+          .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+      }
+
+      const snapshot = await query.orderBy("createdAt", "desc").limit(200).get();
+      return snapshot.docs.map(fromFirebaseDoc);
+    }
+
+    return ProductTemplate.find(scopedQuery({}, ownerPhone)).sort({ _id: -1 }).limit(200).lean();
+  },
+
+  async getById(id) {
+    if (hasFirebaseConfig()) {
+      const doc = await getFirebaseDb().collection("productTemplates").doc(id).get();
+      return fromFirebaseDoc(doc);
+    }
+
+    return ProductTemplate.findById(id).lean();
+  },
+
+  async create(data) {
+    if (hasFirebaseConfig()) {
+      const now = serverTimestamp();
+      const ref = await getFirebaseDb()
+        .collection("productTemplates")
+        .add({
+          ...data,
+          createdAt: now,
+          updatedAt: now,
+        });
+
+      return {
+        _id: ref.id,
+        ...data,
+      };
+    }
+
+    return ProductTemplate.create(data);
+  },
+
+  async updateById(id, data) {
+    if (hasFirebaseConfig()) {
+      const ref = getFirebaseDb().collection("productTemplates").doc(id);
+      const doc = await ref.get();
+
+      if (!doc.exists) {
+        return null;
+      }
+
+      await ref.set(
+        {
+          ...data,
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+
+      return fromFirebaseDoc(await ref.get());
+    }
+
+    return ProductTemplate.findByIdAndUpdate(id, data, {
+      returnDocument: "after",
+      runValidators: true,
+    }).lean();
+  },
+
+  async deleteById(id) {
+    if (hasFirebaseConfig()) {
+      const ref = getFirebaseDb().collection("productTemplates").doc(id);
+      const doc = await ref.get();
+
+      if (!doc.exists) {
+        return null;
+      }
+
+      await ref.delete();
+      return fromFirebaseDoc(doc);
+    }
+
+    return ProductTemplate.findByIdAndDelete(id).lean();
+  },
+};
+
 module.exports = {
   connectDatabase,
   getDatabaseProvider,
   verifyFirebaseIdToken,
   labelStore,
   userStore,
+  templateStore,
 };

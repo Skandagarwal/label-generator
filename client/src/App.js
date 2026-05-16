@@ -595,6 +595,86 @@ const labelDeleteUrl = (id) => {
   return `${API_BASE}/labels/${id}${params}`;
 };
 
+const templatesApiUrl = () => {
+  const ownerPhone = getSavedPhone();
+  const params = ownerPhone ? `?ownerPhone=${encodeURIComponent(ownerPhone)}` : "";
+
+  return `${API_BASE}/templates${params}`;
+};
+
+const templateApiUrl = (id) => `${API_BASE}/templates/${id}`;
+
+const emptyTemplateField = () => ({
+  id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+  label: "",
+  type: "text",
+  required: false,
+  defaultValue: "",
+});
+
+const emptyTemplateDraft = () => ({
+  name: "",
+  productName: "",
+  defaults: {
+    formatNo: "AE/API/ST/SOP-11/F1-00",
+    commodity: "",
+    warningText: "",
+    storage: "",
+    license: "",
+    bestBeforeGap: "2",
+  },
+  customFields: [emptyTemplateField()],
+});
+
+const normalizeTemplateFieldKey = (value = "", fallback = "field") =>
+  String(value || fallback)
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "") || fallback;
+
+const buildTemplatePayload = (draft, ownerPhone = getSavedPhone()) => ({
+  ownerPhone,
+  name: draft.name.trim(),
+  productName: draft.productName.trim() || draft.name.trim(),
+  defaults: {
+    formatNo: draft.defaults.formatNo.trim(),
+    commodity: draft.defaults.commodity.trim() || draft.productName.trim(),
+    warningText: draft.defaults.warningText.trim(),
+    storage: draft.defaults.storage.trim(),
+    license: draft.defaults.license.trim(),
+    bestBeforeGap: draft.defaults.bestBeforeGap || "2",
+  },
+  customFields: draft.customFields
+    .map((field, index) => ({
+      key: normalizeTemplateFieldKey(field.label, `field_${index + 1}`),
+      label: field.label.trim(),
+      type: field.type || "text",
+      required: Boolean(field.required),
+      defaultValue: field.defaultValue.trim(),
+    }))
+    .filter((field) => field.label),
+});
+
+const templateToDraft = (template = {}) => ({
+  name: template.name || "",
+  productName: template.productName || "",
+  defaults: {
+    formatNo: template.defaults?.formatNo || "AE/API/ST/SOP-11/F1-00",
+    commodity: template.defaults?.commodity || "",
+    warningText: template.defaults?.warningText || "",
+    storage: template.defaults?.storage || "",
+    license: template.defaults?.license || "",
+    bestBeforeGap: template.defaults?.bestBeforeGap || "2",
+  },
+  customFields: template.customFields?.length
+    ? template.customFields.map((field) => ({
+        ...emptyTemplateField(),
+        ...field,
+      }))
+    : [emptyTemplateField()],
+});
+
 const firebaseOtpErrorMessage = (err = {}) => {
   const code = err.code || "";
 
@@ -669,6 +749,7 @@ function AppNav({ currentUser = "", onLogout }) {
     ? [
         { href: "/home", label: "Home" },
         { href: "/create", label: "Create" },
+        { href: "/templates", label: "Templates" },
         { href: "/history", label: "History" },
         { href: "/profile", label: "Profile" },
       ]
@@ -1618,6 +1699,339 @@ function HistoryPage({ currentUser, onLogout }) {
   );
 }
 
+function TemplatesPage({ currentUser, onLogout }) {
+  const [templates, setTemplates] = useState([]);
+  const [draft, setDraft] = useState(emptyTemplateDraft);
+  const [editingId, setEditingId] = useState("");
+  const [status, setStatus] = useState("loading");
+  const [isSaving, setIsSaving] = useState(false);
+
+  const loadTemplates = () => {
+    setStatus("loading");
+    axios
+      .get(templatesApiUrl())
+      .then((res) => {
+        setTemplates(res.data || []);
+        setStatus("ready");
+      })
+      .catch((err) => {
+        console.error(err);
+        setStatus("error");
+      });
+  };
+
+  useEffect(() => {
+    loadTemplates();
+  }, []);
+
+  const updateDraftField = (field, value) => {
+    setDraft((values) => ({ ...values, [field]: value }));
+  };
+
+  const updateDraftDefault = (field, value) => {
+    setDraft((values) => ({
+      ...values,
+      defaults: { ...values.defaults, [field]: value },
+    }));
+  };
+
+  const updateCustomField = (id, field, value) => {
+    setDraft((values) => ({
+      ...values,
+      customFields: values.customFields.map((item) =>
+        item.id === id ? { ...item, [field]: value } : item
+      ),
+    }));
+  };
+
+  const addCustomField = () => {
+    setDraft((values) => ({
+      ...values,
+      customFields: [...values.customFields, emptyTemplateField()],
+    }));
+  };
+
+  const removeCustomField = (id) => {
+    setDraft((values) => ({
+      ...values,
+      customFields:
+        values.customFields.length === 1
+          ? [emptyTemplateField()]
+          : values.customFields.filter((field) => field.id !== id),
+    }));
+  };
+
+  const resetDraft = () => {
+    setDraft(emptyTemplateDraft());
+    setEditingId("");
+  };
+
+  const editTemplate = (template) => {
+    setDraft(templateToDraft(template));
+    setEditingId(template._id);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const saveTemplate = async (e) => {
+    e.preventDefault();
+    const payload = buildTemplatePayload(draft);
+
+    if (!payload.name) {
+      setStatus("Template name is required.");
+      return;
+    }
+
+    setIsSaving(true);
+
+    try {
+      if (editingId) {
+        await axios.put(templateApiUrl(editingId), payload);
+      } else {
+        await axios.post(templatesApiUrl(), payload);
+      }
+      resetDraft();
+      loadTemplates();
+    } catch (err) {
+      console.error(err);
+      setStatus(err.response?.data?.message || "Could not save this template.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const deleteTemplate = async (template) => {
+    if (!window.confirm(`Delete ${template.name}?`)) {
+      return;
+    }
+
+    try {
+      await axios.delete(templateApiUrl(template._id), {
+        data: { ownerPhone: getSavedPhone() },
+      });
+      setTemplates((items) => items.filter((item) => item._id !== template._id));
+      if (editingId === template._id) {
+        resetDraft();
+      }
+    } catch (err) {
+      console.error(err);
+      setStatus("Could not delete this template.");
+    }
+  };
+
+  return (
+    <main className="page-shell">
+      <AppNav currentUser={currentUser} onLogout={onLogout} />
+      <header className="site-header">
+        <div>
+          <h1>Product Templates</h1>
+          <p className="header-copy">
+            Save product-wise label fields so every vendor can reuse their own format.
+          </p>
+        </div>
+      </header>
+
+      <div className="template-layout">
+        <section className="template-form-card">
+          <div className="section-heading section-heading-with-action">
+            <div>
+              <h2>{editingId ? "Edit Template" : "New Template"}</h2>
+              <p>Defaults fill the create-label form. Custom fields print on the PDF.</p>
+            </div>
+            {editingId && (
+              <button className="secondary-button" type="button" onClick={resetDraft}>
+                New
+              </button>
+            )}
+          </div>
+
+          <form className="template-form" onSubmit={saveTemplate}>
+            <div className="form-grid">
+              <label className="field">
+                <span>Template Name</span>
+                <input
+                  value={draft.name}
+                  onChange={(e) => updateDraftField("name", e.target.value)}
+                  placeholder="L-Carnitine Export Label"
+                  required
+                />
+              </label>
+              <label className="field">
+                <span>Product / Commodity</span>
+                <input
+                  value={draft.productName}
+                  onChange={(e) => {
+                    updateDraftField("productName", e.target.value);
+                    updateDraftDefault("commodity", e.target.value);
+                  }}
+                  placeholder="L-CARNITINE BASE"
+                />
+              </label>
+              <label className="field">
+                <span>Format No</span>
+                <input
+                  value={draft.defaults.formatNo}
+                  onChange={(e) => updateDraftDefault("formatNo", e.target.value)}
+                />
+              </label>
+              <label className="field">
+                <span>Best Before Gap</span>
+                <select
+                  value={draft.defaults.bestBeforeGap}
+                  onChange={(e) => updateDraftDefault("bestBeforeGap", e.target.value)}
+                >
+                  {fieldsByName.bestBeforeGap.options.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                <span>Warning Text</span>
+                <input
+                  value={draft.defaults.warningText}
+                  onChange={(e) => updateDraftDefault("warningText", e.target.value)}
+                  placeholder='"NOT FOR MEDICINAL USE"'
+                />
+              </label>
+              <label className="field">
+                <span>Storage Condition</span>
+                <input
+                  value={draft.defaults.storage}
+                  onChange={(e) => updateDraftDefault("storage", e.target.value)}
+                  placeholder="Cool and dry place"
+                />
+              </label>
+              <label className="field">
+                <span>License Number</span>
+                <input
+                  value={draft.defaults.license}
+                  onChange={(e) => updateDraftDefault("license", e.target.value)}
+                />
+              </label>
+            </div>
+
+            <div className="custom-field-builder">
+              <div className="section-heading section-heading-with-action">
+                <div>
+                  <h3>Custom Fields</h3>
+                  <p>Add fields that are special for this product.</p>
+                </div>
+                <button className="secondary-button" type="button" onClick={addCustomField}>
+                  Add Field
+                </button>
+              </div>
+
+              {draft.customFields.map((field) => (
+                <div className="custom-field-row" key={field.id}>
+                  <label>
+                    <span>Field Name</span>
+                    <input
+                      value={field.label}
+                      onChange={(e) => updateCustomField(field.id, "label", e.target.value)}
+                      placeholder="Assay / Grade / CAS No."
+                    />
+                  </label>
+                  <label>
+                    <span>Type</span>
+                    <select
+                      value={field.type}
+                      onChange={(e) => updateCustomField(field.id, "type", e.target.value)}
+                    >
+                      <option value="text">Text</option>
+                      <option value="number">Number</option>
+                      <option value="date">Date</option>
+                      <option value="textarea">Long text</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span>Default Value</span>
+                    <input
+                      value={field.defaultValue}
+                      onChange={(e) =>
+                        updateCustomField(field.id, "defaultValue", e.target.value)
+                      }
+                      placeholder="Optional"
+                    />
+                  </label>
+                  <label className="inline-check">
+                    <input
+                      type="checkbox"
+                      checked={field.required}
+                      onChange={(e) =>
+                        updateCustomField(field.id, "required", e.target.checked)
+                      }
+                    />
+                    <span>Required</span>
+                  </label>
+                  <button
+                    className="secondary-button"
+                    type="button"
+                    onClick={() => removeCustomField(field.id)}
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {typeof status === "string" && !["loading", "ready", "error"].includes(status) && (
+              <p className="status-message">{status}</p>
+            )}
+
+            <div className="template-actions">
+              <button type="submit" disabled={isSaving}>
+                {isSaving ? "Saving..." : editingId ? "Update Template" : "Save Template"}
+              </button>
+              <a className="button-link secondary-link" href="/create">
+                Use in Label
+              </a>
+            </div>
+          </form>
+        </section>
+
+        <aside className="template-list-card">
+          <h2>Saved Templates</h2>
+          {status === "loading" && <p className="empty-state">Loading templates...</p>}
+          {status === "error" && <p className="empty-state">Could not load templates.</p>}
+          {status === "ready" && templates.length === 0 && (
+            <p className="empty-state">No templates saved yet.</p>
+          )}
+          <div className="template-list">
+            {templates.map((template) => (
+              <article className="template-card" key={template._id}>
+                <div>
+                  <p className="history-title">{template.name}</p>
+                  <p className="history-meta">
+                    {template.productName || template.defaults?.commodity || "No product"} ·{" "}
+                    {pluralize(template.customFields?.length || 0, "custom field")}
+                  </p>
+                </div>
+                <div className="row-actions">
+                  <button
+                    className="secondary-button row-action"
+                    type="button"
+                    onClick={() => editTemplate(template)}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    className="danger-button row-action"
+                    type="button"
+                    onClick={() => deleteTemplate(template)}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        </aside>
+      </div>
+    </main>
+  );
+}
+
 function LabelDetails({ id }) {
   const [label, setLabel] = useState(null);
   const [status, setStatus] = useState("loading");
@@ -1692,6 +2106,9 @@ function LabelDetails({ id }) {
     { label: "Manufacturer", value: label.manufacturer },
     { label: "Address", value: label.manufacturerAddress },
   ];
+  const customItems = Array.isArray(label.customFields)
+    ? label.customFields.filter((field) => field.value)
+    : [];
 
   return (
     <main className="page-shell public-label-shell">
@@ -1767,6 +2184,22 @@ function LabelDetails({ id }) {
             ))}
           </dl>
         </section>
+
+        {customItems.length > 0 && (
+          <section className="public-manufacturer-panel">
+            <div className="section-heading">
+              <h2>Product Details</h2>
+            </div>
+            <dl className="details-grid">
+              {customItems.map((item) => (
+                <div key={item.key || item.label}>
+                  <dt>{item.label}</dt>
+                  <dd>{item.value}</dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+        )}
 
         {(label.warningText || label.storage || label.license) && (
           <section className="public-manufacturer-panel">
@@ -1877,12 +2310,16 @@ function App() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
   const [generationProgress, setGenerationProgress] = useState(null);
+  const [templates, setTemplates] = useState([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState("");
+  const [customFieldValues, setCustomFieldValues] = useState({});
   const currentManufacturerDetails = getSavedManufacturerDetails(currentUser);
   const currentManufacturer = currentManufacturerDetails.manufacturer || currentUser;
   const currentPath = window.location.pathname;
   const isHistoryPage = currentPath === "/history";
   const isHomePage = currentPath === "/" || currentPath === "/home";
   const isProfilePage = currentPath === "/profile";
+  const isTemplatesPage = currentPath === "/templates";
   const infoPage = currentPath.match(/^\/(about|features|contact)$/)?.[1];
 
   const labelId = useMemo(() => {
@@ -1898,11 +2335,30 @@ function App() {
     [drumItems, visibleDrumCount]
   );
   const hiddenDrumCount = Math.max(drumItems.length - visibleDrumItems.length, 0);
+  const selectedTemplate = useMemo(
+    () => templates.find((template) => template._id === selectedTemplateId),
+    [templates, selectedTemplateId]
+  );
 
   useEffect(() => {
     if (currentUser) {
       setForm((values) => applyUserDefaults(values, currentUser));
     }
+  }, [currentUser]);
+
+  useEffect(() => {
+    if (!currentUser) {
+      setTemplates([]);
+      return;
+    }
+
+    axios
+      .get(templatesApiUrl())
+      .then((res) => setTemplates(res.data || []))
+      .catch((err) => {
+        console.error(err);
+        setTemplates([]);
+      });
   }, [currentUser]);
 
   const handleChange = (e) => {
@@ -1933,12 +2389,51 @@ function App() {
     });
   };
 
+  const handleTemplateSelect = (e) => {
+    const templateId = e.target.value;
+    const template = templates.find((item) => item._id === templateId);
+
+    setSelectedTemplateId(templateId);
+    setStatusMessage("");
+
+    if (!template) {
+      setCustomFieldValues({});
+      return;
+    }
+
+    const defaults = template.defaults || {};
+    const nextGap = defaults.bestBeforeGap || form.bestBeforeGap;
+    setForm((values) => ({
+      ...values,
+      formatNo: defaults.formatNo || values.formatNo,
+      commodity: defaults.commodity || template.productName || values.commodity,
+      warningText: defaults.warningText || values.warningText,
+      storage: defaults.storage || values.storage,
+      license: defaults.license || values.license,
+      bestBeforeGap: nextGap,
+      bestBefore: toInputDate(calculateBestBefore(values.mfgDate, nextGap)) || values.bestBefore,
+    }));
+    setCustomFieldValues(
+      (template.customFields || []).reduce((values, field) => {
+        values[field.key] = field.defaultValue || "";
+        return values;
+      }, {})
+    );
+  };
+
+  const handleCustomFieldValueChange = (key, value) => {
+    setStatusMessage("");
+    setCustomFieldValues((values) => ({ ...values, [key]: value }));
+  };
+
   const handleReset = () => {
     setForm(applyUserDefaults(emptyForm, currentUser));
     setDrumItems([emptyDrumItem()]);
     setVisibleDrumCount(DRUM_ROWS_BATCH_SIZE);
     setBulkDrumText("");
     setQuickDrumSetup({ count: "", netWt: "", tareWt: "" });
+    setSelectedTemplateId("");
+    setCustomFieldValues({});
     setStatusMessage("");
   };
 
@@ -2099,6 +2594,16 @@ function App() {
         ...currentManufacturerDetails,
         ownerPhone: getSavedPhone(),
         manufacturer: currentManufacturer,
+        templateId: selectedTemplate?._id || "",
+        templateName: selectedTemplate?.name || "",
+        customFields: selectedTemplate
+          ? (selectedTemplate.customFields || []).map((field) => ({
+              key: field.key,
+              label: field.label,
+              type: field.type,
+              value: customFieldValues[field.key] || "",
+            }))
+          : [],
         drumItems: validDrumItems.map(({ netWt, tareWt, grossWt }, index) => ({
           drumNo: formatDrumSequence(index, validDrumItems.length),
           netWt: formatWeight(netWt),
@@ -2179,6 +2684,10 @@ function App() {
     );
   }
 
+  if (isTemplatesPage) {
+    return <TemplatesPage currentUser={currentUser} onLogout={handleLogout} />;
+  }
+
   if (isHistoryPage) {
     return <HistoryPage currentUser={currentUser} onLogout={handleLogout} />;
   }
@@ -2203,6 +2712,35 @@ function App() {
 
       <div className="workspace">
         <form id="label-form" className="label-form" onSubmit={handleSubmit}>
+          <section className="form-section template-picker-section">
+            <div className="section-heading section-heading-with-action">
+              <div>
+                <h2>Product Template</h2>
+                <p>Select a saved product format, or continue with the standard label fields.</p>
+              </div>
+              <a className="button-link secondary-link" href="/templates">
+                Manage Templates
+              </a>
+            </div>
+            <label className="field">
+              <span>Template</span>
+              <select value={selectedTemplateId} onChange={handleTemplateSelect}>
+                <option value="">No template selected</option>
+                {templates.map((template) => (
+                  <option key={template._id} value={template._id}>
+                    {template.name}
+                  </option>
+                ))}
+              </select>
+              {selectedTemplate && (
+                <small>
+                  {pluralize(selectedTemplate.customFields?.length || 0, "custom field")} will
+                  be included for this product.
+                </small>
+              )}
+            </label>
+          </section>
+
           {fieldGroups.map((group) => (
             <div className="form-group-block" key={group.title}>
               <section className="form-section">
@@ -2443,9 +2981,50 @@ function App() {
             </div>
           ))}
 
+          {selectedTemplate?.customFields?.length > 0 && (
+            <section className="form-section">
+              <div className="section-heading">
+                <h2>Custom Product Fields</h2>
+                <p>These fields come from the selected product template.</p>
+              </div>
+              <div className="form-grid">
+                {selectedTemplate.customFields.map((field) => (
+                  <label
+                    className={field.type === "textarea" ? "field field-wide" : "field"}
+                    key={field.key}
+                  >
+                    <span>{field.label}</span>
+                    {field.type === "textarea" ? (
+                      <textarea
+                        value={customFieldValues[field.key] || ""}
+                        onChange={(e) =>
+                          handleCustomFieldValueChange(field.key, e.target.value)
+                        }
+                        rows="3"
+                        required={field.required}
+                      />
+                    ) : (
+                      <input
+                        type={field.type === "number" || field.type === "date" ? field.type : "text"}
+                        value={customFieldValues[field.key] || ""}
+                        onChange={(e) =>
+                          handleCustomFieldValueChange(field.key, e.target.value)
+                        }
+                        required={field.required}
+                      />
+                    )}
+                  </label>
+                ))}
+              </div>
+            </section>
+          )}
+
           <div className="mobile-actions">
             <a className="button-link secondary-link" href="/home">
               Home
+            </a>
+            <a className="button-link secondary-link" href="/templates">
+              Templates
             </a>
             <a className="button-link secondary-link" href="/history">
               History

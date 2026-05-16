@@ -7,7 +7,7 @@ const os = require("os");
 const path = require("path");
 const { spawnSync } = require("child_process");
 
-const { labelStore } = require("../services/dataStore");
+const { labelStore, templateStore } = require("../services/dataStore");
 const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN || "http://localhost:3000";
 const PUBLIC_API_ORIGIN = process.env.PUBLIC_API_ORIGIN || "http://localhost:5050";
 
@@ -230,6 +230,58 @@ const serializeLabel = (label) => {
   };
 };
 
+const normalizeCustomFields = (fields = []) =>
+  (Array.isArray(fields) ? fields : [])
+    .map((field, index) => ({
+      key:
+        String(field.key || field.label || `field_${index + 1}`)
+          .trim()
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "_")
+          .replace(/^_+|_+$/g, "") || `field_${index + 1}`,
+      label: String(field.label || "").trim(),
+      type: ["text", "number", "date", "textarea"].includes(field.type) ? field.type : "text",
+      required: Boolean(field.required),
+      defaultValue: String(field.defaultValue || "").trim(),
+      value: String(field.value || "").trim(),
+    }))
+    .filter((field) => field.label);
+
+const normalizeTemplateData = (body = {}) => ({
+  ownerPhone: normalizePhone(body.ownerPhone),
+  name: String(body.name || body.productName || "").trim(),
+  productName: String(body.productName || body.name || "").trim(),
+  defaults: {
+    formatNo: String(body.defaults?.formatNo || "").trim(),
+    commodity: String(body.defaults?.commodity || body.productName || "").trim(),
+    warningText: String(body.defaults?.warningText || "").trim(),
+    storage: String(body.defaults?.storage || "").trim(),
+    license: String(body.defaults?.license || "").trim(),
+    bestBeforeGap: String(body.defaults?.bestBeforeGap || "").trim(),
+  },
+  customFields: normalizeCustomFields(body.customFields),
+});
+
+const serializeTemplate = (template = {}) => ({
+  ...template,
+  _id: String(template._id || template.id || ""),
+  createdAt: template.createdAt,
+  updatedAt: template.updatedAt,
+});
+
+const customFieldsHtml = (fields = []) =>
+  normalizeCustomFields(fields)
+    .filter((field) => field.value)
+    .map(
+      (field) => `
+      <div class="row custom-field-row">
+        <div class="label-name">${escapeHtml(field.label)}</div>
+        <div>:</div>
+        <div class="value">${escapeHtml(field.value)}</div>
+      </div>`
+    )
+    .join("");
+
 const templateValues = (data, qr) => ({
   formatNo: escapeHtml(data.formatNo),
   drumNo: escapeHtml(data.drumNo),
@@ -251,6 +303,7 @@ const templateValues = (data, qr) => ({
   manufacturerWebsite: escapeHtml(data.manufacturerWebsite),
   manufacturerEmail: escapeHtml(data.manufacturerEmail),
   manufacturerPhone: escapeHtml(data.manufacturerPhone),
+  customFieldsHtml: customFieldsHtml(data.customFields),
   manufacturerContact: escapeHtml(
     joinContactParts(
       { label: "WEBSITE", value: data.manufacturerWebsite },
@@ -363,6 +416,84 @@ router.get("/labels", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Could not load label history" });
+  }
+});
+
+router.get("/templates", async (req, res) => {
+  try {
+    const templates = await templateStore.list(normalizePhone(req.query.ownerPhone));
+    res.json(templates.map(serializeTemplate));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Could not load product templates" });
+  }
+});
+
+router.post("/templates", async (req, res) => {
+  try {
+    const data = normalizeTemplateData(req.body);
+
+    if (!data.ownerPhone) {
+      return res.status(400).json({ message: "Owner phone is required" });
+    }
+
+    if (!data.name) {
+      return res.status(400).json({ message: "Template name is required" });
+    }
+
+    const template = await templateStore.create(data);
+    res.status(201).json(serializeTemplate(template));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Could not save product template" });
+  }
+});
+
+router.put("/templates/:id", async (req, res) => {
+  try {
+    const existingTemplate = await templateStore.getById(req.params.id);
+
+    if (!existingTemplate) {
+      return res.status(404).json({ message: "Template not found" });
+    }
+
+    const requestOwnerPhone = normalizePhone(req.body?.ownerPhone || req.query.ownerPhone);
+    const templateOwnerPhone = normalizePhone(existingTemplate.ownerPhone);
+
+    if (!requestOwnerPhone || (templateOwnerPhone && requestOwnerPhone !== templateOwnerPhone)) {
+      return res.status(403).json({ message: "Only the template owner can update it" });
+    }
+
+    const data = normalizeTemplateData(req.body);
+    const template = await templateStore.updateById(req.params.id, data);
+
+    res.json(serializeTemplate(template));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Could not update product template" });
+  }
+});
+
+router.delete("/templates/:id", async (req, res) => {
+  try {
+    const existingTemplate = await templateStore.getById(req.params.id);
+
+    if (!existingTemplate) {
+      return res.status(404).json({ message: "Template not found" });
+    }
+
+    const requestOwnerPhone = normalizePhone(req.query.ownerPhone || req.body?.ownerPhone);
+    const templateOwnerPhone = normalizePhone(existingTemplate.ownerPhone);
+
+    if (!requestOwnerPhone || (templateOwnerPhone && requestOwnerPhone !== templateOwnerPhone)) {
+      return res.status(403).json({ message: "Only the template owner can delete it" });
+    }
+
+    await templateStore.deleteById(req.params.id);
+    res.json({ message: "Template deleted" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Could not delete product template" });
   }
 });
 
