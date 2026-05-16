@@ -147,6 +147,11 @@
       gap: 9mm;
     }
 
+    .manufacturer-details.logo-hidden {
+      grid-template-columns: 1fr;
+      gap: 0;
+    }
+
     .manufacturer-brand {
       text-align: center;
       font-family: Arial, sans-serif;
@@ -241,8 +246,8 @@
 
   <div class="manufacturer-block {{hideManufacturerBlock}}">
     <div class="manufacturer-title">{{labelManufacturer}}:</div>
-    <div class="manufacturer-details">
-      <div class="manufacturer-brand">
+    <div class="manufacturer-details {{manufacturerDetailsClass}}">
+      <div class="manufacturer-brand {{hideManufacturerLogo}}">
         <img class="manufacturer-logo" src="{{manufacturerLogo}}" onerror="this.onerror=null;this.src='logoAgEx.png';" />
       </div>
       <div class="manufacturer-copy">

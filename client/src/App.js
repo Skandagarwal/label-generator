@@ -110,6 +110,7 @@ const customizableTemplateFields = [
   { key: "manufacturerWebsite", label: "Manufacturer Website", group: "Manufacturer" },
   { key: "manufacturerEmail", label: "Manufacturer Email", group: "Manufacturer" },
   { key: "manufacturerPhone", label: "Manufacturer Phone", group: "Manufacturer" },
+  { key: "manufacturerLogo", label: "Manufacturer Logo", group: "Manufacturer" },
 ];
 
 const emptyFieldSetting = (field) => ({
@@ -1826,6 +1827,26 @@ function TemplatesPage({ currentUser, onLogout }) {
     }));
   };
 
+  const handleTemplateLogoUpload = (key, file) => {
+    if (!file) {
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      setStatus("Please choose an image file for the template logo.");
+      return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      updateFieldSetting(key, "defaultValue", reader.result || "");
+      setStatus("Template logo selected. Save the template to keep it.");
+    };
+    reader.onerror = () => setStatus("Could not read this template logo file.");
+    reader.readAsDataURL(file);
+  };
+
   const updateCustomField = (id, field, value) => {
     setDraft((values) => ({
       ...values,
@@ -2039,16 +2060,46 @@ function TemplatesPage({ currentUser, onLogout }) {
                           }
                         />
                       </label>
-                      <label>
-                        <span>Default Value</span>
-                        <input
-                          value={setting.defaultValue}
-                          onChange={(e) =>
-                            updateFieldSetting(setting.key, "defaultValue", e.target.value)
-                          }
-                          placeholder="Optional"
-                        />
-                      </label>
+                      {setting.key === "manufacturerLogo" ? (
+                        <div className="template-logo-control">
+                          <label>
+                            <span>Logo Override</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) =>
+                                handleTemplateLogoUpload(setting.key, e.target.files?.[0])
+                              }
+                            />
+                          </label>
+                          <small>Leave empty to use the profile logo for this template.</small>
+                          {setting.defaultValue && (
+                            <div className="logo-preview template-logo-preview">
+                              <img src={setting.defaultValue} alt="Template logo preview" />
+                              <button
+                                className="secondary-button"
+                                type="button"
+                                onClick={() =>
+                                  updateFieldSetting(setting.key, "defaultValue", "")
+                                }
+                              >
+                                Use Profile Logo
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <label>
+                          <span>Default Value</span>
+                          <input
+                            value={setting.defaultValue}
+                            onChange={(e) =>
+                              updateFieldSetting(setting.key, "defaultValue", e.target.value)
+                            }
+                            placeholder="Optional"
+                          />
+                        </label>
+                      )}
                     </div>
                   );
                 })}

@@ -1396,6 +1396,28 @@ dd {
   gap: 7px;
 }
 
+.template-logo-control {
+  display: grid;
+  gap: 8px;
+}
+
+.template-logo-control small {
+  color: #6f817b;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.template-logo-preview {
+  align-items: flex-start;
+  flex-wrap: wrap;
+  padding: 10px;
+}
+
+.template-logo-preview img {
+  width: 86px;
+  max-height: 58px;
+}
+
 .custom-field-row label span,
 .template-field-row label span,
 .inline-check span {

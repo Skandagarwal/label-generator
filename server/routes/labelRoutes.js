@@ -240,6 +240,7 @@ const STANDARD_FIELD_LABELS = {
   manufacturerWebsite: "WEBSITE",
   manufacturerEmail: "EMAIL",
   manufacturerPhone: "CELL",
+  manufacturerLogo: "Manufacturer Logo",
 };
 
 const STANDARD_FIELD_KEYS = Object.keys(STANDARD_FIELD_LABELS);
@@ -405,13 +406,20 @@ const templateValues = (data, qr) => ({
   hideStorage: hideClass(data, "storage"),
   hideLicense: hideClass(data, "license"),
   hideManufacturerBlock:
-    ["manufacturer", "manufacturerAddress", "manufacturerWebsite", "manufacturerEmail", "manufacturerPhone"].every(
-      (key) => isFieldHidden(data, key)
-    )
+    [
+      "manufacturer",
+      "manufacturerAddress",
+      "manufacturerWebsite",
+      "manufacturerEmail",
+      "manufacturerPhone",
+      "manufacturerLogo",
+    ].every((key) => isFieldHidden(data, key))
       ? "is-hidden"
       : "",
   hideManufacturer: hideClass(data, "manufacturer"),
   hideManufacturerAddress: hideClass(data, "manufacturerAddress"),
+  hideManufacturerLogo: hideClass(data, "manufacturerLogo"),
+  manufacturerDetailsClass: isFieldHidden(data, "manufacturerLogo") ? "logo-hidden" : "",
   labelCustomerName: escapeHtml(fieldLabel(data, "customerName")),
   labelCustomerAddress: escapeHtml(fieldLabel(data, "customerAddress")),
   labelWarningText: escapeHtml(fieldLabel(data, "warningText")),
