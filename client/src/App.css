@@ -705,6 +705,18 @@ textarea[readonly] {
   text-transform: uppercase;
 }
 
+.sheet-upload {
+  padding: 14px;
+  background: #fbfdfc;
+  border: 1px dashed #b8cbc4;
+  border-radius: 10px;
+}
+
+.sheet-upload input {
+  padding: 12px;
+  background: #ffffff;
+}
+
 .bulk-drum-actions {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;

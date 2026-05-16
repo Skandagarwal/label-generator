@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
+import * as XLSX from "xlsx";
 import { hasFirebaseWebConfig, sendFirebaseOtp } from "./firebaseAuth";
 import "./App.css";
 
@@ -156,6 +157,52 @@ const getNextDrumNo = (drumNo = "") => {
 };
 
 const formatDrumSequence = (index, total) => `${index + 1}/${Math.max(total, 1)}`;
+
+const cleanSheetCell = (value = "") => String(value ?? "").trim();
+
+const normalizeSheetHeader = (value = "") =>
+  cleanSheetCell(value).toLowerCase().replace(/[^a-z0-9]/g, "");
+
+const findSheetColumn = (headers, names) =>
+  headers.findIndex((header) => names.includes(normalizeSheetHeader(header)));
+
+const sheetRowHasValue = (row = []) => row.some((value) => cleanSheetCell(value));
+
+const parseSpreadsheetDrumRows = (rows = []) => {
+  const nonEmptyRows = rows.filter(sheetRowHasValue);
+
+  if (!nonEmptyRows.length) {
+    return [];
+  }
+
+  const firstRow = nonEmptyRows[0].map(cleanSheetCell);
+  const drumNoIndex = findSheetColumn(firstRow, ["drumno", "drum", "drumnumber"]);
+  const netWtIndex = findSheetColumn(firstRow, ["netwt", "netweight", "net"]);
+  const tareWtIndex = findSheetColumn(firstRow, ["tarewt", "tareweight", "tare"]);
+  const hasHeader = netWtIndex >= 0 || tareWtIndex >= 0 || drumNoIndex >= 0;
+  const dataRows = hasHeader ? nonEmptyRows.slice(1) : nonEmptyRows;
+
+  return dataRows
+    .map((row, index) => {
+      const cells = row.map(cleanSheetCell);
+
+      if (hasHeader) {
+        const netWt = netWtIndex >= 0 ? cells[netWtIndex] : "";
+        const tareWt = tareWtIndex >= 0 ? cells[tareWtIndex] : "";
+        const drumNo = drumNoIndex >= 0 ? cells[drumNoIndex] : String(index + 1);
+
+        return emptyDrumItem(drumNo || String(index + 1), netWt, tareWt);
+      }
+
+      const parts = cells.filter(Boolean);
+      const hasDrumNo = parts.length >= 3;
+      const netWt = hasDrumNo ? parts[1] : parts[0];
+      const tareWt = hasDrumNo ? parts[2] : parts[1];
+
+      return emptyDrumItem(hasDrumNo ? parts[0] : String(index + 1), netWt || "", tareWt || "");
+    })
+    .filter((item) => item.netWt || item.tareWt);
+};
 
 const parseBulkDrumRows = (value = "") =>
   String(value)
@@ -1949,6 +1996,52 @@ function App() {
     setStatusMessage(`${nextItems.length} drum row(s) prepared from the pasted weights.`);
   };
 
+  const handleWeightSheetUpload = async (e) => {
+    const file = e.target.files?.[0];
+
+    setStatusMessage("");
+
+    if (!file) {
+      return;
+    }
+
+    try {
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data, { type: "array", cellDates: false });
+      const sheetName = workbook.SheetNames[0];
+      const sheet = sheetName ? workbook.Sheets[sheetName] : null;
+
+      if (!sheet) {
+        setStatusMessage("This sheet does not contain any readable data.");
+        return;
+      }
+
+      const rows = XLSX.utils.sheet_to_json(sheet, {
+        header: 1,
+        raw: false,
+        defval: "",
+      });
+      const nextItems = parseSpreadsheetDrumRows(rows);
+
+      if (!nextItems.length) {
+        setStatusMessage("Could not find weight rows. Use columns: Drum No, Net Wt., Tare Wt.");
+        return;
+      }
+
+      setDrumItems(nextItems);
+      setVisibleDrumCount(DRUM_ROWS_BATCH_SIZE);
+      setBulkDrumText(
+        nextItems.map((item) => `${item.drumNo}, ${item.netWt}, ${item.tareWt}`).join("\n")
+      );
+      setStatusMessage(`${nextItems.length} drum row(s) imported from ${file.name}.`);
+    } catch (err) {
+      console.error(err);
+      setStatusMessage("Could not read this sheet. Upload an Excel or CSV file.");
+    } finally {
+      e.target.value = "";
+    }
+  };
+
   const handleQuickDrumSetupChange = (field, value) => {
     setStatusMessage("");
     setQuickDrumSetup((values) => ({ ...values, [field]: value }));
@@ -2238,6 +2331,15 @@ function App() {
                   placeholder={"25, 3.640\n24.950, 3.640\n25.100, 3.640"}
                   rows="4"
                 />
+              </label>
+              <label className="sheet-upload">
+                <span>Upload Excel / CSV</span>
+                <input
+                  type="file"
+                  accept=".xlsx,.xls,.csv,.tsv"
+                  onChange={handleWeightSheetUpload}
+                />
+                <small>Use columns: Drum No, Net Wt., Tare Wt. Headers are optional.</small>
               </label>
               <div className="bulk-drum-actions">
                 <small>Use one line per drum: Net Wt., Tare Wt. Gross Wt. is calculated automatically.</small>
