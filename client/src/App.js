@@ -616,6 +616,49 @@ function BrandLockup({ compact = false }) {
   );
 }
 
+function AppNav({ currentUser = "", onLogout }) {
+  const currentPath = window.location.pathname;
+  const appLinks = currentUser
+    ? [
+        { href: "/home", label: "Home" },
+        { href: "/create", label: "Create" },
+        { href: "/history", label: "History" },
+        { href: "/profile", label: "Profile" },
+      ]
+    : [{ href: "/login", label: "Sign in" }];
+  const infoLinks = [
+    { href: "/about", label: "About" },
+    { href: "/features", label: "Features" },
+    { href: "/contact", label: "Contact" },
+  ];
+  const isActive = (href) =>
+    href === "/home" ? currentPath === "/" || currentPath === "/home" : currentPath === href;
+
+  return (
+    <nav className="product-nav" aria-label="Primary navigation">
+      <a className="nav-brand" href={currentUser ? "/home" : "/login"}>
+        <BrandLockup compact />
+      </a>
+      <div className="nav-menu">
+        {[...appLinks, ...infoLinks].map((link) => (
+          <a
+            key={link.href}
+            className={isActive(link.href) ? "nav-link active" : "nav-link"}
+            href={link.href}
+          >
+            {link.label}
+          </a>
+        ))}
+      </div>
+      {currentUser && (
+        <button className="nav-logout" type="button" onClick={onLogout}>
+          Logout
+        </button>
+      )}
+    </nav>
+  );
+}
+
 function LoginPage({ onLogin }) {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -881,19 +924,12 @@ function ProfilePage({ userName, onUserUpdate, onLogout }) {
 
   return (
     <main className="page-shell">
+      <AppNav currentUser={userName} onLogout={onLogout} />
       <header className="app-topbar">
         <div>
-          <BrandLockup compact />
           <h1>Profile</h1>
           <p className="header-copy">Manage the manufacturer details printed on every label.</p>
         </div>
-        <nav className="topbar-actions">
-          <a className="button-link secondary-link" href="/home">Home</a>
-          <a className="button-link secondary-link" href="/create">Create Label</a>
-          <button className="secondary-button" type="button" onClick={onLogout}>
-            Logout
-          </button>
-        </nav>
       </header>
 
       <section className="profile-card">
@@ -1033,20 +1069,12 @@ function HomePage({ userName, onLogout }) {
 
   return (
     <main className="page-shell">
+      <AppNav currentUser={userName} onLogout={onLogout} />
       <header className="app-topbar">
         <div>
-          <BrandLockup compact />
           <h1>Dashboard</h1>
           <p className="header-copy">A quick view of your latest BatchMark activity.</p>
         </div>
-        <nav className="topbar-actions">
-          <a className="button-link" href="/create">Create Label</a>
-          <a className="button-link secondary-link" href="/history">History</a>
-          <a className="button-link secondary-link" href="/profile">Profile</a>
-          <button className="secondary-button" type="button" onClick={onLogout}>
-            Logout
-          </button>
-        </nav>
       </header>
 
       <section className="dashboard-hero">
@@ -1113,7 +1141,7 @@ function HomePage({ userName, onLogout }) {
   );
 }
 
-function HistoryPage() {
+function HistoryPage({ currentUser, onLogout }) {
   const [labels, setLabels] = useState([]);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("loading");
@@ -1307,16 +1335,11 @@ function HistoryPage() {
 
   return (
     <main className="page-shell">
+      <AppNav currentUser={currentUser} onLogout={onLogout} />
       <header className="site-header">
         <div>
-          <BrandLockup compact />
           <h1>Created Labels</h1>
           <p className="header-copy">Grouped by batch so old PDF labels stay easy to find.</p>
-        </div>
-        <div className="header-actions history-header-actions">
-          <a className="button-link secondary-link" href="/create">
-            New Label
-          </a>
         </div>
       </header>
 
@@ -1734,6 +1757,65 @@ function LabelDetails({ id }) {
   );
 }
 
+function InfoPage({ page, currentUser, onLogout }) {
+  const pages = {
+    about: {
+      eyebrow: "About BatchMark",
+      title: "A simple label system for batch drum work.",
+      copy:
+        "BatchMark helps vendors generate QR-enabled drum labels, keep label history, and manage manufacturer details from one clean web workspace.",
+      cards: [
+        ["Built for vendors", "Designed around real drum labels, lot numbers, PO numbers, weights, dates, and manufacturer information."],
+        ["Public QR records", "Each QR code opens a public verification page without exposing the vendor's private profile or dashboard."],
+        ["Fast daily workflow", "Create many drum labels at once, download PDFs, and return later through the history archive."],
+      ],
+    },
+    features: {
+      eyebrow: "Features",
+      title: "Everything needed for practical label generation.",
+      copy:
+        "The software focuses on the core flow: login, profile setup, batch entry, PDF generation, QR verification, and history management.",
+      cards: [
+        ["Batch PDF labels", "Generate labels for one drum or hundreds of drums with automatic drum sequencing."],
+        ["Smart weights", "Net and tare weights create gross weight automatically, with KGS. formatting handled for PDFs."],
+        ["History archive", "Search, group, download, and delete old labels without digging through local files."],
+        ["Vendor profile", "Manufacturer name, address, phone, email, website, and logo are saved per logged-in vendor."],
+      ],
+    },
+    contact: {
+      eyebrow: "Contact",
+      title: "Need help setting up BatchMark?",
+      copy:
+        "Use this page as the product contact area for vendors, clients, or support requests.",
+      cards: [
+        ["Support", "For setup, profile, QR, or PDF issues, contact the BatchMark administrator."],
+        ["Business use", "BatchMark can be configured for each vendor's manufacturer details and label format."],
+        ["Deployment", "The current live deployment is hosted on Render with Firebase as the database."],
+      ],
+    },
+  };
+  const content = pages[page] || pages.about;
+
+  return (
+    <main className="page-shell">
+      <AppNav currentUser={currentUser} onLogout={onLogout} />
+      <section className="info-hero">
+        <p className="eyebrow">{content.eyebrow}</p>
+        <h1>{content.title}</h1>
+        <p>{content.copy}</p>
+      </section>
+      <section className="info-grid">
+        {content.cards.map(([title, copy]) => (
+          <article className="info-card" key={title}>
+            <h2>{title}</h2>
+            <p>{copy}</p>
+          </article>
+        ))}
+      </section>
+    </main>
+  );
+}
+
 function App() {
   const [currentUser, setCurrentUser] = useState(getSavedUser);
   const [form, setForm] = useState(() => applyUserDefaults(emptyForm));
@@ -1754,6 +1836,7 @@ function App() {
   const isHistoryPage = currentPath === "/history";
   const isHomePage = currentPath === "/" || currentPath === "/home";
   const isProfilePage = currentPath === "/profile";
+  const infoPage = currentPath.match(/^\/(about|features|contact)$/)?.[1];
 
   const labelId = useMemo(() => {
     const match = window.location.pathname.match(/^\/label\/([^/]+)$/);
@@ -1979,6 +2062,12 @@ function App() {
     return <LabelDetails id={labelId} />;
   }
 
+  if (infoPage) {
+    return (
+      <InfoPage page={infoPage} currentUser={currentUser} onLogout={handleLogout} />
+    );
+  }
+
   if (!currentUser) {
     return <LoginPage onLogin={setCurrentUser} />;
   }
@@ -1998,27 +2087,18 @@ function App() {
   }
 
   if (isHistoryPage) {
-    return <HistoryPage />;
+    return <HistoryPage currentUser={currentUser} onLogout={handleLogout} />;
   }
 
   return (
     <main className="page-shell">
+      <AppNav currentUser={currentUser} onLogout={handleLogout} />
       <header className="site-header">
         <div>
-          <BrandLockup compact />
           <h1>Label Generator</h1>
           <p className="header-copy">Enter batch details once, then generate one PDF per drum.</p>
         </div>
         <div className="header-actions">
-          <a className="button-link secondary-link" href="/home">
-            Home
-          </a>
-          <a className="button-link secondary-link" href="/history">
-            History
-          </a>
-          <a className="button-link secondary-link" href="/profile">
-            Profile
-          </a>
           <button className="secondary-button" type="button" onClick={handleReset}>
             Clear
           </button>
