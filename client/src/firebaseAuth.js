@@ -21,6 +21,7 @@ export const hasFirebaseWebConfig = Boolean(
 
 let auth;
 const RECAPTCHA_CONTAINER_ID = "firebase-recaptcha";
+let recaptchaAttempt = 0;
 
 const resetRecaptchaContainer = () => {
   if (window.batchmarkRecaptchaVerifier) {
@@ -38,6 +39,23 @@ const resetRecaptchaContainer = () => {
   if (container) {
     container.innerHTML = "";
   }
+};
+
+const createRecaptchaContainer = () => {
+  const container = document.getElementById(RECAPTCHA_CONTAINER_ID);
+
+  if (!container) {
+    throw new Error("Firebase reCAPTCHA container is missing.");
+  }
+
+  container.innerHTML = "";
+  recaptchaAttempt += 1;
+
+  const child = document.createElement("div");
+  child.id = `${RECAPTCHA_CONTAINER_ID}-${Date.now()}-${recaptchaAttempt}`;
+  container.appendChild(child);
+
+  return child.id;
 };
 
 const getFirebaseAuth = () => {
@@ -74,10 +92,11 @@ export const sendFirebaseOtp = async (phone) => {
   }
 
   resetRecaptchaContainer();
+  const recaptchaContainerId = createRecaptchaContainer();
 
   window.batchmarkRecaptchaVerifier = new RecaptchaVerifier(
     firebaseAuth,
-    RECAPTCHA_CONTAINER_ID,
+    recaptchaContainerId,
     {
       size: "invisible",
     }
