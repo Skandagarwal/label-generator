@@ -187,6 +187,10 @@
       overflow-wrap: anywhere;
     }
 
+    .is-hidden {
+      display: none !important;
+    }
+
     @media print {
       body {
         margin: 0;
@@ -198,27 +202,19 @@
 <body>
 
 <div class="label">
-  <div class="top-right">
-    Format No: - {{formatNo}}
+  <div class="top-right {{hideFormatNo}}">
+    {{labelFormatNo}}: - {{formatNo}}
   </div>
 
   <div class="content">
     <div class="left">
-      <div class="row"><div class="label-name">DRUM NO.</div><div>:</div><div class="value">{{drumNo}}</div></div>
-      <div class="row"><div class="label-name">COMMODITY</div><div>:</div><div class="value">{{commodity}}</div></div>
-      <div class="row"><div class="label-name">LOT NO.</div><div>:</div><div class="value">{{lotNo}}</div></div>
-      <div class="row"><div class="label-name">P.O. NO.</div><div>:</div><div class="value">{{poNo}}</div></div>
-      <div class="row"><div class="label-name">MFG. DATE</div><div>:</div><div class="value">{{mfgDate}}</div></div>
-      <div class="row"><div class="label-name">BEST BEFORE</div><div>:</div><div class="value">{{bestBefore}}</div></div>
-      <div class="row"><div class="label-name">NET WT.</div><div>:</div><div class="value">{{netWt}}</div></div>
-      <div class="row"><div class="label-name">TARE WT.</div><div>:</div><div class="value">{{tareWt}}</div></div>
-      <div class="row"><div class="label-name">GROSS WT.</div><div>:</div><div class="value">{{grossWt}}</div></div>
+      {{mainFieldsHtml}}
       {{customFieldsHtml}}
 
-      <div class="to-block">
+      <div class="to-block {{hideCustomerBlock}}">
         <div><b>TO</b></div>
-        <div>{{customerName}}</div>
-        <div class="address">{{customerAddress}}</div>
+        <div class="{{hideCustomerName}}">{{customerName}}</div>
+        <div class="address {{hideCustomerAddress}}">{{customerAddress}}</div>
       </div>
     </div>
 
@@ -227,31 +223,31 @@
     </div>
   </div>
 
-  <div class="center-text underline warning">
+  <div class="center-text underline warning {{hideWarningText}}">
     {{warningText}}
   </div>
 
-  <div class="center-text underline storage-title">
-    STORAGE CONDITION:-
+  <div class="center-text underline storage-title {{hideStorage}}">
+    {{labelStorage}}:-
   </div>
 
-  <div class="center-text underline storage-value">
+  <div class="center-text underline storage-value {{hideStorage}}">
     {{storage}}
   </div>
 
-  <div class="license-row">
-    <div>LICENSE NUMBER: {{license}}</div>
+  <div class="license-row {{hideLicense}}">
+    <div>{{labelLicense}}: {{license}}</div>
   </div>
 
-  <div class="manufacturer-block">
-    <div class="manufacturer-title">MANUFACTURER:</div>
+  <div class="manufacturer-block {{hideManufacturerBlock}}">
+    <div class="manufacturer-title">{{labelManufacturer}}:</div>
     <div class="manufacturer-details">
       <div class="manufacturer-brand">
         <img class="manufacturer-logo" src="{{manufacturerLogo}}" onerror="this.onerror=null;this.src='logoAgEx.png';" />
       </div>
       <div class="manufacturer-copy">
-        <div class="manufacturer-name">{{manufacturer}}</div>
-        <div class="manufacturer-address">{{manufacturerAddress}}</div>
+        <div class="manufacturer-name {{hideManufacturer}}">{{manufacturer}}</div>
+        <div class="manufacturer-address {{hideManufacturerAddress}}">{{manufacturerAddress}}</div>
         <div class="manufacturer-contact">
           {{manufacturerContact}}
         </div>

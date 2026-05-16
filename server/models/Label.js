@@ -26,6 +26,8 @@ const LabelSchema = new mongoose.Schema(
     manufacturerLogo: String,
     templateId: String,
     templateName: String,
+    fieldLabels: mongoose.Schema.Types.Mixed,
+    hiddenFields: [String],
     customFields: [
       {
         key: String,

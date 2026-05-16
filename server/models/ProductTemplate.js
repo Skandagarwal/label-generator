@@ -11,6 +11,16 @@ const CustomFieldSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const FieldSettingSchema = new mongoose.Schema(
+  {
+    key: String,
+    label: String,
+    visible: { type: Boolean, default: true },
+    defaultValue: String,
+  },
+  { _id: false }
+);
+
 const ProductTemplateSchema = new mongoose.Schema(
   {
     ownerPhone: { type: String, index: true },
@@ -24,6 +34,7 @@ const ProductTemplateSchema = new mongoose.Schema(
       license: String,
       bestBeforeGap: String,
     },
+    fieldSettings: [FieldSettingSchema],
     customFields: [CustomFieldSchema],
   },
   { timestamps: true }

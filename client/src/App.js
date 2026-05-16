@@ -89,6 +89,39 @@ const fieldsByName = fields.reduce((items, field) => {
   return items;
 }, {});
 
+const customizableTemplateFields = [
+  { key: "formatNo", label: "Format No", group: "Batch" },
+  { key: "drumNo", label: "Drum No", group: "Batch" },
+  { key: "commodity", label: "Commodity", group: "Batch" },
+  { key: "lotNo", label: "Lot No", group: "Batch" },
+  { key: "poNo", label: "P.O. No", group: "Batch" },
+  { key: "mfgDate", label: "Mfg. Date", group: "Batch" },
+  { key: "bestBefore", label: "Best Before", group: "Batch" },
+  { key: "netWt", label: "Net Wt.", group: "Weights" },
+  { key: "tareWt", label: "Tare Wt.", group: "Weights" },
+  { key: "grossWt", label: "Gross Wt.", group: "Weights" },
+  { key: "customerName", label: "Buyer / Customer Name", group: "Buyer" },
+  { key: "customerAddress", label: "Buyer / Customer Address", group: "Buyer" },
+  { key: "warningText", label: "Warning Text", group: "Compliance" },
+  { key: "storage", label: "Storage Condition", group: "Compliance" },
+  { key: "license", label: "License Number", group: "Compliance" },
+  { key: "manufacturer", label: "Manufacturer Name", group: "Manufacturer" },
+  { key: "manufacturerAddress", label: "Manufacturer Address", group: "Manufacturer" },
+  { key: "manufacturerWebsite", label: "Manufacturer Website", group: "Manufacturer" },
+  { key: "manufacturerEmail", label: "Manufacturer Email", group: "Manufacturer" },
+  { key: "manufacturerPhone", label: "Manufacturer Phone", group: "Manufacturer" },
+];
+
+const emptyFieldSetting = (field) => ({
+  key: field.key,
+  label: field.label,
+  visible: true,
+  defaultValue: fieldsByName[field.key]?.defaultValue || "",
+});
+
+const defaultTemplateFieldSettings = () =>
+  customizableTemplateFields.map((field) => emptyFieldSetting(field));
+
 const emptyForm = fields.reduce((values, field) => {
   values[field.name] = field.defaultValue || "";
   return values;
@@ -623,6 +656,7 @@ const emptyTemplateDraft = () => ({
     license: "",
     bestBeforeGap: "2",
   },
+  fieldSettings: defaultTemplateFieldSettings(),
   customFields: [emptyTemplateField()],
 });
 
@@ -645,6 +679,15 @@ const buildTemplatePayload = (draft, ownerPhone = getSavedPhone()) => ({
     license: draft.defaults.license.trim(),
     bestBeforeGap: draft.defaults.bestBeforeGap || "2",
   },
+  fieldSettings: draft.fieldSettings.map((setting) => ({
+    key: setting.key,
+    label:
+      setting.label.trim() ||
+      customizableTemplateFields.find((field) => field.key === setting.key)?.label ||
+      setting.key,
+    visible: setting.visible !== false,
+    defaultValue: setting.defaultValue.trim(),
+  })),
   customFields: draft.customFields
     .map((field, index) => ({
       key: normalizeTemplateFieldKey(field.label, `field_${index + 1}`),
@@ -667,6 +710,15 @@ const templateToDraft = (template = {}) => ({
     license: template.defaults?.license || "",
     bestBeforeGap: template.defaults?.bestBeforeGap || "2",
   },
+  fieldSettings: defaultTemplateFieldSettings().map((setting) => {
+    const savedSetting = (template.fieldSettings || []).find((item) => item.key === setting.key);
+
+    return {
+      ...setting,
+      ...savedSetting,
+      visible: savedSetting?.visible !== false,
+    };
+  }),
   customFields: template.customFields?.length
     ? template.customFields.map((field) => ({
         ...emptyTemplateField(),
@@ -674,6 +726,36 @@ const templateToDraft = (template = {}) => ({
       }))
     : [emptyTemplateField()],
 });
+
+const templateFieldSettingMap = (template) =>
+  (template?.fieldSettings || []).reduce((items, setting) => {
+    items[setting.key] = setting;
+    return items;
+  }, {});
+
+const templateFieldLabel = (template, key, fallback) =>
+  templateFieldSettingMap(template)[key]?.label || fallback;
+
+const templateFieldVisible = (template, key) => {
+  const setting = templateFieldSettingMap(template)[key];
+  return !setting || setting.visible !== false;
+};
+
+const templateFieldDefault = (template, key) =>
+  templateFieldSettingMap(template)[key]?.defaultValue || "";
+
+const templateFieldLabelsPayload = (template) =>
+  (template?.fieldSettings || []).reduce((items, setting) => {
+    if (setting.label) {
+      items[setting.key] = setting.label;
+    }
+    return items;
+  }, {});
+
+const templateHiddenFieldsPayload = (template) =>
+  (template?.fieldSettings || [])
+    .filter((setting) => setting.visible === false)
+    .map((setting) => setting.key);
 
 const firebaseOtpErrorMessage = (err = {}) => {
   const code = err.code || "";
@@ -1735,6 +1817,15 @@ function TemplatesPage({ currentUser, onLogout }) {
     }));
   };
 
+  const updateFieldSetting = (key, field, value) => {
+    setDraft((values) => ({
+      ...values,
+      fieldSettings: values.fieldSettings.map((setting) =>
+        setting.key === key ? { ...setting, [field]: value } : setting
+      ),
+    }));
+  };
+
   const updateCustomField = (id, field, value) => {
     setDraft((values) => ({
       ...values,
@@ -1909,6 +2000,59 @@ function TemplatesPage({ currentUser, onLogout }) {
                   onChange={(e) => updateDraftDefault("license", e.target.value)}
                 />
               </label>
+            </div>
+
+            <div className="custom-field-builder">
+              <div className="section-heading">
+                <h3>Standard Label Fields</h3>
+                <p>Rename, hide, or prefill any normal label field for this product.</p>
+              </div>
+
+              <div className="template-field-grid">
+                {draft.fieldSettings.map((setting) => {
+                  const templateField = customizableTemplateFields.find(
+                    (field) => field.key === setting.key
+                  );
+
+                  return (
+                    <div className="template-field-row" key={setting.key}>
+                      <label className="inline-check">
+                        <input
+                          type="checkbox"
+                          checked={setting.visible !== false}
+                          onChange={(e) =>
+                            updateFieldSetting(setting.key, "visible", e.target.checked)
+                          }
+                        />
+                        <span>Show</span>
+                      </label>
+                      <div>
+                        <p className="history-title">{templateField?.label || setting.key}</p>
+                        <p className="history-meta">{templateField?.group || "Field"}</p>
+                      </div>
+                      <label>
+                        <span>Display Name</span>
+                        <input
+                          value={setting.label}
+                          onChange={(e) =>
+                            updateFieldSetting(setting.key, "label", e.target.value)
+                          }
+                        />
+                      </label>
+                      <label>
+                        <span>Default Value</span>
+                        <input
+                          value={setting.defaultValue}
+                          onChange={(e) =>
+                            updateFieldSetting(setting.key, "defaultValue", e.target.value)
+                          }
+                          placeholder="Optional"
+                        />
+                      </label>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
             <div className="custom-field-builder">
@@ -2087,25 +2231,72 @@ function LabelDetails({ id }) {
     }
   };
 
-  const verificationItems = [
-    { label: "Commodity", value: label.commodity },
-    { label: "Lot No", value: label.lotNo },
-    { label: "Drum No", value: label.drumNo },
-    { label: "P.O. No", value: label.poNo },
-    { label: "Mfg. Date", value: label.mfgDate },
-    { label: "Best Before", value: label.bestBefore },
-  ];
+  const fieldLabels = label.fieldLabels || {};
+  const hiddenFields = Array.isArray(label.hiddenFields) ? label.hiddenFields : [];
+  const visibleField = (key) => !hiddenFields.includes(key);
+  const displayFieldLabel = (key, fallback) => fieldLabels[key] || fallback;
+  const visibleItems = (items) => items.filter((item) => visibleField(item.key));
+  const verificationItems = visibleItems([
+    { key: "commodity", label: displayFieldLabel("commodity", "Commodity"), value: label.commodity },
+    { key: "lotNo", label: displayFieldLabel("lotNo", "Lot No"), value: label.lotNo },
+    { key: "drumNo", label: displayFieldLabel("drumNo", "Drum No"), value: label.drumNo },
+    { key: "poNo", label: displayFieldLabel("poNo", "P.O. No"), value: label.poNo },
+    { key: "mfgDate", label: displayFieldLabel("mfgDate", "Mfg. Date"), value: label.mfgDate },
+    { key: "bestBefore", label: displayFieldLabel("bestBefore", "Best Before"), value: label.bestBefore },
+  ]);
 
-  const weightItems = [
-    { label: "Net Wt.", value: label.netWt },
-    { label: "Tare Wt.", value: label.tareWt },
-    { label: "Gross Wt.", value: label.grossWt },
-  ];
+  const weightItems = visibleItems([
+    { key: "netWt", label: displayFieldLabel("netWt", "Net Wt."), value: label.netWt },
+    { key: "tareWt", label: displayFieldLabel("tareWt", "Tare Wt."), value: label.tareWt },
+    { key: "grossWt", label: displayFieldLabel("grossWt", "Gross Wt."), value: label.grossWt },
+  ]);
 
-  const manufacturerItems = [
-    { label: "Manufacturer", value: label.manufacturer },
-    { label: "Address", value: label.manufacturerAddress },
-  ];
+  const manufacturerItems = visibleItems([
+    {
+      key: "manufacturer",
+      label: displayFieldLabel("manufacturer", "Manufacturer"),
+      value: label.manufacturer,
+    },
+    {
+      key: "manufacturerAddress",
+      label: displayFieldLabel("manufacturerAddress", "Address"),
+      value: label.manufacturerAddress,
+    },
+  ]);
+  const customerItems = visibleItems([
+    {
+      key: "customerName",
+      label: displayFieldLabel("customerName", "Name"),
+      value: label.customerName,
+    },
+    {
+      key: "customerAddress",
+      label: displayFieldLabel("customerAddress", "Address"),
+      value: label.customerAddress,
+    },
+  ]);
+  const complianceItems = visibleItems([
+    {
+      key: "warningText",
+      label: displayFieldLabel("warningText", "Warning"),
+      value: label.warningText,
+    },
+    {
+      key: "storage",
+      label: displayFieldLabel("storage", "Storage Condition"),
+      value: label.storage,
+    },
+    {
+      key: "license",
+      label: displayFieldLabel("license", "License Number"),
+      value: label.license,
+    },
+    {
+      key: "formatNo",
+      label: displayFieldLabel("formatNo", "Format No"),
+      value: label.formatNo,
+    },
+  ]);
   const customItems = Array.isArray(label.customFields)
     ? label.customFields.filter((field) => field.value)
     : [];
@@ -2153,23 +2344,24 @@ function LabelDetails({ id }) {
             </dl>
           </section>
 
+          {customerItems.length > 0 && (
           <section>
             <div className="section-heading">
               <h2>Customer</h2>
             </div>
             <dl className="mini-details-grid">
-              <div>
-                <dt>Name</dt>
-                <dd>{label.customerName || "-"}</dd>
-              </div>
-              <div>
-                <dt>Address</dt>
-                <dd>{label.customerAddress || "-"}</dd>
-              </div>
+              {customerItems.map((item) => (
+                <div key={item.key}>
+                  <dt>{item.label}</dt>
+                  <dd>{item.value || "-"}</dd>
+                </div>
+              ))}
             </dl>
           </section>
+          )}
         </div>
 
+        {manufacturerItems.length > 0 && (
         <section className="public-manufacturer-panel">
           <div className="section-heading">
             <h2>Manufacturer Details</h2>
@@ -2184,6 +2376,7 @@ function LabelDetails({ id }) {
             ))}
           </dl>
         </section>
+        )}
 
         {customItems.length > 0 && (
           <section className="public-manufacturer-panel">
@@ -2201,28 +2394,18 @@ function LabelDetails({ id }) {
           </section>
         )}
 
-        {(label.warningText || label.storage || label.license) && (
+        {complianceItems.length > 0 && (
           <section className="public-manufacturer-panel">
             <div className="section-heading">
               <h2>Compliance</h2>
             </div>
             <dl className="details-grid">
-              <div>
-                <dt>Warning</dt>
-                <dd>{label.warningText || "-"}</dd>
-              </div>
-              <div>
-                <dt>Storage Condition</dt>
-                <dd>{label.storage || "-"}</dd>
-              </div>
-              <div>
-                <dt>License Number</dt>
-                <dd>{label.license || "-"}</dd>
-              </div>
-              <div>
-              <dt>Format No</dt>
-                <dd>{label.formatNo || "-"}</dd>
-              </div>
+              {complianceItems.map((item) => (
+                <div key={item.key}>
+                  <dt>{item.label}</dt>
+                  <dd>{item.value || "-"}</dd>
+                </div>
+              ))}
             </dl>
           </section>
         )}
@@ -2405,11 +2588,25 @@ function App() {
     const nextGap = defaults.bestBeforeGap || form.bestBeforeGap;
     setForm((values) => ({
       ...values,
-      formatNo: defaults.formatNo || values.formatNo,
-      commodity: defaults.commodity || template.productName || values.commodity,
-      warningText: defaults.warningText || values.warningText,
-      storage: defaults.storage || values.storage,
-      license: defaults.license || values.license,
+      ...customizableTemplateFields.reduce((items, field) => {
+        const defaultValue = templateFieldDefault(template, field.key);
+
+        if (defaultValue && values[field.key] !== undefined) {
+          items[field.key] = defaultValue;
+        }
+
+        return items;
+      }, {}),
+      formatNo: templateFieldDefault(template, "formatNo") || defaults.formatNo || values.formatNo,
+      commodity:
+        templateFieldDefault(template, "commodity") ||
+        defaults.commodity ||
+        template.productName ||
+        values.commodity,
+      warningText:
+        templateFieldDefault(template, "warningText") || defaults.warningText || values.warningText,
+      storage: templateFieldDefault(template, "storage") || defaults.storage || values.storage,
+      license: templateFieldDefault(template, "license") || defaults.license || values.license,
       bestBeforeGap: nextGap,
       bestBefore: toInputDate(calculateBestBefore(values.mfgDate, nextGap)) || values.bestBefore,
     }));
@@ -2594,8 +2791,19 @@ function App() {
         ...currentManufacturerDetails,
         ownerPhone: getSavedPhone(),
         manufacturer: currentManufacturer,
+        ...customizableTemplateFields.reduce((items, field) => {
+          const defaultValue = templateFieldDefault(selectedTemplate, field.key);
+
+          if (defaultValue) {
+            items[field.key] = defaultValue;
+          }
+
+          return items;
+        }, {}),
         templateId: selectedTemplate?._id || "",
         templateName: selectedTemplate?.name || "",
+        fieldLabels: templateFieldLabelsPayload(selectedTemplate),
+        hiddenFields: templateHiddenFieldsPayload(selectedTemplate),
         customFields: selectedTemplate
           ? (selectedTemplate.customFields || []).map((field) => ({
               key: field.key,
@@ -2749,19 +2957,26 @@ function App() {
                 </div>
 
                 <div className="form-grid">
-                  {group.fields.map((fieldName) => {
+                  {group.fields
+                    .filter((fieldName) => templateFieldVisible(selectedTemplate, fieldName))
+                    .map((fieldName) => {
                     const field = fieldsByName[fieldName];
                     const isManufacturerField = field.name === "manufacturer";
                     const fieldValue = isManufacturerField
                       ? currentManufacturer
                       : form[field.name];
+                    const displayLabel = templateFieldLabel(
+                      selectedTemplate,
+                      field.name,
+                      field.label
+                    );
 
                     return (
                       <label
                         key={field.name}
                         className={field.multiline ? "field field-wide" : "field"}
                       >
-                        <span>{field.label}</span>
+                        <span>{displayLabel}</span>
                         {field.type === "select" ? (
                           <select
                             name={field.name}

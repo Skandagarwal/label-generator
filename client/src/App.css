@@ -1375,7 +1375,29 @@ dd {
   gap: 7px;
 }
 
+.template-field-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.template-field-row {
+  display: grid;
+  grid-template-columns: 82px minmax(130px, 0.8fr) minmax(160px, 1fr) minmax(160px, 1fr);
+  gap: 10px;
+  align-items: end;
+  padding: 12px;
+  background: #ffffff;
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+}
+
+.template-field-row label {
+  display: grid;
+  gap: 7px;
+}
+
 .custom-field-row label span,
+.template-field-row label span,
 .inline-check span {
   color: #516760;
   font-size: 12px;
@@ -1560,6 +1582,10 @@ dd {
   }
 
   .custom-field-row {
+    grid-template-columns: 1fr;
+  }
+
+  .template-field-row {
     grid-template-columns: 1fr;
   }
 

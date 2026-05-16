@@ -219,6 +219,93 @@ const joinContactParts = (...parts) =>
     .map((part) => `${part.label}: ${part.value}`)
     .join("  •  ");
 
+const STANDARD_FIELD_LABELS = {
+  formatNo: "Format No",
+  drumNo: "DRUM NO.",
+  commodity: "COMMODITY",
+  lotNo: "LOT NO.",
+  poNo: "P.O. NO.",
+  mfgDate: "MFG. DATE",
+  bestBefore: "BEST BEFORE",
+  netWt: "NET WT.",
+  tareWt: "TARE WT.",
+  grossWt: "GROSS WT.",
+  customerName: "Customer Name",
+  customerAddress: "Customer Address",
+  warningText: "Warning",
+  storage: "STORAGE CONDITION",
+  license: "LICENSE NUMBER",
+  manufacturer: "MANUFACTURER",
+  manufacturerAddress: "Address",
+  manufacturerWebsite: "WEBSITE",
+  manufacturerEmail: "EMAIL",
+  manufacturerPhone: "CELL",
+};
+
+const STANDARD_FIELD_KEYS = Object.keys(STANDARD_FIELD_LABELS);
+
+const normalizeFieldSettings = (settings = []) =>
+  (Array.isArray(settings) ? settings : [])
+    .map((setting) => ({
+      key: String(setting.key || "").trim(),
+      label: String(setting.label || "").trim(),
+      visible: setting.visible !== false,
+      defaultValue: String(setting.defaultValue || "").trim(),
+    }))
+    .filter((setting) => STANDARD_FIELD_KEYS.includes(setting.key));
+
+const fieldSettingsMap = (settings = []) =>
+  normalizeFieldSettings(settings).reduce((items, setting) => {
+    items[setting.key] = setting;
+    return items;
+  }, {});
+
+const fieldLabel = (data = {}, key) =>
+  data.fieldLabels?.[key] ||
+  fieldSettingsMap(data.fieldSettings)[key]?.label ||
+  STANDARD_FIELD_LABELS[key] ||
+  key;
+
+const isFieldHidden = (data = {}, key) =>
+  Array.isArray(data.hiddenFields) && data.hiddenFields.includes(key);
+
+const hideClass = (data, key) => (isFieldHidden(data, key) ? "is-hidden" : "");
+
+const labelRowHtml = (data, key, value) =>
+  isFieldHidden(data, key)
+    ? ""
+    : `
+      <div class="row">
+        <div class="label-name">${escapeHtml(fieldLabel(data, key))}</div>
+        <div>:</div>
+        <div class="value">${escapeHtml(value || "")}</div>
+      </div>`;
+
+const mainFieldsHtml = (data = {}) =>
+  [
+    ["drumNo", data.drumNo],
+    ["commodity", data.commodity],
+    ["lotNo", data.lotNo],
+    ["poNo", data.poNo],
+    ["mfgDate", data.mfgDate],
+    ["bestBefore", data.bestBefore],
+    ["netWt", data.netWt],
+    ["tareWt", data.tareWt],
+    ["grossWt", data.grossWt],
+  ]
+    .map(([key, value]) => labelRowHtml(data, key, value))
+    .join("");
+
+const contactParts = (data = {}) =>
+  [
+    { key: "manufacturerWebsite", value: data.manufacturerWebsite },
+    { key: "manufacturerEmail", value: data.manufacturerEmail },
+    { key: "manufacturerPhone", value: data.manufacturerPhone },
+  ]
+    .filter((part) => !isFieldHidden(data, part.key) && String(part.value || "").trim())
+    .map((part) => `${fieldLabel(data, part.key)}: ${part.value}`)
+    .join("  •  ");
+
 const serializeLabel = (label) => {
   const normalized = normalizeLabelData(label);
   const createdAt = label.createdAt || label._id?.getTimestamp?.();
@@ -259,6 +346,7 @@ const normalizeTemplateData = (body = {}) => ({
     license: String(body.defaults?.license || "").trim(),
     bestBeforeGap: String(body.defaults?.bestBeforeGap || "").trim(),
   },
+  fieldSettings: normalizeFieldSettings(body.fieldSettings),
   customFields: normalizeCustomFields(body.customFields),
 });
 
@@ -283,7 +371,10 @@ const customFieldsHtml = (fields = []) =>
     .join("");
 
 const templateValues = (data, qr) => ({
+  labelFormatNo: escapeHtml(fieldLabel(data, "formatNo")),
   formatNo: escapeHtml(data.formatNo),
+  hideFormatNo: hideClass(data, "formatNo"),
+  mainFieldsHtml: mainFieldsHtml(data),
   drumNo: escapeHtml(data.drumNo),
   commodity: escapeHtml(data.commodity),
   lotNo: escapeHtml(data.lotNo),
@@ -304,13 +395,30 @@ const templateValues = (data, qr) => ({
   manufacturerEmail: escapeHtml(data.manufacturerEmail),
   manufacturerPhone: escapeHtml(data.manufacturerPhone),
   customFieldsHtml: customFieldsHtml(data.customFields),
-  manufacturerContact: escapeHtml(
-    joinContactParts(
-      { label: "WEBSITE", value: data.manufacturerWebsite },
-      { label: "EMAIL", value: data.manufacturerEmail },
-      { label: "CELL", value: data.manufacturerPhone }
+  hideCustomerName: hideClass(data, "customerName"),
+  hideCustomerAddress: hideClass(data, "customerAddress"),
+  hideCustomerBlock:
+    isFieldHidden(data, "customerName") && isFieldHidden(data, "customerAddress")
+      ? "is-hidden"
+      : "",
+  hideWarningText: hideClass(data, "warningText"),
+  hideStorage: hideClass(data, "storage"),
+  hideLicense: hideClass(data, "license"),
+  hideManufacturerBlock:
+    ["manufacturer", "manufacturerAddress", "manufacturerWebsite", "manufacturerEmail", "manufacturerPhone"].every(
+      (key) => isFieldHidden(data, key)
     )
-  ),
+      ? "is-hidden"
+      : "",
+  hideManufacturer: hideClass(data, "manufacturer"),
+  hideManufacturerAddress: hideClass(data, "manufacturerAddress"),
+  labelCustomerName: escapeHtml(fieldLabel(data, "customerName")),
+  labelCustomerAddress: escapeHtml(fieldLabel(data, "customerAddress")),
+  labelWarningText: escapeHtml(fieldLabel(data, "warningText")),
+  labelStorage: escapeHtml(fieldLabel(data, "storage")),
+  labelLicense: escapeHtml(fieldLabel(data, "license")),
+  labelManufacturer: escapeHtml(fieldLabel(data, "manufacturer")),
+  manufacturerContact: escapeHtml(contactParts(data)),
   manufacturerLogo: getManufacturerLogo(data.manufacturerLogo),
   qrCode: qr,
 });
