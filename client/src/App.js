@@ -10,6 +10,7 @@ const API_BASE =
     ? "http://localhost:5050/api"
     : "/api");
 const DRUM_ROWS_BATCH_SIZE = 10;
+const SUPPORT_EMAIL = "batchmark.help@gmail.com";
 
 const fields = [
   {
@@ -857,11 +858,6 @@ function AppNav({ currentUser = "", onLogout }) {
         { href: "/profile", label: "Profile" },
       ]
     : [{ href: "/login", label: "Sign in" }];
-  const infoLinks = [
-    { href: "/about", label: "About" },
-    { href: "/features", label: "Features" },
-    { href: "/contact", label: "Contact" },
-  ];
   const isActive = (href) =>
     href === "/home" ? currentPath === "/" || currentPath === "/home" : currentPath === href;
 
@@ -871,7 +867,7 @@ function AppNav({ currentUser = "", onLogout }) {
         <BrandLockup compact />
       </a>
       <div className="nav-menu">
-        {[...appLinks, ...infoLinks].map((link) => (
+        {appLinks.map((link) => (
           <a
             key={link.href}
             className={isActive(link.href) ? "nav-link active" : "nav-link"}
@@ -887,6 +883,23 @@ function AppNav({ currentUser = "", onLogout }) {
         </button>
       )}
     </nav>
+  );
+}
+
+function AppFooter() {
+  return (
+    <footer className="site-footer">
+      <div className="footer-brand-copy">
+        <BrandLockup compact />
+        <p>Precision label software for batch, drum, and QR-based product records.</p>
+      </div>
+      <nav className="footer-links" aria-label="Footer navigation">
+        <a href="/about">About</a>
+        <a href="/features">Features</a>
+        <a href="/contact">Contact</a>
+        <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>
+      </nav>
+    </footer>
   );
 }
 
@@ -1082,6 +1095,7 @@ function LoginPage({ onLogin }) {
           <div id="firebase-recaptcha" />
         </form>
       </section>
+      <AppFooter />
     </main>
   );
 }
@@ -1376,6 +1390,7 @@ function HomePage({ userName, onLogout }) {
           </div>
         )}
       </section>
+      <AppFooter />
     </main>
   );
 }
@@ -1806,6 +1821,7 @@ function HistoryPage({ currentUser, onLogout }) {
           busy={bulkAction === "delete"}
         />
       )}
+      <AppFooter />
     </main>
   );
 }
@@ -2251,6 +2267,7 @@ function TemplatesPage({ currentUser, onLogout }) {
           </div>
         </aside>
       </div>
+      <AppFooter />
     </main>
   );
 }
@@ -2530,7 +2547,7 @@ function InfoPage({ page, currentUser, onLogout }) {
       copy:
         "Use this page as the product contact area for vendors, clients, or support requests.",
       cards: [
-        ["Support", "For setup, profile, QR, or PDF issues, contact the BatchMark administrator."],
+        ["Email support", `Write to ${SUPPORT_EMAIL} for setup, profile, QR, PDF, or account help.`],
         ["Business use", "BatchMark can be configured for each vendor's manufacturer details and label format."],
         ["Deployment", "The current live deployment is hosted on Render with Firebase as the database."],
       ],
@@ -2554,6 +2571,14 @@ function InfoPage({ page, currentUser, onLogout }) {
           </article>
         ))}
       </section>
+      {page === "contact" && (
+        <section className="contact-card">
+          <p className="eyebrow">Official support email</p>
+          <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>
+          <p>Use this address for vendor onboarding, support requests, and product questions.</p>
+        </section>
+      )}
+      <AppFooter />
     </main>
   );
 }
@@ -3378,6 +3403,7 @@ function App() {
           </div>
         </aside>
       </div>
+      <AppFooter />
     </main>
   );
 }

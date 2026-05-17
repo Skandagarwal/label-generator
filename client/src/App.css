@@ -133,13 +133,15 @@ body {
 .app-topbar,
 .info-hero,
 .info-grid,
+.contact-card,
 .dashboard-hero,
 .stats-grid,
 .workspace,
 .label-preview,
 .status-card,
 .history-card,
-.profile-card {
+.profile-card,
+.site-footer {
   max-width: 1180px;
   margin: 0 auto;
 }
@@ -211,6 +213,54 @@ body {
   background: var(--danger-soft);
   transform: none;
   box-shadow: none;
+}
+
+.site-footer {
+  margin-top: 34px;
+  padding: 22px 26px;
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto;
+  align-items: center;
+  gap: 18px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.84);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: var(--shadow-soft);
+}
+
+.footer-brand-copy .compact-brand {
+  margin-bottom: 4px;
+}
+
+.footer-brand-copy .compact-brand .brand-logo {
+  width: 190px;
+  height: 56px;
+}
+
+.site-footer p {
+  max-width: 430px;
+  margin: 6px 0 0;
+  line-height: 1.45;
+}
+
+.footer-links {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+.footer-links a {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.footer-links a:hover {
+  color: var(--green-dark);
 }
 
 .site-header,
@@ -322,6 +372,30 @@ body {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
   margin-top: 16px;
+}
+
+.contact-card {
+  margin-top: 16px;
+  padding: 24px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: var(--shadow-soft);
+}
+
+.contact-card a {
+  display: inline-block;
+  margin-top: 4px;
+  color: var(--green-dark);
+  font-size: 24px;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.contact-card p:last-child {
+  max-width: 620px;
+  margin: 10px 0 0;
+  color: var(--muted);
 }
 
 .info-card {
@@ -1509,6 +1583,29 @@ dd {
 
   .nav-logout {
     width: 100%;
+  }
+
+  .site-footer {
+    grid-template-columns: 1fr;
+    padding: 18px;
+  }
+
+  .footer-links {
+    justify-content: flex-start;
+  }
+
+  .footer-brand-copy .compact-brand .brand-logo {
+    width: min(220px, 70vw);
+    height: 64px;
+  }
+
+  .contact-card {
+    padding: 20px;
+  }
+
+  .contact-card a {
+    font-size: 20px;
+    word-break: break-all;
   }
 
   .site-header,
