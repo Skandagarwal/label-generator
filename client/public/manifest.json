@@ -3,9 +3,9 @@
   "name": "BatchMark Batch Label System",
   "icons": [
     {
-      "src": "app-icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml"
+      "src": "brand-assets/batchmark-favicon.png",
+      "sizes": "512x512",
+      "type": "image/png"
     },
     {
       "src": "logo192.png",
