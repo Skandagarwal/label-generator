@@ -112,8 +112,8 @@ body {
 
 .brand-logo {
   display: block;
-  width: min(220px, 48vw);
-  height: 72px;
+  width: min(300px, 58vw);
+  height: 90px;
   object-fit: contain;
   object-position: left center;
   border-radius: 10px;
@@ -124,8 +124,8 @@ body {
 }
 
 .compact-brand .brand-logo {
-  width: 168px;
-  height: 54px;
+  width: 240px;
+  height: 72px;
 }
 
 .product-nav,
@@ -146,11 +146,11 @@ body {
 
 .product-nav {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: minmax(220px, auto) minmax(0, 1fr) auto;
   align-items: center;
-  gap: 18px;
-  margin-bottom: 28px;
-  padding: 12px;
+  gap: 22px;
+  margin-bottom: 30px;
+  padding: 14px 18px;
   background: rgba(255, 255, 255, 0.88);
   border: 1px solid var(--line);
   border-radius: 14px;
@@ -1487,6 +1487,11 @@ dd {
     grid-template-columns: 1fr;
     gap: 12px;
     padding: 14px;
+  }
+
+  .compact-brand .brand-logo {
+    width: min(230px, 70vw);
+    height: 68px;
   }
 
   .nav-brand {
