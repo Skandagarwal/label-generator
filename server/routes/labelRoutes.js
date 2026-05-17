@@ -116,6 +116,7 @@ const requestOrigin = (req) => {
 const labelPublicUrl = (req, id) => `${requestOrigin(req)}/label/${id}`;
 
 const chromeInstallErrorPattern = /could not find chrome|browser was not found|executable.*not found|enoent/i;
+let browserPromise = null;
 
 const installChrome = () => {
   const result = spawnSync(process.execPath, [path.join(__dirname, "../scripts/installChrome.js")], {
@@ -166,6 +167,49 @@ const launchBrowser = async () => {
     });
   }
 };
+
+const getBrowser = async () => {
+  if (!browserPromise) {
+    browserPromise = launchBrowser();
+  }
+
+  try {
+    const browser = await browserPromise;
+
+    if (!browser.isConnected()) {
+      browserPromise = launchBrowser();
+      return await browserPromise;
+    }
+
+    return browser;
+  } catch (err) {
+    browserPromise = null;
+    throw err;
+  }
+};
+
+const closeSharedBrowser = async () => {
+  if (!browserPromise) {
+    return;
+  }
+
+  try {
+    const browser = await browserPromise;
+    await browser.close();
+  } catch (err) {
+    console.error("Could not close shared browser:", err.message);
+  } finally {
+    browserPromise = null;
+  }
+};
+
+process.once("SIGINT", () => {
+  closeSharedBrowser().finally(() => process.exit(0));
+});
+
+process.once("SIGTERM", () => {
+  closeSharedBrowser().finally(() => process.exit(0));
+});
 
 const formatDate = (value = "") => {
   const text = String(value).trim();
@@ -450,7 +494,7 @@ const renderLabelsHtml = (template, labels) => {
 };
 
 const createPdf = async (labels) => {
-  let browser;
+  let page;
   let pdfPath;
 
   try {
@@ -460,8 +504,11 @@ const createPdf = async (labels) => {
     );
     const renderedTemplate = renderLabelsHtml(template, labels);
 
-    browser = await launchBrowser();
-    const page = await browser.newPage();
+    const browser = await getBrowser();
+    page = await browser.newPage();
+    page.setDefaultTimeout(0);
+    page.setDefaultNavigationTimeout(0);
+
     await page.setContent(renderedTemplate, {
       waitUntil: "domcontentloaded",
       timeout: 0,
@@ -491,15 +538,15 @@ const createPdf = async (labels) => {
       printBackground: true,
     });
 
-    await browser.close();
-    browser = null;
+    await page.close();
+    page = null;
 
     return pdfPath;
   } catch (err) {
     console.error("PDF generation failed:", err.stack || err.message || err);
 
-    if (browser) {
-      await browser.close();
+    if (page) {
+      await page.close().catch(() => {});
     }
 
     if (pdfPath) {
@@ -522,6 +569,22 @@ const downloadPdf = (res, pdfPath, fileName) => {
       res.status(500).send("Error downloading label");
     }
   });
+};
+
+const mapWithConcurrency = async (items, limit, task) => {
+  const results = new Array(items.length);
+  let nextIndex = 0;
+
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (nextIndex < items.length) {
+      const currentIndex = nextIndex;
+      nextIndex += 1;
+      results[currentIndex] = await task(items[currentIndex], currentIndex);
+    }
+  });
+
+  await Promise.all(workers);
+  return results;
 };
 
 router.get("/labels", async (req, res) => {
@@ -724,25 +787,32 @@ router.post("/generate", async (req, res) => {
       return res.status(400).send("At least one drum number is required");
     }
 
-    const labels = [];
+    const savedLabels = await mapWithConcurrency(
+      drumItems,
+      10,
+      async (drumItem) => {
+        const labelData = {
+          ...data,
+          drumNo: drumItem.drumNo,
+          netWt: drumItem.netWt,
+          tareWt: drumItem.tareWt,
+          grossWt: drumItem.grossWt,
+        };
+        const saved = await labelStore.create(labelData);
 
-    for (const drumItem of drumItems) {
-      const labelData = {
-        ...data,
-        drumNo: drumItem.drumNo,
-        netWt: drumItem.netWt,
-        tareWt: drumItem.tareWt,
-        grossWt: drumItem.grossWt,
-      };
-      const saved = await labelStore.create(labelData);
-      const qr = await QRCode.toDataURL(labelPublicUrl(req, saved._id));
+        return {
+          data: labelData,
+          id: saved._id,
+        };
+      }
+    );
 
-      labels.push({
-        data: labelData,
-        qr,
-        id: saved._id,
-      });
-    }
+    const labels = await Promise.all(
+      savedLabels.map(async (label) => ({
+        data: label.data,
+        qr: await QRCode.toDataURL(labelPublicUrl(req, label.id)),
+      }))
+    );
 
     const pdfPath = await createPdf(
       labels.map((label) => ({
