@@ -2067,12 +2067,75 @@ function TemplatesPage({ currentUser, onLogout }) {
               </label>
             </div>
 
-            <div className="custom-field-builder">
-              <div className="section-heading">
-                <h3>Standard Label Fields</h3>
-                <p>Rename, hide, or prefill any normal label field for this product.</p>
+            <div className="custom-field-builder custom-field-builder-primary">
+              <div className="section-heading section-heading-with-action">
+                <div>
+                  <h3>Custom Fields</h3>
+                  <p>Add only the extra fields this product needs.</p>
+                </div>
+                <button className="secondary-button" type="button" onClick={addCustomField}>
+                  Add Field
+                </button>
               </div>
 
+              {draft.customFields.map((field) => (
+                <div className="custom-field-row" key={field.id}>
+                  <label>
+                    <span>Field Name</span>
+                    <input
+                      value={field.label}
+                      onChange={(e) => updateCustomField(field.id, "label", e.target.value)}
+                      placeholder="Assay / Grade / CAS No."
+                    />
+                  </label>
+                  <label>
+                    <span>Type</span>
+                    <select
+                      value={field.type}
+                      onChange={(e) => updateCustomField(field.id, "type", e.target.value)}
+                    >
+                      <option value="text">Text</option>
+                      <option value="number">Number</option>
+                      <option value="date">Date</option>
+                      <option value="textarea">Long text</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span>Default Value</span>
+                    <input
+                      value={field.defaultValue}
+                      onChange={(e) =>
+                        updateCustomField(field.id, "defaultValue", e.target.value)
+                      }
+                      placeholder="Optional"
+                    />
+                  </label>
+                  <label className="inline-check">
+                    <input
+                      type="checkbox"
+                      checked={field.required}
+                      onChange={(e) =>
+                        updateCustomField(field.id, "required", e.target.checked)
+                      }
+                    />
+                    <span>Required</span>
+                  </label>
+                  <button
+                    className="secondary-button"
+                    type="button"
+                    onClick={() => removeCustomField(field.id)}
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <details className="template-advanced">
+              <summary>
+                <span>Advanced field controls</span>
+                <small>Rename, hide, prefill fields, or override the manufacturer logo.</small>
+              </summary>
               <div className="template-field-grid">
                 {draft.fieldSettings.map((setting) => {
                   const templateField = customizableTemplateFields.find(
@@ -2148,71 +2211,7 @@ function TemplatesPage({ currentUser, onLogout }) {
                   );
                 })}
               </div>
-            </div>
-
-            <div className="custom-field-builder">
-              <div className="section-heading section-heading-with-action">
-                <div>
-                  <h3>Custom Fields</h3>
-                  <p>Add fields that are special for this product.</p>
-                </div>
-                <button className="secondary-button" type="button" onClick={addCustomField}>
-                  Add Field
-                </button>
-              </div>
-
-              {draft.customFields.map((field) => (
-                <div className="custom-field-row" key={field.id}>
-                  <label>
-                    <span>Field Name</span>
-                    <input
-                      value={field.label}
-                      onChange={(e) => updateCustomField(field.id, "label", e.target.value)}
-                      placeholder="Assay / Grade / CAS No."
-                    />
-                  </label>
-                  <label>
-                    <span>Type</span>
-                    <select
-                      value={field.type}
-                      onChange={(e) => updateCustomField(field.id, "type", e.target.value)}
-                    >
-                      <option value="text">Text</option>
-                      <option value="number">Number</option>
-                      <option value="date">Date</option>
-                      <option value="textarea">Long text</option>
-                    </select>
-                  </label>
-                  <label>
-                    <span>Default Value</span>
-                    <input
-                      value={field.defaultValue}
-                      onChange={(e) =>
-                        updateCustomField(field.id, "defaultValue", e.target.value)
-                      }
-                      placeholder="Optional"
-                    />
-                  </label>
-                  <label className="inline-check">
-                    <input
-                      type="checkbox"
-                      checked={field.required}
-                      onChange={(e) =>
-                        updateCustomField(field.id, "required", e.target.checked)
-                      }
-                    />
-                    <span>Required</span>
-                  </label>
-                  <button
-                    className="secondary-button"
-                    type="button"
-                    onClick={() => removeCustomField(field.id)}
-                  >
-                    Remove
-                  </button>
-                </div>
-              ))}
-            </div>
+            </details>
 
             {typeof status === "string" && !["loading", "ready", "error"].includes(status) && (
               <p className="status-message">{status}</p>
@@ -3024,10 +3023,11 @@ function App() {
 
       <div className="workspace">
         <form id="label-form" className="label-form" onSubmit={handleSubmit}>
-          <section className="form-section template-picker-section">
+          <section className="form-section form-step template-picker-section">
             <div className="section-heading section-heading-with-action">
               <div>
-                <h2>Product Template</h2>
+                <p className="step-label">Step 1</p>
+                <h2>Choose Product Template</h2>
                 <p>Select a saved product format, or continue with the standard label fields.</p>
               </div>
               <a className="button-link secondary-link" href="/templates">
@@ -3055,8 +3055,11 @@ function App() {
 
           {fieldGroups.map((group) => (
             <div className="form-group-block" key={group.title}>
-              <section className="form-section">
+              <section className="form-section form-step">
                 <div className="section-heading">
+                  <p className="step-label">
+                    {group.title === "Batch Details" ? "Step 2" : "Step 4"}
+                  </p>
                   <h2>{group.title}</h2>
                 </div>
 
@@ -3136,9 +3139,10 @@ function App() {
               </section>
 
               {group.title === "Batch Details" && (
-                <section className="form-section">
+                <section className="form-section form-step">
             <div className="section-heading section-heading-with-action">
               <div>
+                <p className="step-label">Step 3</p>
                 <h2>Drum Weights</h2>
                 <p>Each row generates one label with its own weight values.</p>
               </div>
@@ -3148,6 +3152,10 @@ function App() {
             </div>
 
             <div className="bulk-drum-import">
+              <div className="bulk-drum-title">
+                <strong>Quick setup</strong>
+                <span>Use this when all drums have the same net and tare weight.</span>
+              </div>
               <div className="quick-drum-grid">
                 <label>
                   <span>Total Drums</span>
@@ -3180,30 +3188,38 @@ function App() {
                   Generate Rows
                 </button>
               </div>
-              <label>
-                <span>Paste Different Weights</span>
-                <textarea
-                  value={bulkDrumText}
-                  onChange={(e) => setBulkDrumText(e.target.value)}
-                  placeholder={"25, 3.640\n24.950, 3.640\n25.100, 3.640"}
-                  rows="4"
-                />
-              </label>
-              <label className="sheet-upload">
-                <span>Upload Excel / CSV</span>
-                <input
-                  type="file"
-                  accept=".xlsx,.xls,.csv,.tsv"
-                  onChange={handleWeightSheetUpload}
-                />
-                <small>Use columns: Drum No, Net Wt., Tare Wt. Headers are optional.</small>
-              </label>
-              <div className="bulk-drum-actions">
-                <small>Use one line per drum: Net Wt., Tare Wt. Gross Wt. is calculated automatically.</small>
-                <button className="secondary-button" type="button" onClick={applyPastedDrumWeights}>
-                  Apply Weight List
-                </button>
-              </div>
+              <details className="weight-import-panel">
+                <summary>
+                  <span>Use different weights or Excel</span>
+                  <small>Paste weights or upload a sheet only when drums are different.</small>
+                </summary>
+                <label>
+                  <span>Paste Different Weights</span>
+                  <textarea
+                    value={bulkDrumText}
+                    onChange={(e) => setBulkDrumText(e.target.value)}
+                    placeholder={"25, 3.640\n24.950, 3.640\n25.100, 3.640"}
+                    rows="4"
+                  />
+                </label>
+                <label className="sheet-upload">
+                  <span>Upload Excel / CSV</span>
+                  <input
+                    type="file"
+                    accept=".xlsx,.xls,.csv,.tsv"
+                    onChange={handleWeightSheetUpload}
+                  />
+                  <small>Use columns: Drum No, Net Wt., Tare Wt. Headers are optional.</small>
+                </label>
+                <div className="bulk-drum-actions">
+                  <small>
+                    Use one line per drum: Net Wt., Tare Wt. Gross Wt. is calculated automatically.
+                  </small>
+                  <button className="secondary-button" type="button" onClick={applyPastedDrumWeights}>
+                    Apply Weight List
+                  </button>
+                </div>
+              </details>
             </div>
 
             <div className="drum-table">
@@ -3301,8 +3317,9 @@ function App() {
           ))}
 
           {selectedTemplate?.customFields?.length > 0 && (
-            <section className="form-section">
+            <section className="form-section form-step">
               <div className="section-heading">
+                <p className="step-label">Step 5</p>
                 <h2>Custom Product Fields</h2>
                 <p>These fields come from the selected product template.</p>
               </div>
