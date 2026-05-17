@@ -112,16 +112,11 @@ body {
 }
 
 .brand-mark {
-  display: grid;
-  place-items: center;
   width: 46px;
   height: 46px;
-  color: #ffffff;
-  background: var(--green);
+  display: block;
+  object-fit: contain;
   border-radius: 11px;
-  font-size: 15px;
-  font-weight: 900;
-  letter-spacing: 0;
   box-shadow: 0 10px 20px rgba(33, 102, 70, 0.22);
 }
 

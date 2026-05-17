@@ -841,7 +841,7 @@ function DeleteConfirmDialog({ labelName, onCancel, onConfirm, busy }) {
 function BrandLockup({ compact = false }) {
   return (
     <div className={compact ? "brand-lockup compact-brand" : "brand-lockup"}>
-      <span className="brand-mark" aria-hidden="true">BM</span>
+      <img className="brand-mark" src="/app-icon.svg" alt="" aria-hidden="true" />
       <div>
         <p>BatchMark</p>
         {!compact && <span>Batch Label System</span>}
