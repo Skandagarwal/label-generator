@@ -252,10 +252,8 @@ const imageDataUrl = (fileName, mimeType) => {
   return `data:${mimeType};base64,${fs.readFileSync(filePath).toString("base64")}`;
 };
 
-const manufacturerLogo = imageDataUrl("logoAgEx.png", "image/png");
-
 const getManufacturerLogo = (value = "") =>
-  String(value).startsWith("data:image/") ? value : manufacturerLogo;
+  String(value).trim().startsWith("data:image/") ? String(value).trim() : "";
 
 const joinContactParts = (...parts) =>
   parts
@@ -415,65 +413,69 @@ const customFieldsHtml = (fields = []) =>
     )
     .join("");
 
-const templateValues = (data, qr) => ({
-  labelFormatNo: escapeHtml(fieldLabel(data, "formatNo")),
-  formatNo: escapeHtml(data.formatNo),
-  hideFormatNo: hideClass(data, "formatNo"),
-  mainFieldsHtml: mainFieldsHtml(data),
-  drumNo: escapeHtml(data.drumNo),
-  commodity: escapeHtml(data.commodity),
-  lotNo: escapeHtml(data.lotNo),
-  poNo: escapeHtml(data.poNo),
-  mfgDate: escapeHtml(data.mfgDate),
-  bestBefore: escapeHtml(data.bestBefore),
-  netWt: escapeHtml(data.netWt),
-  tareWt: escapeHtml(data.tareWt),
-  grossWt: escapeHtml(data.grossWt),
-  customerName: escapeHtml(data.customerName),
-  customerAddress: escapeHtml(data.customerAddress),
-  warningText: escapeHtml(data.warningText),
-  storage: escapeHtml(data.storage),
-  license: escapeHtml(data.license),
-  manufacturer: escapeHtml(data.manufacturer),
-  manufacturerAddress: escapeHtml(data.manufacturerAddress),
-  manufacturerWebsite: escapeHtml(data.manufacturerWebsite),
-  manufacturerEmail: escapeHtml(data.manufacturerEmail),
-  manufacturerPhone: escapeHtml(data.manufacturerPhone),
-  customFieldsHtml: customFieldsHtml(data.customFields),
-  hideCustomerName: hideClass(data, "customerName"),
-  hideCustomerAddress: hideClass(data, "customerAddress"),
-  hideCustomerBlock:
-    isFieldHidden(data, "customerName") && isFieldHidden(data, "customerAddress")
-      ? "is-hidden"
-      : "",
-  hideWarningText: hideClass(data, "warningText"),
-  hideStorage: hideClass(data, "storage"),
-  hideLicense: hideClass(data, "license"),
-  hideManufacturerBlock:
+const templateValues = (data, qr) => {
+  const manufacturerLogoValue = getManufacturerLogo(data.manufacturerLogo);
+  const hideManufacturerLogo =
+    isFieldHidden(data, "manufacturerLogo") || !manufacturerLogoValue;
+  const hideManufacturerBlock =
     [
       "manufacturer",
       "manufacturerAddress",
       "manufacturerWebsite",
       "manufacturerEmail",
       "manufacturerPhone",
-      "manufacturerLogo",
-    ].every((key) => isFieldHidden(data, key))
-      ? "is-hidden"
-      : "",
-  hideManufacturer: hideClass(data, "manufacturer"),
-  hideManufacturerAddress: hideClass(data, "manufacturerAddress"),
-  hideManufacturerLogo: hideClass(data, "manufacturerLogo"),
-  manufacturerDetailsClass: isFieldHidden(data, "manufacturerLogo") ? "logo-hidden" : "",
-  labelCustomerName: escapeHtml(fieldLabel(data, "customerName")),
-  labelCustomerAddress: escapeHtml(fieldLabel(data, "customerAddress")),
-  labelWarningText: escapeHtml(fieldLabel(data, "warningText")),
-  labelStorage: escapeHtml(fieldLabel(data, "storage")),
-  labelLicense: escapeHtml(fieldLabel(data, "license")),
-  labelManufacturer: escapeHtml(fieldLabel(data, "manufacturer")),
-  manufacturerContact: escapeHtml(contactParts(data)),
-  manufacturerLogo: getManufacturerLogo(data.manufacturerLogo),
-  qrCode: qr,
-});
+    ].every((key) => isFieldHidden(data, key)) && hideManufacturerLogo;
+
+  return {
+    labelFormatNo: escapeHtml(fieldLabel(data, "formatNo")),
+    formatNo: escapeHtml(data.formatNo),
+    hideFormatNo: hideClass(data, "formatNo"),
+    mainFieldsHtml: mainFieldsHtml(data),
+    drumNo: escapeHtml(data.drumNo),
+    commodity: escapeHtml(data.commodity),
+    lotNo: escapeHtml(data.lotNo),
+    poNo: escapeHtml(data.poNo),
+    mfgDate: escapeHtml(data.mfgDate),
+    bestBefore: escapeHtml(data.bestBefore),
+    netWt: escapeHtml(data.netWt),
+    tareWt: escapeHtml(data.tareWt),
+    grossWt: escapeHtml(data.grossWt),
+    customerName: escapeHtml(data.customerName),
+    customerAddress: escapeHtml(data.customerAddress),
+    warningText: escapeHtml(data.warningText),
+    storage: escapeHtml(data.storage),
+    license: escapeHtml(data.license),
+    manufacturer: escapeHtml(data.manufacturer),
+    manufacturerAddress: escapeHtml(data.manufacturerAddress),
+    manufacturerWebsite: escapeHtml(data.manufacturerWebsite),
+    manufacturerEmail: escapeHtml(data.manufacturerEmail),
+    manufacturerPhone: escapeHtml(data.manufacturerPhone),
+    customFieldsHtml: customFieldsHtml(data.customFields),
+    hideCustomerName: hideClass(data, "customerName"),
+    hideCustomerAddress: hideClass(data, "customerAddress"),
+    hideCustomerBlock:
+      isFieldHidden(data, "customerName") && isFieldHidden(data, "customerAddress")
+        ? "is-hidden"
+        : "",
+    hideWarningText: hideClass(data, "warningText"),
+    hideStorage: hideClass(data, "storage"),
+    hideLicense: hideClass(data, "license"),
+    hideManufacturerBlock: hideManufacturerBlock ? "is-hidden" : "",
+    hideManufacturer: hideClass(data, "manufacturer"),
+    hideManufacturerAddress: hideClass(data, "manufacturerAddress"),
+    hideManufacturerLogo: hideManufacturerLogo ? "is-hidden" : "",
+    manufacturerDetailsClass: hideManufacturerLogo ? "logo-hidden" : "",
+    labelCustomerName: escapeHtml(fieldLabel(data, "customerName")),
+    labelCustomerAddress: escapeHtml(fieldLabel(data, "customerAddress")),
+    labelWarningText: escapeHtml(fieldLabel(data, "warningText")),
+    labelStorage: escapeHtml(fieldLabel(data, "storage")),
+    labelLicense: escapeHtml(fieldLabel(data, "license")),
+    labelManufacturer: escapeHtml(fieldLabel(data, "manufacturer")),
+    manufacturerContact: escapeHtml(contactParts(data)),
+    manufacturerLogo: manufacturerLogoValue,
+    qrCode: qr,
+  };
+};
 
 const renderLabelsHtml = (template, labels) => {
   const labelStart = template.indexOf('<div class="label">');
