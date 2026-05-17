@@ -784,6 +784,30 @@ const firebaseOtpErrorMessage = (err = {}) => {
   return err.message ? `${err.message} (${code || "Firebase OTP"})` : "Could not send OTP.";
 };
 
+const firebaseVerifyErrorMessage = (err = {}) => {
+  const code = err.code || "";
+
+  if (code === "auth/invalid-verification-code") {
+    return "Incorrect OTP. Please enter the latest code sent to this phone.";
+  }
+
+  if (code === "auth/code-expired" || code === "auth/session-expired") {
+    return "OTP expired. Please request a new OTP.";
+  }
+
+  if (code === "auth/too-many-requests") {
+    return "Too many attempts. Please wait and try again.";
+  }
+
+  if (code === "auth/missing-verification-code") {
+    return "Enter the 6 digit OTP.";
+  }
+
+  return err.message
+    ? `${err.message} (${code || "Firebase OTP"})`
+    : "Could not verify OTP.";
+};
+
 function DeleteConfirmDialog({ labelName, onCancel, onConfirm, busy }) {
   return (
     <div className="modal-backdrop" role="presentation">
@@ -918,9 +942,17 @@ function LoginPage({ onLogin }) {
       return;
     }
 
+    const cleanOtp = otp.replace(/\D/g, "");
+
+    if (step === "otp" && cleanOtp.length !== 6) {
+      setStatus("Enter the 6 digit OTP.");
+      setIsSubmitting(false);
+      return;
+    }
+
     if (firebaseConfirmation) {
       firebaseConfirmation
-        .confirm(otp)
+        .confirm(cleanOtp)
         .then((result) => result.user.getIdToken())
         .then((idToken) => axios.post(`${API_BASE}/auth/firebase-login`, { name, idToken }))
         .then((res) => {
@@ -944,7 +976,7 @@ function LoginPage({ onLogin }) {
         })
         .catch((err) => {
           console.error(err);
-          setStatus("Could not verify OTP.");
+          setStatus(firebaseVerifyErrorMessage(err));
         })
         .finally(() => setIsSubmitting(false));
 
@@ -1019,7 +1051,7 @@ function LoginPage({ onLogin }) {
               <span>OTP</span>
               <input
                 value={otp}
-                onChange={(e) => setOtp(e.target.value)}
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
                 placeholder="6 digit OTP"
                 inputMode="numeric"
                 maxLength="6"
