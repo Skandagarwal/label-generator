@@ -857,13 +857,18 @@ function AppNav({ currentUser = "", onLogout }) {
         { href: "/history", label: "History" },
         { href: "/profile", label: "Profile" },
       ]
-    : [{ href: "/login", label: "Sign in" }];
+    : [
+        { href: "/", label: "Overview" },
+        { href: "/features", label: "Features" },
+        { href: "/contact", label: "Contact" },
+        { href: "/login", label: "Login" },
+      ];
   const isActive = (href) =>
-    href === "/home" ? currentPath === "/" || currentPath === "/home" : currentPath === href;
+    href === "/home" ? currentPath === "/home" : currentPath === href;
 
   return (
     <nav className="product-nav" aria-label="Primary navigation">
-      <a className="nav-brand" href={currentUser ? "/home" : "/login"}>
+      <a className="nav-brand" href={currentUser ? "/home" : "/"}>
         <BrandLockup compact />
       </a>
       <div className="nav-menu">
@@ -883,6 +888,112 @@ function AppNav({ currentUser = "", onLogout }) {
         </button>
       )}
     </nav>
+  );
+}
+
+function LandingPage({ currentUser, onLogout }) {
+  const handlePrimaryAction = () => {
+    window.location.href = currentUser ? "/create" : "/login";
+  };
+
+  return (
+    <main className="page-shell landing-shell">
+      <AppNav currentUser={currentUser} onLogout={onLogout} />
+
+      <section className="landing-hero">
+        <div className="landing-copy">
+          <p className="eyebrow">Batch label system</p>
+          <h1>BatchMark</h1>
+          <p>
+            A simple web tool for vendors who create drum labels, QR verification links,
+            manufacturer records, and batch PDF files without rebuilding the same label by hand.
+          </p>
+          <div className="landing-actions">
+            <button type="button" onClick={handlePrimaryAction}>
+              {currentUser ? "Create a Label" : "Login to Start"}
+            </button>
+            <a className="secondary-link-button" href="/features">
+              View Features
+            </a>
+          </div>
+          <div className="landing-metrics" aria-label="BatchMark highlights">
+            <span>Bulk drum labels</span>
+            <span>Public QR pages</span>
+            <span>Saved history</span>
+          </div>
+        </div>
+
+        <div className="landing-preview" aria-label="BatchMark label preview">
+          <div className="preview-label-sheet">
+            <div className="preview-label-top">
+              <span>DRUM NO.</span>
+              <strong>1/100</strong>
+            </div>
+            <div className="preview-label-row">
+              <span>COMMODITY</span>
+              <strong>L-CARNITINE BASE</strong>
+            </div>
+            <div className="preview-label-row">
+              <span>LOT NO.</span>
+              <strong>AE/API/1102</strong>
+            </div>
+            <div className="preview-label-row">
+              <span>NET WT.</span>
+              <strong>25.000 KGS.</strong>
+            </div>
+            <div className="preview-label-row">
+              <span>GROSS WT.</span>
+              <strong>28.640 KGS.</strong>
+            </div>
+            <div className="preview-qr" aria-hidden="true">
+              <span />
+              <span />
+              <span />
+              <span />
+              <span />
+              <span />
+              <span />
+              <span />
+              <span />
+            </div>
+            <p>PDF labels with QR records for buyers and internal teams.</p>
+          </div>
+        </div>
+      </section>
+
+      <section className="landing-feature-grid" aria-label="BatchMark benefits">
+        <article>
+          <span className="feature-number">01</span>
+          <h2>Generate labels faster</h2>
+          <p>Create one label or a complete drum batch with automatic drum numbering and gross weight calculation.</p>
+        </article>
+        <article>
+          <span className="feature-number">02</span>
+          <h2>Share safe QR records</h2>
+          <p>Each QR opens a public label record while private dashboard, profile, and history stay protected.</p>
+        </article>
+        <article>
+          <span className="feature-number">03</span>
+          <h2>Reuse vendor details</h2>
+          <p>Manufacturer logo, address, contact details, and label settings stay ready for future batches.</p>
+        </article>
+      </section>
+
+      <section className="landing-flow">
+        <div>
+          <p className="eyebrow">How it works</p>
+          <h2>From batch details to PDF in a clean workflow.</h2>
+        </div>
+        <ol>
+          <li>Login with phone OTP.</li>
+          <li>Add product, lot, dates, buyer, and compliance details.</li>
+          <li>Generate drum rows manually, by quick setup, or from a sheet.</li>
+          <li>Download PDFs and keep every label in history.</li>
+        </ol>
+      </section>
+
+      <AppFooter />
+    </main>
   );
 }
 
@@ -2602,8 +2713,10 @@ function App() {
   const currentManufacturerDetails = getSavedManufacturerDetails(currentUser);
   const currentManufacturer = currentManufacturerDetails.manufacturer || currentUser;
   const currentPath = window.location.pathname;
+  const isLandingPage = currentPath === "/";
+  const isLoginPage = currentPath === "/login";
   const isHistoryPage = currentPath === "/history";
-  const isHomePage = currentPath === "/" || currentPath === "/home";
+  const isHomePage = currentPath === "/home";
   const isProfilePage = currentPath === "/profile";
   const isTemplatesPage = currentPath === "/templates";
   const infoPage = currentPath.match(/^\/(about|features|contact)$/)?.[1];
@@ -2987,6 +3100,15 @@ function App() {
     return (
       <InfoPage page={infoPage} currentUser={currentUser} onLogout={handleLogout} />
     );
+  }
+
+  if (isLandingPage) {
+    return <LandingPage currentUser={currentUser} onLogout={handleLogout} />;
+  }
+
+  if (isLoginPage && currentUser) {
+    window.history.replaceState({}, "", "/home");
+    return <HomePage userName={currentUser} onLogout={handleLogout} />;
   }
 
   if (!currentUser) {
