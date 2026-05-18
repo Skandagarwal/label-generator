@@ -3,7 +3,6 @@ const router = express.Router();
 const QRCode = require("qrcode");
 const puppeteer = require("puppeteer");
 const fs = require("fs");
-const os = require("os");
 const path = require("path");
 const { spawnSync } = require("child_process");
 
@@ -495,9 +494,8 @@ const renderLabelsHtml = (template, labels) => {
   return `${beforeLabel}${filledLabels}${afterLabel}`;
 };
 
-const createPdf = async (labels) => {
+const createPdfBuffer = async (labels) => {
   let page;
-  let pdfPath;
 
   try {
     const template = fs.readFileSync(
@@ -516,24 +514,25 @@ const createPdf = async (labels) => {
       timeout: 0,
     });
 
-    await page.evaluate(() =>
-      Promise.all(
-        Array.from(document.images)
-          .filter((image) => !image.complete)
-          .map(
-            (image) =>
-              new Promise((resolve) => {
-                image.onload = resolve;
-                image.onerror = resolve;
-              })
-          )
-      )
+    await page.evaluate(
+      () =>
+        Promise.race([
+          Promise.all(
+            Array.from(document.images)
+              .filter((image) => !image.complete)
+              .map(
+                (image) =>
+                  new Promise((resolve) => {
+                    image.onload = resolve;
+                    image.onerror = resolve;
+                  })
+              )
+          ),
+          new Promise((resolve) => setTimeout(resolve, 1500)),
+        ])
     );
 
-    pdfPath = path.join(os.tmpdir(), `labels-${Date.now()}.pdf`);
-
-    await page.pdf({
-      path: pdfPath,
+    const pdfBuffer = await page.pdf({
       format: "A4",
       landscape: true,
       preferCSSPageSize: true,
@@ -543,7 +542,7 @@ const createPdf = async (labels) => {
     await page.close();
     page = null;
 
-    return pdfPath;
+    return pdfBuffer;
   } catch (err) {
     console.error("PDF generation failed:", err.stack || err.message || err);
 
@@ -551,26 +550,23 @@ const createPdf = async (labels) => {
       await page.close().catch(() => {});
     }
 
-    if (pdfPath) {
-      fs.unlink(pdfPath, () => {});
-    }
-
     throw err;
   }
 };
 
-const downloadPdf = (res, pdfPath, fileName) => {
-  res.download(pdfPath, fileName, (downloadErr) => {
-    fs.unlink(pdfPath, (unlinkErr) => {
-      if (unlinkErr) {
-        console.error("Could not delete temporary PDF:", unlinkErr.message);
-      }
-    });
+const sendPdf = (res, pdfBuffer, fileName) => {
+  const pdfBody = Buffer.isBuffer(pdfBuffer) ? pdfBuffer : Buffer.from(pdfBuffer);
+  const safeFileName = String(fileName || "label.pdf")
+    .replace(/[^\w.\-() ]+/g, "-")
+    .replace(/-+/g, "-");
 
-    if (downloadErr && !res.headersSent) {
-      res.status(500).send("Error downloading label");
-    }
+  res.set({
+    "Content-Type": "application/pdf",
+    "Content-Disposition": `attachment; filename="${safeFileName || "label.pdf"}"`,
+    "Content-Length": pdfBody.length,
+    "Cache-Control": "no-store",
   });
+  res.send(pdfBody);
 };
 
 const mapWithConcurrency = async (items, limit, task) => {
@@ -706,7 +702,7 @@ router.post("/labels/batch/pdf", async (req, res) => {
       }
     }
 
-    const pdfPath = await createPdf(
+    const pdfBuffer = await createPdfBuffer(
       await Promise.all(
         labels.map(async (label) => ({
           data: serializeLabel(label),
@@ -715,7 +711,7 @@ router.post("/labels/batch/pdf", async (req, res) => {
       )
     );
 
-    downloadPdf(res, pdfPath, labels.length > 1 ? "batch-labels.pdf" : "label.pdf");
+    sendPdf(res, pdfBuffer, labels.length > 1 ? "batch-labels.pdf" : "label.pdf");
   } catch (err) {
     console.error(err);
     res.status(500).send("Error generating batch PDF");
@@ -732,9 +728,9 @@ router.get("/labels/:id/pdf", async (req, res) => {
 
     const data = serializeLabel(label);
     const qr = await QRCode.toDataURL(labelPublicUrl(req, label._id));
-    const pdfPath = await createPdf([{ data, qr }]);
+    const pdfBuffer = await createPdfBuffer([{ data, qr }]);
 
-    downloadPdf(res, pdfPath, `label-${data.drumNo || label._id}.pdf`);
+    sendPdf(res, pdfBuffer, `label-${data.drumNo || label._id}.pdf`);
   } catch (err) {
     console.error(err);
     res.status(500).send("Error generating label PDF");
@@ -816,14 +812,14 @@ router.post("/generate", async (req, res) => {
       }))
     );
 
-    const pdfPath = await createPdf(
+    const pdfBuffer = await createPdfBuffer(
       labels.map((label) => ({
         data: label.data,
         qr: label.qr,
       }))
     );
 
-    downloadPdf(res, pdfPath, labels.length > 1 ? "labels.pdf" : "label.pdf");
+    sendPdf(res, pdfBuffer, labels.length > 1 ? "labels.pdf" : "label.pdf");
 
   } catch (err) {
     console.error(err);
