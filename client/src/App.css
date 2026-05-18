@@ -30,7 +30,7 @@ body {
 
 .page-shell {
   min-height: 100vh;
-  padding: 28px;
+  padding: clamp(16px, 2.4vw, 34px);
   color: var(--ink);
   background:
     linear-gradient(180deg, #eaf3ee 0, #f7faf8 330px, #f8faf8 100%);
@@ -150,11 +150,14 @@ body {
 }
 
 .product-nav {
+  position: sticky;
+  top: 14px;
+  z-index: 20;
   display: grid;
-  grid-template-columns: minmax(220px, auto) minmax(0, 1fr) auto;
+  grid-template-columns: minmax(210px, auto) minmax(0, 1fr) auto;
   align-items: center;
-  gap: 22px;
-  margin-bottom: 30px;
+  gap: clamp(14px, 2vw, 24px);
+  margin-bottom: clamp(24px, 4vw, 48px);
   padding: 14px 18px;
   background: rgba(255, 255, 255, 0.88);
   border: 1px solid var(--line);
@@ -178,6 +181,7 @@ body {
   justify-content: center;
   flex-wrap: wrap;
   gap: 6px;
+  min-width: 0;
 }
 
 .nav-link {
@@ -269,12 +273,12 @@ body {
 }
 
 .landing-hero {
-  min-height: 520px;
+  min-height: clamp(500px, 64vh, 680px);
   display: grid;
   grid-template-columns: minmax(0, 1.06fr) minmax(340px, 0.94fr);
   align-items: center;
-  gap: 42px;
-  padding: 44px 0 28px;
+  gap: clamp(28px, 5vw, 72px);
+  padding: clamp(28px, 5vw, 58px) 0 clamp(18px, 4vw, 34px);
 }
 
 .landing-copy h1 {
@@ -344,6 +348,7 @@ body {
 .preview-label-sheet {
   position: relative;
   width: min(100%, 470px);
+  aspect-ratio: 1.3;
   min-height: 350px;
   padding: 34px;
   color: #1f2933;
@@ -409,7 +414,7 @@ body {
 
 .landing-feature-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(210px, 1fr));
   gap: 18px;
   margin-top: 22px;
 }
@@ -440,7 +445,7 @@ body {
 
 .landing-flow {
   display: grid;
-  grid-template-columns: minmax(260px, 0.8fr) minmax(0, 1fr);
+  grid-template-columns: minmax(260px, 0.8fr) minmax(320px, 1fr);
   gap: 28px;
   margin-top: 22px;
   padding: 28px;
@@ -1859,6 +1864,47 @@ dd {
 }
 
 @media (max-width: 900px) {
+  .product-nav {
+    grid-template-columns: 1fr auto;
+  }
+
+  .nav-menu {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+  }
+
+  .nav-menu::-webkit-scrollbar {
+    display: none;
+  }
+
+  .nav-link {
+    flex: 0 0 auto;
+  }
+
+  .landing-hero {
+    grid-template-columns: 1fr;
+    min-height: auto;
+  }
+
+  .landing-preview {
+    justify-content: flex-start;
+  }
+
+  .preview-label-sheet {
+    width: min(100%, 680px);
+  }
+
+  .landing-feature-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .landing-flow {
+    grid-template-columns: 1fr;
+  }
+
   .workspace {
     grid-template-columns: 1fr;
   }
@@ -1903,6 +1949,7 @@ dd {
     grid-template-columns: 1fr;
     gap: 12px;
     padding: 14px;
+    top: 8px;
   }
 
   .compact-brand .brand-logo {
@@ -1916,11 +1963,14 @@ dd {
 
   .nav-menu {
     justify-content: flex-start;
+    overflow-x: auto;
+    flex-wrap: nowrap;
     width: 100%;
   }
 
   .nav-link {
-    flex: 1 1 88px;
+    flex: 0 0 auto;
+    min-width: max-content;
   }
 
   .nav-logout {
@@ -2205,6 +2255,45 @@ dd {
 
   .row-action {
     flex: 1 1 120px;
+  }
+}
+
+@media (max-width: 520px) {
+  .landing-copy h1 {
+    font-size: 42px;
+  }
+
+  .landing-metrics {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .preview-label-sheet {
+    aspect-ratio: auto;
+    min-height: auto;
+    padding: 22px;
+  }
+
+  .preview-label-top,
+  .preview-label-row {
+    grid-template-columns: 92px 1fr;
+    font-size: 12px;
+  }
+
+  .preview-qr {
+    position: static;
+    margin-top: 14px;
+    width: 76px;
+    height: 76px;
+  }
+
+  .preview-label-sheet p {
+    position: static;
+    margin-top: 16px;
+  }
+
+  .preview-logo {
+    margin-top: 16px;
   }
 }
 
