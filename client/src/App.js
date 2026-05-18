@@ -122,6 +122,34 @@ const templateLayoutPositions = [
   { value: "hidden", label: "Hidden" },
 ];
 
+const templateBuilderSections = [
+  {
+    value: "left",
+    title: "Main label details",
+    helper: "Product, lot, dates, drum, and weight fields that buyers read first.",
+  },
+  {
+    value: "right",
+    title: "Right side / QR area",
+    helper: "Keep short fields here so the QR block has enough clean space.",
+  },
+  {
+    value: "center",
+    title: "Center notice",
+    helper: "Warnings, storage condition, and compliance text.",
+  },
+  {
+    value: "bottom",
+    title: "Manufacturer footer",
+    helper: "Manufacturer name, address, contact, logo, and extra footer details.",
+  },
+  {
+    value: "hidden",
+    title: "Hidden fields",
+    helper: "Fields saved in the template but not printed on the label.",
+  },
+];
+
 const defaultTemplatePositionFor = (field, index = 0) => {
   if (["warningText", "storage", "license"].includes(field.key)) {
     return "center";
@@ -2081,6 +2109,7 @@ function TemplatesPage({ currentUser, onLogout }) {
   const [draft, setDraft] = useState(emptyTemplateDraft);
   const [editingId, setEditingId] = useState("");
   const [status, setStatus] = useState("loading");
+  const [notice, setNotice] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
   const loadTemplates = () => {
@@ -2127,7 +2156,7 @@ function TemplatesPage({ currentUser, onLogout }) {
     }
 
     if (!file.type.startsWith("image/")) {
-      setStatus("Please choose an image file for the template logo.");
+      setNotice("Please choose an image file for the template logo.");
       return;
     }
 
@@ -2135,9 +2164,9 @@ function TemplatesPage({ currentUser, onLogout }) {
 
     reader.onload = () => {
       updateFieldSetting(key, "defaultValue", reader.result || "");
-      setStatus("Template logo selected. Save the template to keep it.");
+      setNotice("Template logo selected. Save the template to keep it.");
     };
-    reader.onerror = () => setStatus("Could not read this template logo file.");
+    reader.onerror = () => setNotice("Could not read this template logo file.");
     reader.readAsDataURL(file);
   };
 
@@ -2167,9 +2196,108 @@ function TemplatesPage({ currentUser, onLogout }) {
     }));
   };
 
+  const getSectionItems = (values, position) => {
+    const section = normalizeTemplatePosition(position);
+    const standardItems = values.fieldSettings
+      .filter((setting) => {
+        const itemPosition =
+          setting.visible === false ? "hidden" : normalizeTemplatePosition(setting.position);
+        return itemPosition === section;
+      })
+      .map((setting) => ({
+        kind: "standard",
+        id: setting.key,
+        key: setting.key,
+        label: setting.label,
+        defaultValue: setting.defaultValue,
+        order: Number(setting.order) || 0,
+        position: section,
+        meta: customizableTemplateFields.find((field) => field.key === setting.key),
+        visible: setting.visible !== false,
+      }));
+
+    const customItems = values.customFields
+      .filter((field) => field.label.trim())
+      .filter((field) => normalizeTemplatePosition(field.position) === section)
+      .map((field) => ({
+        kind: "custom",
+        id: field.id,
+        key: field.id,
+        label: field.label,
+        defaultValue: field.defaultValue,
+        order: Number(field.order) || 100,
+        position: section,
+        meta: { label: "Custom field", group: field.type || "Custom" },
+        visible: section !== "hidden",
+      }));
+
+    return [...standardItems, ...customItems].sort((a, b) => a.order - b.order);
+  };
+
+  const nextOrderForSection = (values, position) => {
+    const orders = getSectionItems(values, position).map((item) => Number(item.order) || 0);
+    return Math.max(0, ...orders) + 10;
+  };
+
+  const updateLayoutItem = (values, item, changes) => ({
+    ...values,
+    fieldSettings:
+      item.kind === "standard"
+        ? values.fieldSettings.map((setting) =>
+            setting.key === item.id ? { ...setting, ...changes } : setting
+          )
+        : values.fieldSettings,
+    customFields:
+      item.kind === "custom"
+        ? values.customFields.map((field) =>
+            field.id === item.id ? { ...field, ...changes } : field
+          )
+        : values.customFields,
+  });
+
+  const moveLayoutItem = (item, direction) => {
+    setDraft((values) => {
+      const items = getSectionItems(values, item.position);
+      const index = items.findIndex(
+        (sectionItem) => sectionItem.kind === item.kind && sectionItem.id === item.id
+      );
+      const swapItem = items[index + direction];
+
+      if (index < 0 || !swapItem) {
+        return values;
+      }
+
+      const currentOrder = Number(item.order) || index + 1;
+      const swapOrder = Number(swapItem.order) || index + direction + 1;
+      const withMovedItem = updateLayoutItem(values, item, { order: swapOrder });
+
+      return updateLayoutItem(withMovedItem, swapItem, { order: currentOrder });
+    });
+  };
+
+  const moveLayoutItemToSection = (item, position) => {
+    const nextPosition = normalizeTemplatePosition(position);
+
+    setDraft((values) => {
+      const changes = {
+        position: nextPosition,
+        order: nextOrderForSection(values, nextPosition),
+      };
+
+      if (item.kind === "standard") {
+        changes.visible = nextPosition !== "hidden";
+      }
+
+      return updateLayoutItem(values, item, changes);
+    });
+  };
+
+  const sectionItemsForDraft = (position) => getSectionItems(draft, position);
+
   const resetDraft = () => {
     setDraft(emptyTemplateDraft());
     setEditingId("");
+    setNotice("");
   };
 
   const editTemplate = (template) => {
@@ -2183,7 +2311,7 @@ function TemplatesPage({ currentUser, onLogout }) {
     const payload = buildTemplatePayload(draft);
 
     if (!payload.name) {
-      setStatus("Template name is required.");
+      setNotice("Template name is required.");
       return;
     }
 
@@ -2197,9 +2325,10 @@ function TemplatesPage({ currentUser, onLogout }) {
       }
       resetDraft();
       loadTemplates();
+      setNotice("Template saved.");
     } catch (err) {
       console.error(err);
-      setStatus(err.response?.data?.message || "Could not save this template.");
+      setNotice(err.response?.data?.message || "Could not save this template.");
     } finally {
       setIsSaving(false);
     }
@@ -2220,9 +2349,95 @@ function TemplatesPage({ currentUser, onLogout }) {
       }
     } catch (err) {
       console.error(err);
-      setStatus("Could not delete this template.");
+      setNotice("Could not delete this template.");
     }
   };
+
+  const renderLayoutItem = (item, index, items) => (
+    <article className="template-builder-item" key={`${item.kind}-${item.id}`}>
+      <div className="template-item-main">
+        <p>{item.label || item.meta?.label || "Untitled field"}</p>
+        <small>{item.meta?.group || item.meta?.label || "Field"}</small>
+      </div>
+      <label>
+        <span>Print as</span>
+        <input
+          value={item.label}
+          onChange={(e) =>
+            item.kind === "standard"
+              ? updateFieldSetting(item.id, "label", e.target.value)
+              : updateCustomField(item.id, "label", e.target.value)
+          }
+        />
+      </label>
+      {item.kind === "standard" && item.id === "manufacturerLogo" ? (
+        <div className="template-item-note">
+          Logo is managed in detailed controls.
+        </div>
+      ) : (
+        <label>
+          <span>Default</span>
+          <input
+            value={item.defaultValue}
+            onChange={(e) =>
+              item.kind === "standard"
+                ? updateFieldSetting(item.id, "defaultValue", e.target.value)
+                : updateCustomField(item.id, "defaultValue", e.target.value)
+            }
+            placeholder="Optional"
+          />
+        </label>
+      )}
+      <label>
+        <span>Section</span>
+        <select
+          value={item.position}
+          onChange={(e) => moveLayoutItemToSection(item, e.target.value)}
+        >
+          {templateBuilderSections.map((section) => (
+            <option key={section.value} value={section.value}>
+              {section.title}
+            </option>
+          ))}
+        </select>
+      </label>
+      <div className="template-item-actions">
+        <button
+          className="icon-text-button"
+          type="button"
+          onClick={() => moveLayoutItem(item, -1)}
+          disabled={index === 0}
+        >
+          Up
+        </button>
+        <button
+          className="icon-text-button"
+          type="button"
+          onClick={() => moveLayoutItem(item, 1)}
+          disabled={index === items.length - 1}
+        >
+          Down
+        </button>
+        {item.position !== "hidden" ? (
+          <button
+            className="secondary-button compact-button"
+            type="button"
+            onClick={() => moveLayoutItemToSection(item, "hidden")}
+          >
+            Hide
+          </button>
+        ) : (
+          <button
+            className="secondary-button compact-button"
+            type="button"
+            onClick={() => moveLayoutItemToSection(item, "left")}
+          >
+            Show
+          </button>
+        )}
+      </div>
+    </article>
+  );
 
   return (
     <main className="page-shell">
@@ -2231,7 +2446,7 @@ function TemplatesPage({ currentUser, onLogout }) {
         <div>
           <h1>Product Templates</h1>
           <p className="header-copy">
-            Save product-wise label fields so every vendor can reuse their own format.
+            Build product-wise label formats with simple sections and a live preview.
           </p>
         </div>
       </header>
@@ -2251,6 +2466,15 @@ function TemplatesPage({ currentUser, onLogout }) {
           </div>
 
           <form className="template-form" onSubmit={saveTemplate}>
+            <div className="template-builder-intro">
+              <span>1</span>
+              <div>
+                <h3>Start with product defaults</h3>
+                <p>
+                  These values prefill the create-label page whenever this template is selected.
+                </p>
+              </div>
+            </div>
             <div className="form-grid">
               <label className="field">
                 <span>Template Name</span>
@@ -2317,11 +2541,51 @@ function TemplatesPage({ currentUser, onLogout }) {
               </label>
             </div>
 
+            <div className="template-builder-intro">
+              <span>2</span>
+              <div>
+                <h3>Arrange the printed label</h3>
+                <p>
+                  Move fields into label sections. Use hidden fields for values this product does
+                  not print.
+                </p>
+              </div>
+            </div>
+
+            <div className="template-section-board">
+              {templateBuilderSections.map((section) => {
+                const items = sectionItemsForDraft(section.value);
+
+                return (
+                  <section className="template-section-card" key={section.value}>
+                    <div className="template-section-title">
+                      <div>
+                        <h3>{section.title}</h3>
+                        <p>{section.helper}</p>
+                      </div>
+                      <strong>{items.length}</strong>
+                    </div>
+                    {items.length === 0 ? (
+                      <p className="template-section-empty">No fields in this section.</p>
+                    ) : (
+                      <div className="template-section-items">
+                        {items.map((item, index) => renderLayoutItem(item, index, items))}
+                      </div>
+                    )}
+                  </section>
+                );
+              })}
+            </div>
+
             <div className="custom-field-builder custom-field-builder-primary">
               <div className="section-heading section-heading-with-action">
                 <div>
-                  <h3>Custom Fields</h3>
-                  <p>Add only the extra fields this product needs.</p>
+                  <p className="step-label">Step 3</p>
+                  <h3>Add extra product fields</h3>
+                  <p>
+                    Add values like CAS No., grade, assay, country of origin, or any field a
+                    vendor needs for this product.
+                  </p>
                 </div>
                 <button className="secondary-button" type="button" onClick={addCustomField}>
                   Add Field
@@ -2361,26 +2625,17 @@ function TemplatesPage({ currentUser, onLogout }) {
                     />
                   </label>
                   <label>
-                    <span>Position</span>
+                    <span>Print Section</span>
                     <select
                       value={field.position}
                       onChange={(e) => updateCustomField(field.id, "position", e.target.value)}
                     >
-                      {templateLayoutPositions.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
+                      {templateBuilderSections.map((section) => (
+                        <option key={section.value} value={section.value}>
+                          {section.title}
                         </option>
                       ))}
                     </select>
-                  </label>
-                  <label>
-                    <span>Order</span>
-                    <input
-                      type="number"
-                      min="1"
-                      value={field.order}
-                      onChange={(e) => updateCustomField(field.id, "order", e.target.value)}
-                    />
                   </label>
                   <label className="inline-check">
                     <input
@@ -2405,66 +2660,23 @@ function TemplatesPage({ currentUser, onLogout }) {
 
             <details className="template-advanced">
               <summary>
-                <span>Advanced field controls</span>
-                <small>Rename, hide, prefill fields, or override the manufacturer logo.</small>
+                <span>Logo and detailed controls</span>
+                <small>Override the template logo or make a field required.</small>
               </summary>
               <div className="template-field-grid">
-                {draft.fieldSettings.map((setting) => {
+                {draft.fieldSettings
+                  .filter((setting) => setting.key === "manufacturerLogo")
+                  .map((setting) => {
                   const templateField = customizableTemplateFields.find(
                     (field) => field.key === setting.key
                   );
 
                   return (
-                    <div className="template-field-row" key={setting.key}>
-                      <label className="inline-check">
-                        <input
-                          type="checkbox"
-                          checked={setting.visible !== false}
-                          onChange={(e) =>
-                            updateFieldSetting(setting.key, "visible", e.target.checked)
-                          }
-                        />
-                        <span>Show</span>
-                      </label>
+                    <div className="template-field-row template-field-row-logo" key={setting.key}>
                       <div>
                         <p className="history-title">{templateField?.label || setting.key}</p>
                         <p className="history-meta">{templateField?.group || "Field"}</p>
                       </div>
-                      <label>
-                        <span>Display Name</span>
-                        <input
-                          value={setting.label}
-                          onChange={(e) =>
-                            updateFieldSetting(setting.key, "label", e.target.value)
-                          }
-                        />
-                      </label>
-                      <label>
-                        <span>Position</span>
-                        <select
-                          value={setting.position}
-                          onChange={(e) =>
-                            updateFieldSetting(setting.key, "position", e.target.value)
-                          }
-                        >
-                          {templateLayoutPositions.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <label>
-                        <span>Order</span>
-                        <input
-                          type="number"
-                          min="1"
-                          value={setting.order}
-                          onChange={(e) =>
-                            updateFieldSetting(setting.key, "order", e.target.value)
-                          }
-                        />
-                      </label>
                       {setting.key === "manufacturerLogo" ? (
                         <div className="template-logo-control">
                           <label>
@@ -2508,17 +2720,43 @@ function TemplatesPage({ currentUser, onLogout }) {
                     </div>
                   );
                 })}
+                {draft.customFields
+                  .filter((field) => field.label.trim())
+                  .map((field) => (
+                    <div className="template-field-row template-field-row-compact" key={field.id}>
+                      <div>
+                        <p className="history-title">{field.label}</p>
+                        <p className="history-meta">Custom field</p>
+                      </div>
+                      <label className="inline-check">
+                        <input
+                          type="checkbox"
+                          checked={field.required}
+                          onChange={(e) =>
+                            updateCustomField(field.id, "required", e.target.checked)
+                          }
+                        />
+                        <span>Required</span>
+                      </label>
+                    </div>
+                  ))}
               </div>
             </details>
+
+            <div className="template-builder-intro">
+              <span>4</span>
+              <div>
+                <h3>Preview before saving</h3>
+                <p>This is how the selected sections will print on the label PDF.</p>
+              </div>
+            </div>
 
             <TemplateLayoutPreview
               template={buildTemplatePayload(draft, currentUser?.phone || getSavedPhone())}
               title="Live Layout Preview"
             />
 
-            {typeof status === "string" && !["loading", "ready", "error"].includes(status) && (
-              <p className="status-message">{status}</p>
-            )}
+            {notice && <p className="status-message">{notice}</p>}
 
             <div className="template-actions">
               <button type="submit" disabled={isSaving}>

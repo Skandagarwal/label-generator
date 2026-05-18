@@ -1748,9 +1748,187 @@ dd {
   font-size: 18px;
 }
 
+.template-builder-intro {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 16px;
+  background: #f6faf8;
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
+}
+
+.template-builder-intro > span {
+  display: inline-grid;
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  color: #ffffff;
+  background: var(--green);
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.template-builder-intro h3,
+.template-builder-intro p {
+  margin: 0;
+}
+
+.template-builder-intro h3 {
+  font-size: 19px;
+}
+
+.template-builder-intro p {
+  margin-top: 4px;
+  color: #6f817b;
+  line-height: 1.45;
+}
+
+.template-section-board {
+  display: grid;
+  gap: 14px;
+}
+
+.template-section-card {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  background: #ffffff;
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
+}
+
+.template-section-title {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.template-section-title h3,
+.template-section-title p {
+  margin: 0;
+}
+
+.template-section-title h3 {
+  font-size: 18px;
+}
+
+.template-section-title p {
+  margin-top: 4px;
+  color: #6f817b;
+  line-height: 1.4;
+}
+
+.template-section-title strong {
+  display: inline-grid;
+  min-width: 34px;
+  height: 34px;
+  place-items: center;
+  color: var(--green);
+  background: var(--green-soft);
+  border: 1px solid #cde9dd;
+  border-radius: 999px;
+  font-size: 13px;
+}
+
+.template-section-empty {
+  margin: 0;
+  padding: 14px;
+  color: #6f817b;
+  background: #fbfdfc;
+  border: 1px dashed #cddbd6;
+  border-radius: 10px;
+}
+
+.template-section-items {
+  display: grid;
+  gap: 10px;
+}
+
+.template-builder-item {
+  display: grid;
+  grid-template-columns: minmax(150px, 0.9fr) minmax(150px, 1fr) minmax(150px, 1fr) minmax(150px, 0.9fr) auto;
+  gap: 10px;
+  align-items: end;
+  padding: 12px;
+  background: #fbfdfc;
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+}
+
+.template-builder-item label,
+.template-field-row-compact label {
+  display: grid;
+  gap: 7px;
+}
+
+.template-builder-item label span,
+.template-field-row-compact label span {
+  color: #516760;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.template-item-main p,
+.template-item-main small {
+  display: block;
+  margin: 0;
+}
+
+.template-item-main p {
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.template-item-main small {
+  margin-top: 4px;
+  color: #6f817b;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.template-item-note {
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  color: #6f817b;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.template-item-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.icon-text-button {
+  min-height: 42px;
+  padding: 0 12px;
+  color: var(--green);
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.icon-text-button:disabled {
+  color: #94a49f;
+  background: #f5f8f7;
+  cursor: not-allowed;
+}
+
 .custom-field-row {
   display: grid;
-  grid-template-columns: minmax(150px, 1.2fr) minmax(110px, 0.65fr) minmax(140px, 1fr) minmax(120px, 0.75fr) 86px auto auto;
+  grid-template-columns: minmax(150px, 1.2fr) minmax(110px, 0.65fr) minmax(140px, 1fr) minmax(150px, 0.9fr) auto auto;
   gap: 10px;
   align-items: end;
   padding: 12px;
@@ -1779,6 +1957,14 @@ dd {
   background: #ffffff;
   border: 1px solid var(--line-soft);
   border-radius: 10px;
+}
+
+.template-field-row-compact {
+  grid-template-columns: minmax(150px, 1fr) auto;
+}
+
+.template-field-row-logo {
+  grid-template-columns: minmax(170px, 0.8fr) minmax(260px, 1.2fr);
 }
 
 .template-field-row label {
@@ -2225,8 +2411,17 @@ dd {
     grid-template-columns: 1fr;
   }
 
+  .template-builder-item,
   .template-field-row {
     grid-template-columns: 1fr;
+  }
+
+  .template-item-actions {
+    justify-content: stretch;
+  }
+
+  .template-item-actions button {
+    flex: 1 1 0;
   }
 
   .template-preview-top,
