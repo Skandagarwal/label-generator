@@ -114,15 +114,40 @@ const customizableTemplateFields = [
   { key: "manufacturerLogo", label: "Manufacturer Logo", group: "Manufacturer" },
 ];
 
-const emptyFieldSetting = (field) => ({
+const templateLayoutPositions = [
+  { value: "left", label: "Left details" },
+  { value: "right", label: "Right details" },
+  { value: "center", label: "Center notice" },
+  { value: "bottom", label: "Bottom block" },
+  { value: "hidden", label: "Hidden" },
+];
+
+const defaultTemplatePositionFor = (field, index = 0) => {
+  if (["warningText", "storage", "license"].includes(field.key)) {
+    return "center";
+  }
+
+  if (field.group === "Manufacturer") {
+    return "bottom";
+  }
+
+  return index % 2 === 0 ? "left" : "right";
+};
+
+const normalizeTemplatePosition = (value = "left") =>
+  templateLayoutPositions.some((option) => option.value === value) ? value : "left";
+
+const emptyFieldSetting = (field, index = 0) => ({
   key: field.key,
   label: field.label,
   visible: true,
   defaultValue: fieldsByName[field.key]?.defaultValue || "",
+  position: defaultTemplatePositionFor(field, index),
+  order: index + 1,
 });
 
 const defaultTemplateFieldSettings = () =>
-  customizableTemplateFields.map((field) => emptyFieldSetting(field));
+  customizableTemplateFields.map((field, index) => emptyFieldSetting(field, index));
 
 const emptyForm = fields.reduce((values, field) => {
   values[field.name] = field.defaultValue || "";
@@ -645,6 +670,8 @@ const emptyTemplateField = () => ({
   type: "text",
   required: false,
   defaultValue: "",
+  position: "bottom",
+  order: 100,
 });
 
 const emptyTemplateDraft = () => ({
@@ -689,6 +716,11 @@ const buildTemplatePayload = (draft, ownerPhone = getSavedPhone()) => ({
       setting.key,
     visible: setting.visible !== false,
     defaultValue: setting.defaultValue.trim(),
+    position:
+      setting.visible === false
+        ? "hidden"
+        : normalizeTemplatePosition(setting.position),
+    order: Number(setting.order) || 0,
   })),
   customFields: draft.customFields
     .map((field, index) => ({
@@ -697,6 +729,8 @@ const buildTemplatePayload = (draft, ownerPhone = getSavedPhone()) => ({
       type: field.type || "text",
       required: Boolean(field.required),
       defaultValue: field.defaultValue.trim(),
+      position: normalizeTemplatePosition(field.position || "bottom"),
+      order: Number(field.order) || index + 100,
     }))
     .filter((field) => field.label),
 });
@@ -719,12 +753,18 @@ const templateToDraft = (template = {}) => ({
       ...setting,
       ...savedSetting,
       visible: savedSetting?.visible !== false,
+      position: normalizeTemplatePosition(
+        savedSetting?.position || setting.position
+      ),
+      order: Number(savedSetting?.order || setting.order) || setting.order,
     };
   }),
   customFields: template.customFields?.length
     ? template.customFields.map((field) => ({
         ...emptyTemplateField(),
         ...field,
+        position: normalizeTemplatePosition(field.position || "bottom"),
+        order: Number(field.order) || 100,
       }))
     : [emptyTemplateField()],
 });
@@ -740,7 +780,7 @@ const templateFieldLabel = (template, key, fallback) =>
 
 const templateFieldVisible = (template, key) => {
   const setting = templateFieldSettingMap(template)[key];
-  return !setting || setting.visible !== false;
+  return !setting || (setting.visible !== false && setting.position !== "hidden");
 };
 
 const templateFieldDefault = (template, key) =>
@@ -756,8 +796,107 @@ const templateFieldLabelsPayload = (template) =>
 
 const templateHiddenFieldsPayload = (template) =>
   (template?.fieldSettings || [])
-    .filter((setting) => setting.visible === false)
+    .filter((setting) => setting.visible === false || setting.position === "hidden")
     .map((setting) => setting.key);
+
+const templatePreviewFallbacks = {
+  formatNo: "AE/API/ST/SOP-11/F1-00",
+  drumNo: "1/8",
+  commodity: "L-CARNITINE BASE",
+  lotNo: "AE/API/1102",
+  poNo: "ANE-PO-2026-24/006",
+  mfgDate: "03/05/2026",
+  bestBefore: "02/05/2028",
+  netWt: "25.000 KGS.",
+  tareWt: "3.640 KGS.",
+  grossWt: "28.640 KGS.",
+  customerName: "DHARMANADAN EXPORT PVT.LTD.",
+  customerAddress: "AHMEDABAD - 382427",
+  warningText: '"NOT FOR MEDICINAL USE"',
+  storage: "COOL AND DRY PLACE",
+  license: "10016051001567",
+  manufacturer: "AGGARWWAL EXPORTS",
+  manufacturerAddress: "B/6-9, ROSHAN BAGH INDUSTRIAL ESTATE",
+  manufacturerWebsite: "www.example.com",
+  manufacturerEmail: "info@example.com",
+  manufacturerPhone: "+91-9000000000",
+};
+
+const previewValueForField = (template, key, values = {}) => {
+  const value = values[key] || templateFieldDefault(template, key);
+
+  return value || template?.defaults?.[key] || templatePreviewFallbacks[key] || "Sample value";
+};
+
+const templatePreviewFields = (template = {}, values = {}) => {
+  const builtInFields = (template.fieldSettings || defaultTemplateFieldSettings())
+    .filter((setting) => setting.visible !== false && setting.position !== "hidden")
+    .map((setting) => ({
+      key: setting.key,
+      label:
+        setting.label ||
+        customizableTemplateFields.find((field) => field.key === setting.key)?.label ||
+        setting.key,
+      value: previewValueForField(template, setting.key, values),
+      position: normalizeTemplatePosition(setting.position),
+      order: Number(setting.order) || 0,
+    }));
+
+  const customFields = (template.customFields || [])
+    .filter((field) => field.label && field.position !== "hidden")
+    .map((field, index) => ({
+      key: field.key || `custom_${index}`,
+      label: field.label,
+      value: values[field.key] || field.defaultValue || "Custom value",
+      position: normalizeTemplatePosition(field.position || "bottom"),
+      order: Number(field.order) || index + 100,
+    }));
+
+  return [...builtInFields, ...customFields].sort((a, b) => a.order - b.order);
+};
+
+function TemplateLayoutPreview({ template, values = {}, title = "Template Preview" }) {
+  const fieldsForPreview = templatePreviewFields(template, values);
+  const groups = templateLayoutPositions.reduce((items, option) => {
+    if (option.value !== "hidden") {
+      items[option.value] = fieldsForPreview.filter(
+        (field) => normalizeTemplatePosition(field.position) === option.value
+      );
+    }
+    return items;
+  }, {});
+  const renderField = (field) => (
+    <div className="template-preview-row" key={field.key}>
+      <span>{field.label}</span>
+      <strong>{field.value}</strong>
+    </div>
+  );
+
+  return (
+    <section className="template-preview-card" aria-label={title}>
+      <div className="section-heading">
+        <p className="step-label">{title}</p>
+        <h3>{template?.name || "Standard label"}</h3>
+      </div>
+      <div className="template-preview-sheet">
+        <div className="template-preview-top">
+          <div>{(groups.left || []).map(renderField)}</div>
+          <div>{(groups.right || []).map(renderField)}</div>
+        </div>
+        {(groups.center || []).length > 0 && (
+          <div className="template-preview-center">
+            {(groups.center || []).map(renderField)}
+          </div>
+        )}
+        {(groups.bottom || []).length > 0 && (
+          <div className="template-preview-bottom">
+            {(groups.bottom || []).map(renderField)}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
 
 const firebaseOtpErrorMessage = (err = {}) => {
   const code = err.code || "";
@@ -2221,6 +2360,28 @@ function TemplatesPage({ currentUser, onLogout }) {
                       placeholder="Optional"
                     />
                   </label>
+                  <label>
+                    <span>Position</span>
+                    <select
+                      value={field.position}
+                      onChange={(e) => updateCustomField(field.id, "position", e.target.value)}
+                    >
+                      {templateLayoutPositions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    <span>Order</span>
+                    <input
+                      type="number"
+                      min="1"
+                      value={field.order}
+                      onChange={(e) => updateCustomField(field.id, "order", e.target.value)}
+                    />
+                  </label>
                   <label className="inline-check">
                     <input
                       type="checkbox"
@@ -2278,6 +2439,32 @@ function TemplatesPage({ currentUser, onLogout }) {
                           }
                         />
                       </label>
+                      <label>
+                        <span>Position</span>
+                        <select
+                          value={setting.position}
+                          onChange={(e) =>
+                            updateFieldSetting(setting.key, "position", e.target.value)
+                          }
+                        >
+                          {templateLayoutPositions.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label>
+                        <span>Order</span>
+                        <input
+                          type="number"
+                          min="1"
+                          value={setting.order}
+                          onChange={(e) =>
+                            updateFieldSetting(setting.key, "order", e.target.value)
+                          }
+                        />
+                      </label>
                       {setting.key === "manufacturerLogo" ? (
                         <div className="template-logo-control">
                           <label>
@@ -2323,6 +2510,11 @@ function TemplatesPage({ currentUser, onLogout }) {
                 })}
               </div>
             </details>
+
+            <TemplateLayoutPreview
+              template={buildTemplatePayload(draft, currentUser?.phone || getSavedPhone())}
+              title="Live Layout Preview"
+            />
 
             {typeof status === "string" && !["loading", "ready", "error"].includes(status) && (
               <p className="status-message">{status}</p>
@@ -3185,6 +3377,21 @@ function App() {
                 </small>
               )}
             </label>
+            {selectedTemplate && (
+              <TemplateLayoutPreview
+                template={selectedTemplate}
+                values={{
+                  ...form,
+                  manufacturer: currentManufacturer,
+                  manufacturerAddress: currentManufacturerDetails.manufacturerAddress,
+                  manufacturerWebsite: currentManufacturerDetails.manufacturerWebsite,
+                  manufacturerEmail: currentManufacturerDetails.manufacturerEmail,
+                  manufacturerPhone: currentManufacturerDetails.manufacturerPhone,
+                  ...customFieldValues,
+                }}
+                title="Saved Template Preview"
+              />
+            )}
           </section>
 
           {fieldGroups.map((group) => (

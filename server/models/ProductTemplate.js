@@ -7,6 +7,8 @@ const CustomFieldSchema = new mongoose.Schema(
     type: { type: String, default: "text" },
     required: { type: Boolean, default: false },
     defaultValue: String,
+    position: { type: String, default: "bottom" },
+    order: { type: Number, default: 100 },
   },
   { _id: false }
 );
@@ -17,6 +19,8 @@ const FieldSettingSchema = new mongoose.Schema(
     label: String,
     visible: { type: Boolean, default: true },
     defaultValue: String,
+    position: { type: String, default: "left" },
+    order: { type: Number, default: 0 },
   },
   { _id: false }
 );

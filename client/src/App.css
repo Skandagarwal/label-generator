@@ -1750,7 +1750,7 @@ dd {
 
 .custom-field-row {
   display: grid;
-  grid-template-columns: minmax(150px, 1.2fr) minmax(120px, 0.75fr) minmax(150px, 1fr) auto auto;
+  grid-template-columns: minmax(150px, 1.2fr) minmax(110px, 0.65fr) minmax(140px, 1fr) minmax(120px, 0.75fr) 86px auto auto;
   gap: 10px;
   align-items: end;
   padding: 12px;
@@ -1772,7 +1772,7 @@ dd {
 
 .template-field-row {
   display: grid;
-  grid-template-columns: 82px minmax(130px, 0.8fr) minmax(160px, 1fr) minmax(160px, 1fr);
+  grid-template-columns: 82px minmax(130px, 0.8fr) minmax(150px, 1fr) minmax(130px, 0.8fr) 86px minmax(150px, 1fr);
   gap: 10px;
   align-items: end;
   padding: 12px;
@@ -1861,6 +1861,79 @@ dd {
 
 .template-advanced {
   background: #fbfdfc;
+}
+
+.template-preview-card {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  background: #fbfdfc;
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
+}
+
+.template-preview-card h3 {
+  margin: 0;
+  font-size: 19px;
+}
+
+.template-preview-sheet {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  background: #ffffff;
+  border: 1px solid #dfe8e4;
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 1px rgba(37, 91, 62, 0.03);
+}
+
+.template-preview-top {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.template-preview-center,
+.template-preview-bottom {
+  display: grid;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px dashed #d8e4df;
+}
+
+.template-preview-center {
+  text-align: center;
+}
+
+.template-preview-bottom {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.template-preview-row {
+  display: grid;
+  grid-template-columns: minmax(95px, 0.8fr) minmax(0, 1.1fr);
+  gap: 8px;
+  align-items: start;
+  padding: 3px 0;
+  font-size: 13px;
+}
+
+.template-preview-center .template-preview-row {
+  grid-template-columns: 1fr;
+}
+
+.template-preview-row span {
+  color: #526a62;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.template-preview-row strong {
+  min-width: 0;
+  color: var(--ink);
+  font-weight: 800;
+  overflow-wrap: anywhere;
 }
 
 @media (max-width: 900px) {
@@ -2153,6 +2226,15 @@ dd {
   }
 
   .template-field-row {
+    grid-template-columns: 1fr;
+  }
+
+  .template-preview-top,
+  .template-preview-bottom {
+    grid-template-columns: 1fr;
+  }
+
+  .template-preview-row {
     grid-template-columns: 1fr;
   }
 

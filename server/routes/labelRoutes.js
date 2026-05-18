@@ -293,6 +293,9 @@ const STANDARD_FIELD_LABELS = {
 };
 
 const STANDARD_FIELD_KEYS = Object.keys(STANDARD_FIELD_LABELS);
+const TEMPLATE_POSITIONS = new Set(["left", "right", "center", "bottom", "hidden"]);
+const normalizeTemplatePosition = (position, fallback = "left") =>
+  TEMPLATE_POSITIONS.has(position) ? position : fallback;
 
 const normalizeFieldSettings = (settings = []) =>
   (Array.isArray(settings) ? settings : [])
@@ -301,6 +304,8 @@ const normalizeFieldSettings = (settings = []) =>
       label: String(setting.label || "").trim(),
       visible: setting.visible !== false,
       defaultValue: String(setting.defaultValue || "").trim(),
+      position: normalizeTemplatePosition(setting.position, "left"),
+      order: Number(setting.order) || 0,
     }))
     .filter((setting) => STANDARD_FIELD_KEYS.includes(setting.key));
 
@@ -381,6 +386,8 @@ const normalizeCustomFields = (fields = []) =>
       required: Boolean(field.required),
       defaultValue: String(field.defaultValue || "").trim(),
       value: String(field.value || "").trim(),
+      position: normalizeTemplatePosition(field.position, "bottom"),
+      order: Number(field.order) || index + 100,
     }))
     .filter((field) => field.label);
 
