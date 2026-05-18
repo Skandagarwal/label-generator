@@ -1850,19 +1850,31 @@ dd {
 
 .template-builder-item {
   display: grid;
-  grid-template-columns: minmax(150px, 0.9fr) minmax(150px, 1fr) minmax(150px, 1fr) minmax(150px, 0.9fr) auto;
-  gap: 10px;
+  grid-template-columns: minmax(150px, 0.9fr) repeat(3, minmax(0, 1fr));
+  gap: 12px;
   align-items: end;
   padding: 12px;
   background: #fbfdfc;
   border: 1px solid var(--line-soft);
   border-radius: 10px;
+  min-width: 0;
 }
 
 .template-builder-item label,
 .template-field-row-compact label {
   display: grid;
   gap: 7px;
+  min-width: 0;
+}
+
+.template-builder-item input,
+.template-builder-item select,
+.custom-field-row input,
+.custom-field-row select,
+.template-field-row input,
+.template-field-row select {
+  min-width: 0;
+  width: 100%;
 }
 
 .template-builder-item label span,
@@ -1904,9 +1916,11 @@ dd {
 
 .template-item-actions {
   display: flex;
+  grid-column: 1 / -1;
   gap: 8px;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: flex-start;
+  flex-wrap: wrap;
 }
 
 .icon-text-button {
@@ -1928,13 +1942,19 @@ dd {
 
 .custom-field-row {
   display: grid;
-  grid-template-columns: minmax(150px, 1.2fr) minmax(110px, 0.65fr) minmax(140px, 1fr) minmax(150px, 0.9fr) auto auto;
+  grid-template-columns: minmax(150px, 1.2fr) minmax(110px, 0.65fr) minmax(140px, 1fr) minmax(150px, 0.9fr);
   gap: 10px;
   align-items: end;
   padding: 12px;
   background: #ffffff;
   border: 1px solid var(--line-soft);
   border-radius: 10px;
+  min-width: 0;
+}
+
+.custom-field-row .inline-check,
+.custom-field-row > button {
+  align-self: center;
 }
 
 .custom-field-row label {
