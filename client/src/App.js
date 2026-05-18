@@ -2791,6 +2791,18 @@ function App() {
     setStatusMessage(`${nextItems.length} drum row(s) prepared from the pasted weights.`);
   };
 
+  const downloadWeightSample = () => {
+    const sampleRows = [
+      ["Drum No", "Net Wt.", "Tare Wt."],
+      ["1", "25.000", "3.640"],
+      ["2", "24.950", "3.640"],
+      ["3", "25.100", "3.640"],
+    ];
+    const csv = sampleRows.map((row) => row.join(",")).join("\n");
+
+    downloadPdfBlob(csv, "batchmark-weight-sample.csv");
+  };
+
   const handleWeightSheetUpload = async (e) => {
     const file = e.target.files?.[0];
 
@@ -3188,38 +3200,44 @@ function App() {
                   Generate Rows
                 </button>
               </div>
-              <details className="weight-import-panel">
-                <summary>
-                  <span>Use different weights or Excel</span>
-                  <small>Paste weights or upload a sheet only when drums are different.</small>
-                </summary>
-                <label>
-                  <span>Paste Different Weights</span>
-                  <textarea
-                    value={bulkDrumText}
-                    onChange={(e) => setBulkDrumText(e.target.value)}
-                    placeholder={"25, 3.640\n24.950, 3.640\n25.100, 3.640"}
-                    rows="4"
-                  />
-                </label>
-                <label className="sheet-upload">
-                  <span>Upload Excel / CSV</span>
-                  <input
-                    type="file"
-                    accept=".xlsx,.xls,.csv,.tsv"
-                    onChange={handleWeightSheetUpload}
-                  />
-                  <small>Use columns: Drum No, Net Wt., Tare Wt. Headers are optional.</small>
-                </label>
-                <div className="bulk-drum-actions">
-                  <small>
-                    Use one line per drum: Net Wt., Tare Wt. Gross Wt. is calculated automatically.
-                  </small>
-                  <button className="secondary-button" type="button" onClick={applyPastedDrumWeights}>
-                    Apply Weight List
+              <div className="weight-import-panel">
+                <div className="weight-import-heading">
+                  <div>
+                    <strong>Different weights</strong>
+                    <span>Paste rows or upload a sheet when each drum has its own weight.</span>
+                  </div>
+                  <button className="secondary-button compact-button" type="button" onClick={downloadWeightSample}>
+                    Download Sample
                   </button>
                 </div>
-              </details>
+                <div className="weight-import-grid">
+                  <label className="weight-paste-card">
+                    <span>Paste Weight Rows</span>
+                    <textarea
+                      value={bulkDrumText}
+                      onChange={(e) => setBulkDrumText(e.target.value)}
+                      placeholder={"1, 25.000, 3.640\n2, 24.950, 3.640\n3, 25.100, 3.640"}
+                      rows="5"
+                    />
+                    <small>Format: Drum No, Net Wt., Tare Wt. Drum No is optional.</small>
+                  </label>
+                  <label className="sheet-upload">
+                    <span>Upload Excel / CSV File</span>
+                    <input
+                      type="file"
+                      accept=".xlsx,.xls,.csv,.tsv"
+                      onChange={handleWeightSheetUpload}
+                    />
+                    <small>Accepted columns: Drum No, Net Wt., Tare Wt.</small>
+                  </label>
+                </div>
+                <div className="bulk-drum-actions">
+                  <small>Gross Wt. is calculated automatically after import.</small>
+                  <button className="secondary-button" type="button" onClick={applyPastedDrumWeights}>
+                    Apply Pasted Rows
+                  </button>
+                </div>
+              </div>
             </div>
 
             <div className="drum-table">

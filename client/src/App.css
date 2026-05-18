@@ -814,10 +814,65 @@ textarea[readonly] {
 }
 
 .weight-import-panel {
-  padding: 0;
+  padding: 15px;
+  background:
+    linear-gradient(135deg, #fbfdfc 0%, #ffffff 58%),
+    #ffffff;
 }
 
-.weight-import-panel summary,
+.weight-import-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.weight-import-heading > div {
+  display: grid;
+  gap: 3px;
+}
+
+.weight-import-heading strong {
+  color: var(--ink);
+  font-size: 17px;
+}
+
+.weight-import-heading span {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.compact-button {
+  min-height: 38px;
+  padding-inline: 12px;
+  white-space: nowrap;
+}
+
+.weight-import-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(260px, 0.9fr);
+  gap: 12px;
+}
+
+.weight-paste-card,
+.sheet-upload {
+  min-height: 178px;
+}
+
+.weight-paste-card {
+  padding: 14px;
+  background: #fbfdfc;
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+}
+
+.weight-paste-card textarea {
+  min-height: 104px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 14px;
+}
+
 .template-advanced summary {
   display: grid;
   gap: 4px;
@@ -826,33 +881,23 @@ textarea[readonly] {
   list-style: none;
 }
 
-.weight-import-panel summary::-webkit-details-marker,
 .template-advanced summary::-webkit-details-marker {
   display: none;
 }
 
-.weight-import-panel summary span,
 .template-advanced summary span {
   color: var(--ink);
   font-weight: 900;
 }
 
-.weight-import-panel summary small,
 .template-advanced summary small {
   color: var(--muted);
   font-size: 13px;
   font-weight: 700;
 }
 
-.weight-import-panel[open],
 .template-advanced[open] {
   padding-bottom: 14px;
-}
-
-.weight-import-panel[open] > label,
-.weight-import-panel[open] > .sheet-upload,
-.weight-import-panel[open] > .bulk-drum-actions {
-  margin-inline: 14px;
 }
 
 .drum-table-head,
@@ -1767,8 +1812,18 @@ dd {
   .form-grid,
   .details-grid,
   .quick-drum-grid,
+  .weight-import-grid,
   .bulk-drum-actions {
     grid-template-columns: 1fr;
+  }
+
+  .weight-import-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .compact-button {
+    width: 100%;
   }
 
   .custom-field-row {
