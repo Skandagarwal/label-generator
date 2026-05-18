@@ -202,6 +202,14 @@ const closeSharedBrowser = async () => {
   }
 };
 
+const warmPdfBrowser = () => {
+  getBrowser()
+    .then(() => console.log("PDF browser ready"))
+    .catch((err) => console.warn("PDF browser warmup failed:", err.message));
+};
+
+setTimeout(warmPdfBrowser, 1500);
+
 process.once("SIGINT", () => {
   closeSharedBrowser().finally(() => process.exit(0));
 });
