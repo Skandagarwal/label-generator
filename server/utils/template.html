@@ -85,6 +85,15 @@
       text-align: center;
     }
 
+    .right .row {
+      grid-template-columns: 1fr 4mm 1fr;
+      text-align: left;
+      font-size: 15px;
+      line-height: 1.2;
+      min-height: 6mm;
+      margin-bottom: 1mm;
+    }
+
     .qr {
       width: 32mm;
       height: 32mm;
@@ -122,6 +131,24 @@
       margin-top: 4mm;
       font-size: 20px;
       font-weight: 700;
+    }
+
+    .center-fields {
+      width: 148mm;
+      margin: 4mm auto 0;
+      font-size: 18px;
+      font-weight: 700;
+      line-height: 1.24;
+    }
+
+    .bottom-fields {
+      position: absolute;
+      left: 48mm;
+      right: 48mm;
+      bottom: 50mm;
+      font-size: 17px;
+      font-weight: 700;
+      line-height: 1.24;
     }
 
     .manufacturer-block {
@@ -196,6 +223,10 @@
       display: none !important;
     }
 
+    .layout-hidden {
+      display: none !important;
+    }
+
     @media print {
       body {
         margin: 0;
@@ -213,8 +244,7 @@
 
   <div class="content">
     <div class="left">
-      {{mainFieldsHtml}}
-      {{customFieldsHtml}}
+      {{leftFieldsHtml}}
 
       <div class="to-block {{hideCustomerBlock}}">
         <div><b>TO</b></div>
@@ -224,8 +254,13 @@
     </div>
 
     <div class="right">
+      {{rightFieldsHtml}}
       <img class="qr" src="{{qrCode}}" />
     </div>
+  </div>
+
+  <div class="center-fields">
+    {{centerFieldsHtml}}
   </div>
 
   <div class="center-text underline warning {{hideWarningText}}">
@@ -242,6 +277,10 @@
 
   <div class="license-row {{hideLicense}}">
     <div>{{labelLicense}}: {{license}}</div>
+  </div>
+
+  <div class="bottom-fields">
+    {{bottomFieldsHtml}}
   </div>
 
   <div class="manufacturer-block {{hideManufacturerBlock}}">

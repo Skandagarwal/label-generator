@@ -326,6 +326,45 @@ const isFieldHidden = (data = {}, key) =>
 
 const hideClass = (data, key) => (isFieldHidden(data, key) ? "is-hidden" : "");
 
+const templateLayoutActive = (data = {}) =>
+  Array.isArray(data.fieldSettings) && data.fieldSettings.length > 0;
+
+const defaultFieldPosition = (key) => {
+  if (["warningText", "storage", "license"].includes(key)) {
+    return "center";
+  }
+
+  if (
+    [
+      "manufacturer",
+      "manufacturerAddress",
+      "manufacturerWebsite",
+      "manufacturerEmail",
+      "manufacturerPhone",
+      "manufacturerLogo",
+    ].includes(key)
+  ) {
+    return "bottom";
+  }
+
+  if (key === "formatNo") {
+    return "right";
+  }
+
+  return "left";
+};
+
+const fieldPosition = (data = {}, key) =>
+  normalizeTemplatePosition(
+    fieldSettingsMap(data.fieldSettings)[key]?.position,
+    defaultFieldPosition(key)
+  );
+
+const fieldOrder = (data = {}, key, fallback = 0) => {
+  const order = Number(fieldSettingsMap(data.fieldSettings)[key]?.order);
+  return Number.isFinite(order) ? order : fallback;
+};
+
 const labelRowHtml = (data, key, value) =>
   isFieldHidden(data, key)
     ? ""
@@ -350,6 +389,82 @@ const mainFieldsHtml = (data = {}) =>
   ]
     .map(([key, value]) => labelRowHtml(data, key, value))
     .join("");
+
+const standardLayoutFieldValues = (data = {}) => [
+  ["formatNo", data.formatNo],
+  ["drumNo", data.drumNo],
+  ["commodity", data.commodity],
+  ["lotNo", data.lotNo],
+  ["poNo", data.poNo],
+  ["mfgDate", data.mfgDate],
+  ["bestBefore", data.bestBefore],
+  ["netWt", data.netWt],
+  ["tareWt", data.tareWt],
+  ["grossWt", data.grossWt],
+  ["customerName", data.customerName],
+  ["customerAddress", data.customerAddress],
+  ["warningText", data.warningText],
+  ["storage", data.storage],
+  ["license", data.license],
+  ["manufacturer", data.manufacturer],
+  ["manufacturerAddress", data.manufacturerAddress],
+  ["manufacturerWebsite", data.manufacturerWebsite],
+  ["manufacturerEmail", data.manufacturerEmail],
+  ["manufacturerPhone", data.manufacturerPhone],
+  ["manufacturerLogo", getManufacturerLogo(data.manufacturerLogo)],
+];
+
+const layoutRowHtml = (label, value, key) =>
+  key === "manufacturerLogo"
+    ? `
+      <div class="row">
+        <div class="label-name">${escapeHtml(label)}</div>
+        <div>:</div>
+        <div class="value"><img class="manufacturer-logo" src="${escapeHtml(value || "")}" /></div>
+      </div>`
+    : `
+      <div class="row">
+        <div class="label-name">${escapeHtml(label)}</div>
+        <div>:</div>
+        <div class="value">${escapeHtml(value || "")}</div>
+      </div>`;
+
+const layoutFieldsHtml = (data = {}, position) => {
+  const standardItems = standardLayoutFieldValues(data)
+    .map(([key, value], index) => ({
+      key,
+      label: fieldLabel(data, key),
+      value,
+      position: fieldPosition(data, key),
+      order: fieldOrder(data, key, index),
+    }))
+    .filter(
+      (item) =>
+        item.position === position &&
+        !isFieldHidden(data, item.key) &&
+        String(item.value || "").trim()
+    );
+
+  const customItems = normalizeCustomFields(data.customFields)
+    .filter(
+      (field) =>
+        field.position === position &&
+        !isFieldHidden(data, field.key) &&
+        String(field.value || "").trim()
+    )
+    .map((field) => ({
+      key: field.key,
+      label: field.label,
+      value: field.value,
+      position: field.position,
+      order: field.order,
+    }));
+
+  return [...standardItems, ...customItems]
+    .sort((a, b) => a.order - b.order)
+    .map((item) => layoutRowHtml(item.label, item.value, item.key))
+    .join("");
+};
 
 const contactParts = (data = {}) =>
   [
@@ -429,6 +544,7 @@ const customFieldsHtml = (fields = []) =>
 
 const templateValues = (data, qr) => {
   const manufacturerLogoValue = getManufacturerLogo(data.manufacturerLogo);
+  const useCustomLayout = templateLayoutActive(data);
   const hideManufacturerLogo =
     isFieldHidden(data, "manufacturerLogo") || !manufacturerLogoValue;
   const hideManufacturerBlock =
@@ -443,8 +559,14 @@ const templateValues = (data, qr) => {
   return {
     labelFormatNo: escapeHtml(fieldLabel(data, "formatNo")),
     formatNo: escapeHtml(data.formatNo),
-    hideFormatNo: hideClass(data, "formatNo"),
+    hideFormatNo: useCustomLayout ? "layout-hidden" : hideClass(data, "formatNo"),
     mainFieldsHtml: mainFieldsHtml(data),
+    leftFieldsHtml: useCustomLayout
+      ? layoutFieldsHtml(data, "left")
+      : `${mainFieldsHtml(data)}${customFieldsHtml(data.customFields)}`,
+    rightFieldsHtml: useCustomLayout ? layoutFieldsHtml(data, "right") : "",
+    centerFieldsHtml: useCustomLayout ? layoutFieldsHtml(data, "center") : "",
+    bottomFieldsHtml: useCustomLayout ? layoutFieldsHtml(data, "bottom") : "",
     drumNo: escapeHtml(data.drumNo),
     commodity: escapeHtml(data.commodity),
     lotNo: escapeHtml(data.lotNo),
@@ -465,16 +587,19 @@ const templateValues = (data, qr) => {
     manufacturerEmail: escapeHtml(data.manufacturerEmail),
     manufacturerPhone: escapeHtml(data.manufacturerPhone),
     customFieldsHtml: customFieldsHtml(data.customFields),
-    hideCustomerName: hideClass(data, "customerName"),
-    hideCustomerAddress: hideClass(data, "customerAddress"),
+    hideCustomerName: useCustomLayout ? "layout-hidden" : hideClass(data, "customerName"),
+    hideCustomerAddress: useCustomLayout
+      ? "layout-hidden"
+      : hideClass(data, "customerAddress"),
     hideCustomerBlock:
-      isFieldHidden(data, "customerName") && isFieldHidden(data, "customerAddress")
+      useCustomLayout ||
+      (isFieldHidden(data, "customerName") && isFieldHidden(data, "customerAddress"))
         ? "is-hidden"
         : "",
-    hideWarningText: hideClass(data, "warningText"),
-    hideStorage: hideClass(data, "storage"),
-    hideLicense: hideClass(data, "license"),
-    hideManufacturerBlock: hideManufacturerBlock ? "is-hidden" : "",
+    hideWarningText: useCustomLayout ? "layout-hidden" : hideClass(data, "warningText"),
+    hideStorage: useCustomLayout ? "layout-hidden" : hideClass(data, "storage"),
+    hideLicense: useCustomLayout ? "layout-hidden" : hideClass(data, "license"),
+    hideManufacturerBlock: useCustomLayout || hideManufacturerBlock ? "is-hidden" : "",
     hideManufacturer: hideClass(data, "manufacturer"),
     hideManufacturerAddress: hideClass(data, "manufacturerAddress"),
     hideManufacturerLogo: hideManufacturerLogo ? "is-hidden" : "",

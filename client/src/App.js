@@ -3223,12 +3223,15 @@ function App() {
         templateId: selectedTemplate?._id || "",
         templateName: selectedTemplate?.name || "",
         fieldLabels: templateFieldLabelsPayload(selectedTemplate),
+        fieldSettings: selectedTemplate?.fieldSettings || [],
         hiddenFields: templateHiddenFieldsPayload(selectedTemplate),
         customFields: selectedTemplate
           ? (selectedTemplate.customFields || []).map((field) => ({
               key: field.key,
               label: field.label,
               type: field.type,
+              position: field.position,
+              order: field.order,
               value: customFieldValues[field.key] || "",
             }))
           : [],
