@@ -32,6 +32,37 @@
       page-break-after: avoid;
     }
 
+    .layout-two-per-page {
+      background: #fff;
+    }
+
+    .layout-two-per-page .label-slot {
+      width: 210mm;
+      height: 148.5mm;
+      position: relative;
+      overflow: hidden;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+
+    .layout-two-per-page .label-slot:nth-of-type(2n) {
+      page-break-after: always;
+    }
+
+    .layout-two-per-page .label-slot:last-child {
+      page-break-after: avoid;
+    }
+
+    .layout-two-per-page .label-slot .label {
+      position: absolute;
+      top: 5mm;
+      left: 7mm;
+      transform: scale(0.66);
+      transform-origin: top left;
+      page-break-after: avoid;
+      page-break-inside: avoid;
+    }
+
     .top-right {
       position: absolute;
       top: 23mm;

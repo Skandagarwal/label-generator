@@ -943,6 +943,55 @@ textarea[readonly] {
   background: #edf4f0;
 }
 
+.pdf-layout-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.pdf-layout-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: flex-start;
+  padding: 16px;
+  background: #fbfdfc;
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+}
+
+.pdf-layout-card:hover,
+.pdf-layout-card.active {
+  background: #ffffff;
+  border-color: #a9d3bf;
+  box-shadow: 0 12px 26px rgba(33, 102, 70, 0.08);
+}
+
+.pdf-layout-card input {
+  width: 18px;
+  min-height: 18px;
+  margin-top: 3px;
+  accent-color: var(--green);
+}
+
+.pdf-layout-card span {
+  display: grid;
+  gap: 4px;
+}
+
+.pdf-layout-card strong {
+  color: var(--ink);
+  font-size: 16px;
+}
+
+.pdf-layout-card small {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
 .drum-table {
   display: grid;
   gap: 10px;
@@ -2414,6 +2463,7 @@ dd {
   .details-grid,
   .quick-drum-grid,
   .weight-import-grid,
+  .pdf-layout-options,
   .bulk-drum-actions {
     grid-template-columns: 1fr;
   }

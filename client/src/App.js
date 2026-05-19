@@ -3137,6 +3137,7 @@ function App() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
   const [generationProgress, setGenerationProgress] = useState(null);
+  const [pdfLayout, setPdfLayout] = useState("single");
   const [templates, setTemplates] = useState([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [customFieldValues, setCustomFieldValues] = useState({});
@@ -3277,6 +3278,7 @@ function App() {
     setQuickDrumSetup({ count: "", netWt: "", tareWt: "" });
     setSelectedTemplateId("");
     setCustomFieldValues({});
+    setPdfLayout("single");
     setStatusMessage("");
   };
 
@@ -3447,6 +3449,7 @@ function App() {
       const payload = {
         ...form,
         ...currentManufacturerDetails,
+        pdfLayout,
         ownerPhone: getSavedPhone(),
         manufacturer: currentManufacturer,
         ...customizableTemplateFields.reduce((items, field) => {
@@ -3940,8 +3943,44 @@ function App() {
                   </label>
                 ))}
               </div>
-            </section>
+          </section>
           )}
+
+          <section className="form-section form-step">
+            <div className="section-heading">
+              <p className="step-label">Print Layout</p>
+              <h2>PDF Sheet Setup</h2>
+              <p>Choose how BatchMark should place labels on the A4 PDF.</p>
+            </div>
+            <div className="pdf-layout-options">
+              <label className={`pdf-layout-card ${pdfLayout === "single" ? "active" : ""}`}>
+                <input
+                  type="radio"
+                  name="pdfLayout"
+                  value="single"
+                  checked={pdfLayout === "single"}
+                  onChange={() => setPdfLayout("single")}
+                />
+                <span>
+                  <strong>1 label per A4 page</strong>
+                  <small>Best when the label needs maximum size and readability.</small>
+                </span>
+              </label>
+              <label className={`pdf-layout-card ${pdfLayout === "two-per-page" ? "active" : ""}`}>
+                <input
+                  type="radio"
+                  name="pdfLayout"
+                  value="two-per-page"
+                  checked={pdfLayout === "two-per-page"}
+                  onChange={() => setPdfLayout("two-per-page")}
+                />
+                <span>
+                  <strong>2 labels per A4 page</strong>
+                  <small>Places one label on the top half and one on the bottom half.</small>
+                </span>
+              </label>
+            </div>
+          </section>
 
           <div className="mobile-actions">
             <a className="button-link secondary-link" href="/home">
@@ -3989,6 +4028,10 @@ function App() {
               <div>
                 <dt>Manufacturer</dt>
                 <dd>{currentManufacturer || "-"}</dd>
+              </div>
+              <div>
+                <dt>PDF Layout</dt>
+                <dd>{pdfLayout === "two-per-page" ? "2 labels per A4" : "1 label per A4"}</dd>
               </div>
             </dl>
             {generationProgress && (

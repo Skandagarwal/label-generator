@@ -33,6 +33,10 @@ const getDrumNumbers = (value = "") =>
 
 const normalizePhone = (phone = "") => String(phone).replace(/[^\d+]/g, "").trim();
 
+const PDF_LAYOUTS = new Set(["single", "two-per-page"]);
+const normalizePdfLayout = (value = "") =>
+  PDF_LAYOUTS.has(String(value).trim()) ? String(value).trim() : "single";
+
 const parseWeight = (value = "") => {
   const match = String(value).trim().match(/^(-?\d+(?:\.\d+)?)\s*(.*)$/);
 
@@ -245,6 +249,7 @@ const formatDate = (value = "") => {
 const normalizeLabelData = (data) => ({
   ...data,
   ownerPhone: normalizePhone(data.ownerPhone),
+  pdfLayout: normalizePdfLayout(data.pdfLayout),
   mfgDate: formatDate(data.mfgDate),
   bestBefore: formatDate(data.bestBefore),
 });
@@ -616,7 +621,8 @@ const templateValues = (data, qr) => {
   };
 };
 
-const renderLabelsHtml = (template, labels) => {
+const renderLabelsHtml = (template, labels, options = {}) => {
+  const pdfLayout = normalizePdfLayout(options.layout);
   const labelStart = template.indexOf('<div class="label">');
   const labelEnd = template.lastIndexOf("</div>");
 
@@ -628,21 +634,36 @@ const renderLabelsHtml = (template, labels) => {
   const labelBlock = template.slice(labelStart, labelEnd + 6);
   const afterLabel = template.slice(labelEnd + 6);
   const filledLabels = labels
-    .map(({ data, qr }) => fillTemplate(labelBlock, templateValues(data, qr)))
+    .map(({ data, qr }) => {
+      const filledLabel = fillTemplate(labelBlock, templateValues(data, qr));
+
+      return pdfLayout === "two-per-page"
+        ? `<div class="label-slot">${filledLabel}</div>`
+        : filledLabel;
+    })
     .join("\n");
 
-  return `${beforeLabel}${filledLabels}${afterLabel}`;
+  const layoutCss =
+    pdfLayout === "two-per-page"
+      ? "\n    @page { size: A4 portrait; margin: 0; }\n"
+      : "";
+  const renderedBeforeLabel = beforeLabel
+    .replace("</style>", `${layoutCss}  </style>`)
+    .replace("<body>", `<body class="layout-${pdfLayout}">`);
+
+  return `${renderedBeforeLabel}${filledLabels}${afterLabel}`;
 };
 
-const createPdfBuffer = async (labels) => {
+const createPdfBuffer = async (labels, options = {}) => {
   let page;
+  const pdfLayout = normalizePdfLayout(options.layout);
 
   try {
     const template = fs.readFileSync(
       path.join(__dirname, "../utils/template.html"),
       "utf-8"
     );
-    const renderedTemplate = renderLabelsHtml(template, labels);
+    const renderedTemplate = renderLabelsHtml(template, labels, { layout: pdfLayout });
 
     const browser = await getBrowser();
     page = await browser.newPage();
@@ -674,7 +695,7 @@ const createPdfBuffer = async (labels) => {
 
     const pdfBuffer = await page.pdf({
       format: "A4",
-      landscape: true,
+      landscape: pdfLayout !== "two-per-page",
       preferCSSPageSize: true,
       printBackground: true,
     });
@@ -842,13 +863,15 @@ router.post("/labels/batch/pdf", async (req, res) => {
       }
     }
 
+    const pdfLayout = normalizePdfLayout(req.body?.pdfLayout || labels[0]?.pdfLayout);
     const pdfBuffer = await createPdfBuffer(
       await Promise.all(
         labels.map(async (label) => ({
           data: serializeLabel(label),
           qr: await QRCode.toDataURL(labelPublicUrl(req, label._id)),
         }))
-      )
+      ),
+      { layout: pdfLayout }
     );
 
     sendPdf(res, pdfBuffer, labels.length > 1 ? "batch-labels.pdf" : "label.pdf");
@@ -868,7 +891,7 @@ router.get("/labels/:id/pdf", async (req, res) => {
 
     const data = serializeLabel(label);
     const qr = await QRCode.toDataURL(labelPublicUrl(req, label._id));
-    const pdfBuffer = await createPdfBuffer([{ data, qr }]);
+    const pdfBuffer = await createPdfBuffer([{ data, qr }], { layout: data.pdfLayout });
 
     sendPdf(res, pdfBuffer, `label-${data.drumNo || label._id}.pdf`);
   } catch (err) {
@@ -920,6 +943,7 @@ router.post("/generate", async (req, res) => {
   try {
     const data = normalizeLabelData(req.body);
     const drumItems = getDrumItems(data);
+    const pdfLayout = normalizePdfLayout(data.pdfLayout);
 
     if (!drumItems.length) {
       return res.status(400).send("At least one drum number is required");
@@ -931,6 +955,7 @@ router.post("/generate", async (req, res) => {
       async (drumItem) => {
         const labelData = {
           ...data,
+          pdfLayout,
           drumNo: drumItem.drumNo,
           netWt: drumItem.netWt,
           tareWt: drumItem.tareWt,
@@ -956,7 +981,8 @@ router.post("/generate", async (req, res) => {
       labels.map((label) => ({
         data: label.data,
         qr: label.qr,
-      }))
+      })),
+      { layout: pdfLayout }
     );
 
     sendPdf(res, pdfBuffer, labels.length > 1 ? "labels.pdf" : "label.pdf");
