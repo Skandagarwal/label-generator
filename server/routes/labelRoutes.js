@@ -562,6 +562,7 @@ const templateValues = (data, qr) => {
     ].every((key) => isFieldHidden(data, key)) && hideManufacturerLogo;
 
   return {
+    labelModeClass: useCustomLayout ? "custom-layout-label" : "",
     labelFormatNo: escapeHtml(fieldLabel(data, "formatNo")),
     formatNo: escapeHtml(data.formatNo),
     hideFormatNo: useCustomLayout ? "layout-hidden" : hideClass(data, "formatNo"),
@@ -623,7 +624,7 @@ const templateValues = (data, qr) => {
 
 const renderLabelsHtml = (template, labels, options = {}) => {
   const pdfLayout = normalizePdfLayout(options.layout);
-  const labelStart = template.indexOf('<div class="label">');
+  const labelStart = template.indexOf('<div class="label {{labelModeClass}}">');
   const labelEnd = template.lastIndexOf("</div>");
 
   if (labelStart === -1 || labelEnd === -1) {

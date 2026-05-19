@@ -57,16 +57,17 @@
       overflow: hidden;
       page-break-inside: avoid;
       break-inside: avoid;
+      padding: 1mm 0 0 1mm;
     }
 
     .layout-two-per-page .label-slot .label {
-      position: absolute;
-      top: 5mm;
-      left: 7mm;
-      transform: scale(0.66);
-      transform-origin: top left;
-      page-break-after: avoid;
-      page-break-inside: avoid;
+      position: relative;
+      transform: none;
+      zoom: 0.7;
+      page-break-after: avoid !important;
+      break-after: avoid !important;
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
     }
 
     .top-right {
@@ -264,6 +265,75 @@
       display: none !important;
     }
 
+    .custom-layout-label {
+      padding: 18mm 30mm 44mm 30mm;
+    }
+
+    .custom-layout-label .top-right {
+      top: 16mm;
+      right: 30mm;
+      font-size: 14px;
+    }
+
+    .custom-layout-label .content {
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+      gap: 20mm;
+      align-items: start;
+    }
+
+    .custom-layout-label .left,
+    .custom-layout-label .right {
+      width: auto;
+      text-align: left;
+      font-size: 17px;
+      line-height: 1.24;
+    }
+
+    .custom-layout-label .row,
+    .custom-layout-label .right .row {
+      display: grid;
+      grid-template-columns: 48mm 5mm minmax(0, 1fr);
+      align-items: start;
+      min-height: 6.8mm;
+      margin-bottom: 1mm;
+      font-size: inherit;
+      line-height: inherit;
+    }
+
+    .custom-layout-label .label-name {
+      white-space: normal;
+    }
+
+    .custom-layout-label .value {
+      overflow-wrap: break-word;
+      word-break: normal;
+      white-space: pre-line;
+    }
+
+    .custom-layout-label .qr {
+      position: absolute;
+      right: 36mm;
+      top: 76mm;
+      width: 31mm;
+      height: 31mm;
+      margin: 0;
+    }
+
+    .custom-layout-label .center-fields {
+      width: 160mm;
+      margin: 6mm auto 0;
+      font-size: 16px;
+      line-height: 1.22;
+    }
+
+    .custom-layout-label .bottom-fields {
+      left: 30mm;
+      right: 30mm;
+      bottom: 42mm;
+      font-size: 15px;
+    }
+
     @media print {
       body {
         margin: 0;
@@ -274,7 +344,7 @@
 
 <body>
 
-<div class="label">
+<div class="label {{labelModeClass}}">
   <div class="top-right {{hideFormatNo}}">
     {{labelFormatNo}}: - {{formatNo}}
   </div>
