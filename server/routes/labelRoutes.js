@@ -633,15 +633,25 @@ const renderLabelsHtml = (template, labels, options = {}) => {
   const beforeLabel = template.slice(0, labelStart);
   const labelBlock = template.slice(labelStart, labelEnd + 6);
   const afterLabel = template.slice(labelEnd + 6);
-  const filledLabels = labels
-    .map(({ data, qr }) => {
-      const filledLabel = fillTemplate(labelBlock, templateValues(data, qr));
+  const filledLabels =
+    pdfLayout === "two-per-page"
+      ? labels
+          .reduce((pages, label, index) => {
+            const pageIndex = Math.floor(index / 2);
+            const filledLabel = fillTemplate(labelBlock, templateValues(label.data, label.qr));
 
-      return pdfLayout === "two-per-page"
-        ? `<div class="label-slot">${filledLabel}</div>`
-        : filledLabel;
-    })
-    .join("\n");
+            if (!pages[pageIndex]) {
+              pages[pageIndex] = [];
+            }
+
+            pages[pageIndex].push(`<div class="label-slot">${filledLabel}</div>`);
+            return pages;
+          }, [])
+          .map((pageLabels) => `<section class="print-page">${pageLabels.join("\n")}</section>`)
+          .join("\n")
+      : labels
+          .map(({ data, qr }) => fillTemplate(labelBlock, templateValues(data, qr)))
+          .join("\n");
 
   const layoutCss =
     pdfLayout === "two-per-page"
