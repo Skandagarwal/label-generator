@@ -150,6 +150,93 @@ const templateBuilderSections = [
   },
 ];
 
+const templateLayoutPresets = [
+  {
+    id: "export",
+    name: "Export Label",
+    helper: "Best for the current drum label format with buyer, compliance, and manufacturer blocks.",
+    fields: {
+      drumNo: { position: "left", order: 10 },
+      commodity: { position: "left", order: 20 },
+      lotNo: { position: "left", order: 30 },
+      poNo: { position: "left", order: 40 },
+      mfgDate: { position: "left", order: 50 },
+      bestBefore: { position: "left", order: 60 },
+      netWt: { position: "left", order: 70 },
+      tareWt: { position: "left", order: 80 },
+      grossWt: { position: "left", order: 90 },
+      formatNo: { position: "right", order: 10 },
+      customerName: { position: "right", order: 20 },
+      customerAddress: { position: "right", order: 30 },
+      warningText: { position: "center", order: 10 },
+      storage: { position: "center", order: 20 },
+      license: { position: "center", order: 30 },
+      manufacturerLogo: { position: "bottom", order: 10 },
+      manufacturer: { position: "bottom", order: 20 },
+      manufacturerAddress: { position: "bottom", order: 30 },
+      manufacturerWebsite: { position: "bottom", order: 40 },
+      manufacturerEmail: { position: "bottom", order: 50 },
+      manufacturerPhone: { position: "bottom", order: 60 },
+    },
+  },
+  {
+    id: "balanced",
+    name: "Balanced Two Column",
+    helper: "Splits batch details and weights evenly for labels with more fields.",
+    fields: {
+      formatNo: { position: "right", order: 10 },
+      drumNo: { position: "left", order: 10 },
+      commodity: { position: "left", order: 20 },
+      lotNo: { position: "left", order: 30 },
+      poNo: { position: "left", order: 40 },
+      mfgDate: { position: "right", order: 20 },
+      bestBefore: { position: "right", order: 30 },
+      netWt: { position: "right", order: 40 },
+      tareWt: { position: "right", order: 50 },
+      grossWt: { position: "right", order: 60 },
+      customerName: { position: "left", order: 50 },
+      customerAddress: { position: "left", order: 60 },
+      warningText: { position: "center", order: 10 },
+      storage: { position: "center", order: 20 },
+      license: { position: "center", order: 30 },
+      manufacturerLogo: { position: "bottom", order: 10 },
+      manufacturer: { position: "bottom", order: 20 },
+      manufacturerAddress: { position: "bottom", order: 30 },
+      manufacturerWebsite: { position: "bottom", order: 40 },
+      manufacturerEmail: { position: "bottom", order: 50 },
+      manufacturerPhone: { position: "bottom", order: 60 },
+    },
+  },
+  {
+    id: "compact",
+    name: "Compact Product",
+    helper: "Keeps only the important fields visible for simple domestic labels.",
+    fields: {
+      drumNo: { position: "left", order: 10 },
+      commodity: { position: "left", order: 20 },
+      lotNo: { position: "left", order: 30 },
+      mfgDate: { position: "left", order: 40 },
+      bestBefore: { position: "left", order: 50 },
+      netWt: { position: "right", order: 10 },
+      tareWt: { position: "right", order: 20 },
+      grossWt: { position: "right", order: 30 },
+      warningText: { position: "center", order: 10 },
+      storage: { position: "center", order: 20 },
+      license: { position: "center", order: 30 },
+      manufacturer: { position: "bottom", order: 10 },
+      manufacturerLogo: { position: "bottom", order: 20 },
+      formatNo: { position: "hidden", order: 10 },
+      poNo: { position: "hidden", order: 20 },
+      customerName: { position: "hidden", order: 30 },
+      customerAddress: { position: "hidden", order: 40 },
+      manufacturerAddress: { position: "hidden", order: 50 },
+      manufacturerWebsite: { position: "hidden", order: 60 },
+      manufacturerEmail: { position: "hidden", order: 70 },
+      manufacturerPhone: { position: "hidden", order: 80 },
+    },
+  },
+];
+
 const defaultTemplatePositionFor = (field, index = 0) => {
   if (["warningText", "storage", "license"].includes(field.key)) {
     return "center";
@@ -2111,6 +2198,8 @@ function TemplatesPage({ currentUser, onLogout }) {
   const [status, setStatus] = useState("loading");
   const [notice, setNotice] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [activePresetId, setActivePresetId] = useState("export");
+  const [draggedItem, setDraggedItem] = useState(null);
 
   const loadTemplates = () => {
     setStatus("loading");
@@ -2292,17 +2381,46 @@ function TemplatesPage({ currentUser, onLogout }) {
     });
   };
 
+  const applyLayoutPreset = (preset) => {
+    setActivePresetId(preset.id);
+    setDraft((values) => ({
+      ...values,
+      fieldSettings: values.fieldSettings.map((setting) => {
+        const presetField = preset.fields[setting.key];
+
+        if (!presetField) {
+          return setting;
+        }
+
+        return {
+          ...setting,
+          position: presetField.position,
+          order: presetField.order,
+          visible: presetField.position !== "hidden",
+        };
+      }),
+      customFields: values.customFields.map((field, index) => ({
+        ...field,
+        position: field.label.trim() ? normalizeTemplatePosition(field.position) : field.position,
+        order: Number(field.order) || index + 100,
+      })),
+    }));
+    setNotice(`${preset.name} layout applied. You can still move any field.`);
+  };
+
   const sectionItemsForDraft = (position) => getSectionItems(draft, position);
 
   const resetDraft = () => {
     setDraft(emptyTemplateDraft());
     setEditingId("");
+    setActivePresetId("export");
     setNotice("");
   };
 
   const editTemplate = (template) => {
     setDraft(templateToDraft(template));
     setEditingId(template._id);
+    setActivePresetId("");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -2354,8 +2472,17 @@ function TemplatesPage({ currentUser, onLogout }) {
   };
 
   const renderLayoutItem = (item, index, items) => (
-    <article className="template-builder-item" key={`${item.kind}-${item.id}`}>
+    <article
+      className="template-builder-item"
+      key={`${item.kind}-${item.id}`}
+      draggable
+      onDragStart={() => setDraggedItem(item)}
+      onDragEnd={() => setDraggedItem(null)}
+    >
       <div className="template-item-main">
+        <span className="template-drag-handle" aria-hidden="true">
+          Drag
+        </span>
         <p>{item.label || item.meta?.label || "Untitled field"}</p>
         <small>{item.meta?.group || item.meta?.label || "Field"}</small>
       </div>
@@ -2438,6 +2565,42 @@ function TemplatesPage({ currentUser, onLogout }) {
       </div>
     </article>
   );
+
+  const renderDropSection = (section) => {
+    const items = sectionItemsForDraft(section.value);
+
+    return (
+      <section
+        className={`template-section-card template-drop-zone${
+          draggedItem ? " is-drop-ready" : ""
+        }`}
+        key={section.value}
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={(e) => {
+          e.preventDefault();
+          if (draggedItem) {
+            moveLayoutItemToSection(draggedItem, section.value);
+            setDraggedItem(null);
+          }
+        }}
+      >
+        <div className="template-section-title">
+          <div>
+            <h3>{section.title}</h3>
+            <p>{section.helper}</p>
+          </div>
+          <strong>{items.length}</strong>
+        </div>
+        {items.length === 0 ? (
+          <p className="template-section-empty">Drop a field here.</p>
+        ) : (
+          <div className="template-section-items">
+            {items.map((item, index) => renderLayoutItem(item, index, items))}
+          </div>
+        )}
+      </section>
+    );
+  };
 
   return (
     <main className="page-shell">
@@ -2544,43 +2707,50 @@ function TemplatesPage({ currentUser, onLogout }) {
             <div className="template-builder-intro">
               <span>2</span>
               <div>
-                <h3>Arrange the printed label</h3>
+                <h3>Choose a layout type</h3>
+                <p>Start with a preset that matches the product. You can adjust it after.</p>
+              </div>
+            </div>
+
+            <div className="layout-preset-grid" role="list" aria-label="Template layout presets">
+              {templateLayoutPresets.map((preset) => (
+                <button
+                  className={`layout-preset-card${
+                    activePresetId === preset.id ? " is-selected" : ""
+                  }`}
+                  key={preset.id}
+                  type="button"
+                  onClick={() => applyLayoutPreset(preset)}
+                >
+                  <strong>{preset.name}</strong>
+                  <span>{preset.helper}</span>
+                </button>
+              ))}
+            </div>
+
+            <div className="template-builder-intro">
+              <span>3</span>
+              <div>
+                <h3>Drag fields into sections</h3>
                 <p>
-                  Move fields into label sections. Use hidden fields for values this product does
-                  not print.
+                  Put every field where it should print. Move unused fields into Hidden fields.
                 </p>
               </div>
             </div>
 
-            <div className="template-section-board">
-              {templateBuilderSections.map((section) => {
-                const items = sectionItemsForDraft(section.value);
+            <div className="template-drag-hint">
+              <strong>Tip:</strong> drag a field card to another section, or use the section
+              dropdown for precise control.
+            </div>
 
-                return (
-                  <section className="template-section-card" key={section.value}>
-                    <div className="template-section-title">
-                      <div>
-                        <h3>{section.title}</h3>
-                        <p>{section.helper}</p>
-                      </div>
-                      <strong>{items.length}</strong>
-                    </div>
-                    {items.length === 0 ? (
-                      <p className="template-section-empty">No fields in this section.</p>
-                    ) : (
-                      <div className="template-section-items">
-                        {items.map((item, index) => renderLayoutItem(item, index, items))}
-                      </div>
-                    )}
-                  </section>
-                );
-              })}
+            <div className="template-section-board">
+              {templateBuilderSections.map((section) => renderDropSection(section))}
             </div>
 
             <div className="custom-field-builder custom-field-builder-primary">
               <div className="section-heading section-heading-with-action">
                 <div>
-                  <p className="step-label">Step 3</p>
+                  <p className="step-label">Step 4</p>
                   <h3>Add extra product fields</h3>
                   <p>
                     Add values like CAS No., grade, assay, country of origin, or any field a
@@ -2743,19 +2913,6 @@ function TemplatesPage({ currentUser, onLogout }) {
               </div>
             </details>
 
-            <div className="template-builder-intro">
-              <span>4</span>
-              <div>
-                <h3>Preview before saving</h3>
-                <p>This is how the selected sections will print on the label PDF.</p>
-              </div>
-            </div>
-
-            <TemplateLayoutPreview
-              template={buildTemplatePayload(draft, currentUser?.phone || getSavedPhone())}
-              title="Live Layout Preview"
-            />
-
             {notice && <p className="status-message">{notice}</p>}
 
             <div className="template-actions">
@@ -2769,42 +2926,55 @@ function TemplatesPage({ currentUser, onLogout }) {
           </form>
         </section>
 
-        <aside className="template-list-card">
-          <h2>Saved Templates</h2>
-          {status === "loading" && <p className="empty-state">Loading templates...</p>}
-          {status === "error" && <p className="empty-state">Could not load templates.</p>}
-          {status === "ready" && templates.length === 0 && (
-            <p className="empty-state">No templates saved yet.</p>
-          )}
-          <div className="template-list">
-            {templates.map((template) => (
-              <article className="template-card" key={template._id}>
-                <div>
-                  <p className="history-title">{template.name}</p>
-                  <p className="history-meta">
-                    {template.productName || template.defaults?.commodity || "No product"} ·{" "}
-                    {pluralize(template.customFields?.length || 0, "custom field")}
-                  </p>
-                </div>
-                <div className="row-actions">
-                  <button
-                    className="secondary-button row-action"
-                    type="button"
-                    onClick={() => editTemplate(template)}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    className="danger-button row-action"
-                    type="button"
-                    onClick={() => deleteTemplate(template)}
-                  >
-                    Delete
-                  </button>
-                </div>
-              </article>
-            ))}
+        <aside className="template-side-panel">
+          <div className="template-preview-sticky">
+            <TemplateLayoutPreview
+              template={buildTemplatePayload(draft, currentUser?.phone || getSavedPhone())}
+              title="Live Preview"
+            />
+            <div className="template-preview-help">
+              <strong>Preview updates live</strong>
+              <span>Save the template, then select it on the create-label page.</span>
+            </div>
           </div>
+
+          <section className="template-list-card">
+            <h2>Saved Templates</h2>
+            {status === "loading" && <p className="empty-state">Loading templates...</p>}
+            {status === "error" && <p className="empty-state">Could not load templates.</p>}
+            {status === "ready" && templates.length === 0 && (
+              <p className="empty-state">No templates saved yet.</p>
+            )}
+            <div className="template-list">
+              {templates.map((template) => (
+                <article className="template-card" key={template._id}>
+                  <div>
+                    <p className="history-title">{template.name}</p>
+                    <p className="history-meta">
+                      {template.productName || template.defaults?.commodity || "No product"} ·{" "}
+                      {pluralize(template.customFields?.length || 0, "custom field")}
+                    </p>
+                  </div>
+                  <div className="row-actions">
+                    <button
+                      className="secondary-button row-action"
+                      type="button"
+                      onClick={() => editTemplate(template)}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      className="danger-button row-action"
+                      type="button"
+                      onClick={() => deleteTemplate(template)}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
         </aside>
       </div>
       <AppFooter />
