@@ -1215,6 +1215,44 @@ function LandingPage({ currentUser, onLogout }) {
         </div>
       </section>
 
+      <section className="landing-image-grid" aria-label="BatchMark product previews">
+        <article className="landing-image-card landing-image-card-wide">
+          <img
+            src="/brand-assets/landing-label-builder.svg"
+            alt="BatchMark label creation screen preview"
+          />
+          <div>
+            <p className="eyebrow">Create</p>
+            <h2>Enter batch details once.</h2>
+            <p>
+              Use quick setup, sheet weights, and saved vendor data to prepare printable label PDFs.
+            </p>
+          </div>
+        </article>
+        <article className="landing-image-card">
+          <img
+            src="/brand-assets/landing-qr-record.svg"
+            alt="Public QR record preview on mobile"
+          />
+          <div>
+            <p className="eyebrow">Verify</p>
+            <h2>QR pages stay buyer-safe.</h2>
+            <p>Public records show label details without exposing the private dashboard.</p>
+          </div>
+        </article>
+        <article className="landing-image-card">
+          <img
+            src="/brand-assets/landing-history.svg"
+            alt="BatchMark history list preview"
+          />
+          <div>
+            <p className="eyebrow">Reuse</p>
+            <h2>Find old batches quickly.</h2>
+            <p>Grouped history keeps repeated labels easy to download, review, or clean up.</p>
+          </div>
+        </article>
+      </section>
+
       <section className="landing-feature-grid" aria-label="BatchMark benefits">
         <article>
           <span className="feature-number">01</span>

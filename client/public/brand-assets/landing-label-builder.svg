@@ -1,0 +1,38 @@
+<svg width="920" height="560" viewBox="0 0 920 560" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="920" height="560" rx="32" fill="#F5FAF7"/>
+  <rect x="44" y="48" width="832" height="464" rx="22" fill="white" stroke="#D9E5DF" stroke-width="2"/>
+  <rect x="44" y="48" width="832" height="58" rx="22" fill="#173F2B"/>
+  <circle cx="82" cy="77" r="8" fill="#A8DABF"/>
+  <circle cx="110" cy="77" r="8" fill="#E7C66E"/>
+  <circle cx="138" cy="77" r="8" fill="#6EA7D9"/>
+  <text x="178" y="83" fill="white" font-family="Arial, sans-serif" font-size="22" font-weight="700">Create Label</text>
+  <rect x="76" y="142" width="466" height="326" rx="18" fill="#FBFDFC" stroke="#D9E5DF" stroke-width="2"/>
+  <text x="104" y="184" fill="#16231D" font-family="Arial, sans-serif" font-size="28" font-weight="800">Batch Details</text>
+  <rect x="104" y="216" width="190" height="52" rx="10" fill="white" stroke="#CBD9D3" stroke-width="2"/>
+  <rect x="322" y="216" width="190" height="52" rx="10" fill="#EEF5FF" stroke="#CBD9D3" stroke-width="2"/>
+  <rect x="104" y="300" width="124" height="52" rx="10" fill="white" stroke="#CBD9D3" stroke-width="2"/>
+  <rect x="246" y="300" width="124" height="52" rx="10" fill="white" stroke="#CBD9D3" stroke-width="2"/>
+  <rect x="388" y="300" width="124" height="52" rx="10" fill="#EEF7F2" stroke="#CBD9D3" stroke-width="2"/>
+  <rect x="104" y="392" width="166" height="48" rx="10" fill="#2E6E4A"/>
+  <text x="127" y="423" fill="white" font-family="Arial, sans-serif" font-size="18" font-weight="800">Generate Rows</text>
+  <text x="106" y="207" fill="#5C7169" font-family="Arial, sans-serif" font-size="15" font-weight="800">COMMODITY</text>
+  <text x="324" y="207" fill="#5C7169" font-family="Arial, sans-serif" font-size="15" font-weight="800">LOT NO</text>
+  <text x="106" y="291" fill="#5C7169" font-family="Arial, sans-serif" font-size="15" font-weight="800">NET WT.</text>
+  <text x="248" y="291" fill="#5C7169" font-family="Arial, sans-serif" font-size="15" font-weight="800">TARE WT.</text>
+  <text x="390" y="291" fill="#5C7169" font-family="Arial, sans-serif" font-size="15" font-weight="800">GROSS WT.</text>
+  <rect x="586" y="142" width="258" height="326" rx="18" fill="white" stroke="#D9E5DF" stroke-width="2"/>
+  <text x="616" y="187" fill="#16231D" font-family="Georgia, serif" font-size="24" font-weight="700">DRUM NO.</text>
+  <text x="770" y="187" fill="#16231D" font-family="Georgia, serif" font-size="22" font-weight="700">1/50</text>
+  <text x="616" y="226" fill="#16231D" font-family="Georgia, serif" font-size="22" font-weight="700">LOT NO.</text>
+  <text x="770" y="226" fill="#16231D" font-family="Georgia, serif" font-size="20" font-weight="700">AE/API/1102</text>
+  <text x="616" y="265" fill="#16231D" font-family="Georgia, serif" font-size="22" font-weight="700">NET WT.</text>
+  <text x="770" y="265" fill="#16231D" font-family="Georgia, serif" font-size="20" font-weight="700">25 KGS.</text>
+  <rect x="692" y="304" width="88" height="88" fill="white" stroke="#16231D" stroke-width="6"/>
+  <rect x="707" y="319" width="18" height="18" fill="#16231D"/>
+  <rect x="747" y="319" width="18" height="18" fill="#16231D"/>
+  <rect x="727" y="342" width="18" height="18" fill="#16231D"/>
+  <rect x="707" y="366" width="18" height="18" fill="#16231D"/>
+  <rect x="747" y="366" width="18" height="18" fill="#16231D"/>
+  <path d="M616 426H814" stroke="#CBD9D3" stroke-width="2"/>
+  <text x="650" y="448" fill="#2E6E4A" font-family="Arial, sans-serif" font-size="16" font-weight="800">PDF + QR ready</text>
+</svg>

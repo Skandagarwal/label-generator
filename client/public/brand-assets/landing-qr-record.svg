@@ -1,0 +1,27 @@
+<svg width="920" height="560" viewBox="0 0 920 560" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="920" height="560" rx="32" fill="#F5FAF7"/>
+  <rect x="254" y="44" width="412" height="472" rx="34" fill="#17231D" opacity="0.12"/>
+  <rect x="274" y="30" width="372" height="500" rx="32" fill="white" stroke="#D9E5DF" stroke-width="2"/>
+  <rect x="302" y="70" width="316" height="70" rx="18" fill="#EFF8F3"/>
+  <text x="328" y="112" fill="#16231D" font-family="Arial, sans-serif" font-size="24" font-weight="800">Public QR Record</text>
+  <rect x="302" y="172" width="316" height="148" rx="18" fill="#FBFDFC" stroke="#D9E5DF" stroke-width="2"/>
+  <text x="326" y="214" fill="#5C7169" font-family="Arial, sans-serif" font-size="17" font-weight="800">COMMODITY</text>
+  <text x="326" y="248" fill="#16231D" font-family="Arial, sans-serif" font-size="28" font-weight="800">L-CARNITINE BASE</text>
+  <text x="326" y="292" fill="#5C7169" font-family="Arial, sans-serif" font-size="17" font-weight="800">DRUM 1/25 · LOT AE/API/1102</text>
+  <rect x="302" y="344" width="146" height="118" rx="18" fill="#FBFDFC" stroke="#D9E5DF" stroke-width="2"/>
+  <text x="326" y="388" fill="#5C7169" font-family="Arial, sans-serif" font-size="16" font-weight="800">NET WT.</text>
+  <text x="326" y="426" fill="#16231D" font-family="Arial, sans-serif" font-size="28" font-weight="800">25 KGS.</text>
+  <rect x="472" y="344" width="146" height="118" rx="18" fill="#FBFDFC" stroke="#D9E5DF" stroke-width="2"/>
+  <text x="496" y="388" fill="#5C7169" font-family="Arial, sans-serif" font-size="16" font-weight="800">STATUS</text>
+  <rect x="496" y="408" width="82" height="30" rx="15" fill="#DFF3E8"/>
+  <text x="514" y="429" fill="#276441" font-family="Arial, sans-serif" font-size="15" font-weight="800">Verified</text>
+  <rect x="672" y="174" width="132" height="132" rx="18" fill="white" stroke="#D9E5DF" stroke-width="2"/>
+  <rect x="704" y="206" width="68" height="68" fill="white" stroke="#16231D" stroke-width="5"/>
+  <rect x="716" y="218" width="14" height="14" fill="#16231D"/>
+  <rect x="746" y="218" width="14" height="14" fill="#16231D"/>
+  <rect x="731" y="238" width="14" height="14" fill="#16231D"/>
+  <rect x="716" y="258" width="14" height="14" fill="#16231D"/>
+  <rect x="746" y="258" width="14" height="14" fill="#16231D"/>
+  <path d="M122 180C174 126 222 112 274 118" stroke="#2E6E4A" stroke-width="9" stroke-linecap="round"/>
+  <path d="M798 382C746 438 698 452 646 446" stroke="#1B69A7" stroke-width="9" stroke-linecap="round"/>
+</svg>
