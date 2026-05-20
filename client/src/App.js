@@ -1156,11 +1156,11 @@ function LandingPage({ currentUser, onLogout }) {
 
       <section className="landing-hero">
         <div className="landing-copy">
-          <p className="eyebrow">Batch label system</p>
+          <p className="eyebrow">For chemical and export vendors</p>
           <h1>BatchMark</h1>
           <p>
-            A simple web tool for vendors who create drum labels, QR verification links,
-            manufacturer records, and batch PDF files without rebuilding the same label by hand.
+            Create drum labels, QR verification pages, manufacturer records, and batch PDFs
+            from one focused workspace built for export documentation.
           </p>
           <div className="landing-actions">
             <button type="button" onClick={handlePrimaryAction}>
@@ -1172,8 +1172,8 @@ function LandingPage({ currentUser, onLogout }) {
           </div>
           <div className="landing-metrics" aria-label="BatchMark highlights">
             <span>Bulk drum labels</span>
-            <span>Public QR pages</span>
-            <span>Saved history</span>
+            <span>Buyer-safe QR pages</span>
+            <span>Reusable templates</span>
           </div>
         </div>
 
@@ -1210,7 +1210,7 @@ function LandingPage({ currentUser, onLogout }) {
               <span />
               <span />
             </div>
-            <p>PDF labels with QR records for buyers and internal teams.</p>
+            <p>Printable PDF labels with public QR records for buyers and internal teams.</p>
           </div>
         </div>
       </section>
@@ -1218,32 +1218,58 @@ function LandingPage({ currentUser, onLogout }) {
       <section className="landing-feature-grid" aria-label="BatchMark benefits">
         <article>
           <span className="feature-number">01</span>
-          <h2>Generate labels faster</h2>
-          <p>Create one label or a complete drum batch with automatic drum numbering and gross weight calculation.</p>
+          <h2>Build batches faster</h2>
+          <p>
+            Generate one label or a complete drum batch with automatic drum numbering, gross
+            weight calculation, and sheet-based weight entry.
+          </p>
         </article>
         <article>
           <span className="feature-number">02</span>
-          <h2>Share safe QR records</h2>
-          <p>Each QR opens a public label record while private dashboard, profile, and history stay protected.</p>
+          <h2>Share buyer-safe QR records</h2>
+          <p>
+            Each QR opens only the public label record. Vendor profile, templates, history, and
+            private dashboard actions remain protected behind login.
+          </p>
         </article>
         <article>
           <span className="feature-number">03</span>
-          <h2>Reuse vendor details</h2>
-          <p>Manufacturer logo, address, contact details, and label settings stay ready for future batches.</p>
+          <h2>Reuse approved details</h2>
+          <p>
+            Save manufacturer logo, address, contact details, compliance text, and product
+            templates so repeated export labels stay consistent.
+          </p>
         </article>
       </section>
 
       <section className="landing-flow">
         <div>
           <p className="eyebrow">How it works</p>
-          <h2>From batch details to PDF in a clean workflow.</h2>
+          <h2>From batch details to printable PDFs in a clean workflow.</h2>
         </div>
         <ol>
-          <li>Login with phone OTP.</li>
-          <li>Add product, lot, dates, buyer, and compliance details.</li>
-          <li>Generate drum rows manually, by quick setup, or from a sheet.</li>
-          <li>Download PDFs and keep every label in history.</li>
+          <li>Login with phone OTP and load the vendor profile.</li>
+          <li>Choose a saved template or enter product, lot, buyer, and compliance details.</li>
+          <li>Add drums manually, use quick setup, or import weights from a sheet.</li>
+          <li>Generate PDFs, print labels, and keep every batch grouped in history.</li>
         </ol>
+      </section>
+
+      <section className="landing-proof-grid" aria-label="Designed for export label work">
+        <article>
+          <h2>Designed for real label variation</h2>
+          <p>
+            Different products can need different fields and positions. BatchMark supports saved
+            templates so vendors do not need to rebuild common formats every time.
+          </p>
+        </article>
+        <article>
+          <h2>Ready for repeat batches</h2>
+          <p>
+            History is grouped by creation date and batch, making it easier to find, download, or
+            delete old label records as usage grows.
+          </p>
+        </article>
       </section>
 
       <AppFooter />
