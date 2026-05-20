@@ -1998,6 +1998,218 @@ dd {
   color: var(--ink);
 }
 
+.template-layout-tip {
+  padding: 14px 16px;
+  color: #536a63;
+  background: #fbfdfc;
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
+  line-height: 1.45;
+}
+
+.template-layout-tip strong {
+  color: var(--ink);
+}
+
+.template-simple-card {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  background: #ffffff;
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
+}
+
+.template-simple-header {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.template-simple-header h3,
+.template-simple-header p {
+  margin: 0;
+}
+
+.template-simple-header span {
+  display: inline-flex;
+  margin-bottom: 6px;
+  color: var(--green);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.template-simple-header h3 {
+  font-size: 19px;
+}
+
+.template-simple-header p {
+  margin-top: 4px;
+  color: #6f817b;
+  line-height: 1.45;
+}
+
+.template-field-groups {
+  display: grid;
+  gap: 14px;
+}
+
+.template-field-group {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  background: #ffffff;
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
+}
+
+.template-field-group-title {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.template-field-group-title h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.template-field-group-title span {
+  padding: 5px 10px;
+  color: var(--green);
+  background: var(--green-soft);
+  border: 1px solid #cde9dd;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.template-simple-field-list {
+  display: grid;
+  gap: 10px;
+}
+
+.template-simple-field {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+  background: #fbfdfc;
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+}
+
+.template-simple-field.is-active {
+  background: #f7fbf9;
+  border-color: #cfe3da;
+}
+
+.template-field-switch {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  align-items: center;
+  cursor: pointer;
+}
+
+.template-field-switch input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.template-field-switch > span {
+  position: relative;
+  width: 46px;
+  height: 26px;
+  background: #dfe8e4;
+  border-radius: 999px;
+  transition: background 0.18s ease;
+}
+
+.template-field-switch > span::after {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 18px;
+  height: 18px;
+  content: "";
+  background: #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 2px 6px rgba(20, 43, 34, 0.18);
+  transition: transform 0.18s ease;
+}
+
+.template-field-switch input:checked + span {
+  background: var(--green);
+}
+
+.template-field-switch input:checked + span::after {
+  transform: translateX(20px);
+}
+
+.template-field-switch input:focus-visible + span {
+  outline: 3px solid rgba(37, 91, 62, 0.18);
+  outline-offset: 3px;
+}
+
+.template-field-switch strong,
+.template-field-switch small {
+  display: block;
+}
+
+.template-field-switch strong {
+  color: var(--ink);
+  font-size: 15px;
+}
+
+.template-field-switch small {
+  margin-top: 3px;
+  color: #6f817b;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.template-field-control-grid {
+  display: grid;
+  grid-template-columns: minmax(150px, 1fr) minmax(150px, 1fr) minmax(150px, 0.85fr);
+  gap: 10px;
+  padding-left: 58px;
+}
+
+.template-field-control-grid label {
+  display: grid;
+  gap: 7px;
+}
+
+.template-field-control-grid span,
+.template-logo-simple label span {
+  color: #516760;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.template-field-control-grid input,
+.template-field-control-grid select {
+  min-width: 0;
+  width: 100%;
+}
+
+.template-logo-simple {
+  background: #fbfdfc;
+}
+
+.template-muted-note {
+  margin: 0;
+  color: #6f817b;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
 .template-section-card {
   display: grid;
   gap: 12px;
@@ -2448,6 +2660,15 @@ dd {
   .layout-preset-grid {
     grid-template-columns: 1fr;
   }
+
+  .template-simple-header {
+    display: grid;
+  }
+
+  .template-field-control-grid {
+    grid-template-columns: 1fr;
+    padding-left: 58px;
+  }
 }
 
 @media (max-width: 760px) {
@@ -2683,6 +2904,23 @@ dd {
 
   .custom-field-row {
     grid-template-columns: 1fr;
+  }
+
+  .template-field-group {
+    padding: 14px;
+  }
+
+  .template-field-group-title {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .template-field-control-grid {
+    padding-left: 0;
+  }
+
+  .template-field-switch {
+    grid-template-columns: 46px minmax(0, 1fr);
   }
 
   .template-builder-item,

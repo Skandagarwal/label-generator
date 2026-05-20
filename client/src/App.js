@@ -2263,7 +2263,6 @@ function TemplatesPage({ currentUser, onLogout }) {
   const [notice, setNotice] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [activePresetId, setActivePresetId] = useState("export");
-  const [draggedItem, setDraggedItem] = useState(null);
 
   const loadTemplates = () => {
     setStatus("loading");
@@ -2349,102 +2348,6 @@ function TemplatesPage({ currentUser, onLogout }) {
     }));
   };
 
-  const getSectionItems = (values, position) => {
-    const section = normalizeTemplatePosition(position);
-    const standardItems = values.fieldSettings
-      .filter((setting) => {
-        const itemPosition =
-          setting.visible === false ? "hidden" : normalizeTemplatePosition(setting.position);
-        return itemPosition === section;
-      })
-      .map((setting) => ({
-        kind: "standard",
-        id: setting.key,
-        key: setting.key,
-        label: setting.label,
-        defaultValue: setting.defaultValue,
-        order: Number(setting.order) || 0,
-        position: section,
-        meta: customizableTemplateFields.find((field) => field.key === setting.key),
-        visible: setting.visible !== false,
-      }));
-
-    const customItems = values.customFields
-      .filter((field) => field.label.trim())
-      .filter((field) => normalizeTemplatePosition(field.position) === section)
-      .map((field) => ({
-        kind: "custom",
-        id: field.id,
-        key: field.id,
-        label: field.label,
-        defaultValue: field.defaultValue,
-        order: Number(field.order) || 100,
-        position: section,
-        meta: { label: "Custom field", group: field.type || "Custom" },
-        visible: section !== "hidden",
-      }));
-
-    return [...standardItems, ...customItems].sort((a, b) => a.order - b.order);
-  };
-
-  const nextOrderForSection = (values, position) => {
-    const orders = getSectionItems(values, position).map((item) => Number(item.order) || 0);
-    return Math.max(0, ...orders) + 10;
-  };
-
-  const updateLayoutItem = (values, item, changes) => ({
-    ...values,
-    fieldSettings:
-      item.kind === "standard"
-        ? values.fieldSettings.map((setting) =>
-            setting.key === item.id ? { ...setting, ...changes } : setting
-          )
-        : values.fieldSettings,
-    customFields:
-      item.kind === "custom"
-        ? values.customFields.map((field) =>
-            field.id === item.id ? { ...field, ...changes } : field
-          )
-        : values.customFields,
-  });
-
-  const moveLayoutItem = (item, direction) => {
-    setDraft((values) => {
-      const items = getSectionItems(values, item.position);
-      const index = items.findIndex(
-        (sectionItem) => sectionItem.kind === item.kind && sectionItem.id === item.id
-      );
-      const swapItem = items[index + direction];
-
-      if (index < 0 || !swapItem) {
-        return values;
-      }
-
-      const currentOrder = Number(item.order) || index + 1;
-      const swapOrder = Number(swapItem.order) || index + direction + 1;
-      const withMovedItem = updateLayoutItem(values, item, { order: swapOrder });
-
-      return updateLayoutItem(withMovedItem, swapItem, { order: currentOrder });
-    });
-  };
-
-  const moveLayoutItemToSection = (item, position) => {
-    const nextPosition = normalizeTemplatePosition(position);
-
-    setDraft((values) => {
-      const changes = {
-        position: nextPosition,
-        order: nextOrderForSection(values, nextPosition),
-      };
-
-      if (item.kind === "standard") {
-        changes.visible = nextPosition !== "hidden";
-      }
-
-      return updateLayoutItem(values, item, changes);
-    });
-  };
-
   const applyLayoutPreset = (preset) => {
     setActivePresetId(preset.id);
     setDraft((values) => ({
@@ -2469,10 +2372,8 @@ function TemplatesPage({ currentUser, onLogout }) {
         order: Number(field.order) || index + 100,
       })),
     }));
-    setNotice(`${preset.name} layout applied. You can still move any field.`);
+    setNotice(`${preset.name} layout applied. Review fields and save when ready.`);
   };
-
-  const sectionItemsForDraft = (position) => getSectionItems(draft, position);
 
   const resetDraft = () => {
     setDraft(emptyTemplateDraft());
@@ -2535,134 +2436,100 @@ function TemplatesPage({ currentUser, onLogout }) {
     }
   };
 
-  const renderLayoutItem = (item, index, items) => (
-    <article
-      className="template-builder-item"
-      key={`${item.kind}-${item.id}`}
-      draggable
-      onDragStart={() => setDraggedItem(item)}
-      onDragEnd={() => setDraggedItem(null)}
-    >
-      <div className="template-item-main">
-        <span className="template-drag-handle" aria-hidden="true">
-          Drag
-        </span>
-        <p>{item.label || item.meta?.label || "Untitled field"}</p>
-        <small>{item.meta?.group || item.meta?.label || "Field"}</small>
-      </div>
-      <label>
-        <span>Print as</span>
-        <input
-          value={item.label}
-          onChange={(e) =>
-            item.kind === "standard"
-              ? updateFieldSetting(item.id, "label", e.target.value)
-              : updateCustomField(item.id, "label", e.target.value)
-          }
-        />
-      </label>
-      {item.kind === "standard" && item.id === "manufacturerLogo" ? (
-        <div className="template-item-note">
-          Logo is managed in detailed controls.
-        </div>
-      ) : (
-        <label>
-          <span>Default</span>
-          <input
-            value={item.defaultValue}
-            onChange={(e) =>
-              item.kind === "standard"
-                ? updateFieldSetting(item.id, "defaultValue", e.target.value)
-                : updateCustomField(item.id, "defaultValue", e.target.value)
-            }
-            placeholder="Optional"
-          />
-        </label>
-      )}
-      <label>
-        <span>Section</span>
-        <select
-          value={item.position}
-          onChange={(e) => moveLayoutItemToSection(item, e.target.value)}
-        >
-          {templateBuilderSections.map((section) => (
-            <option key={section.value} value={section.value}>
-              {section.title}
-            </option>
-          ))}
-        </select>
-      </label>
-      <div className="template-item-actions">
-        <button
-          className="icon-text-button"
-          type="button"
-          onClick={() => moveLayoutItem(item, -1)}
-          disabled={index === 0}
-        >
-          Up
-        </button>
-        <button
-          className="icon-text-button"
-          type="button"
-          onClick={() => moveLayoutItem(item, 1)}
-          disabled={index === items.length - 1}
-        >
-          Down
-        </button>
-        {item.position !== "hidden" ? (
-          <button
-            className="secondary-button compact-button"
-            type="button"
-            onClick={() => moveLayoutItemToSection(item, "hidden")}
-          >
-            Hide
-          </button>
-        ) : (
-          <button
-            className="secondary-button compact-button"
-            type="button"
-            onClick={() => moveLayoutItemToSection(item, "left")}
-          >
-            Show
-          </button>
-        )}
-      </div>
-    </article>
+  const printableSections = templateBuilderSections.filter(
+    (section) => section.value !== "hidden"
   );
+  const logoSetting = draft.fieldSettings.find((setting) => setting.key === "manufacturerLogo");
+  const standardFieldGroups = customizableTemplateFields
+    .filter((field) => field.key !== "manufacturerLogo")
+    .reduce((groups, field) => {
+      groups[field.group] = groups[field.group] || [];
+      groups[field.group].push(field);
+      return groups;
+    }, {});
 
-  const renderDropSection = (section) => {
-    const items = sectionItemsForDraft(section.value);
+  const setFieldVisibility = (key, isVisible) => {
+    setDraft((values) => ({
+      ...values,
+      fieldSettings: values.fieldSettings.map((setting, index) => {
+        if (setting.key !== key) {
+          return setting;
+        }
+
+        const meta = customizableTemplateFields.find((field) => field.key === key) || setting;
+        const nextPosition = isVisible
+          ? normalizeTemplatePosition(setting.position) === "hidden"
+            ? defaultTemplatePositionFor(meta, index)
+            : normalizeTemplatePosition(setting.position)
+          : "hidden";
+
+        return {
+          ...setting,
+          visible: isVisible,
+          position: nextPosition,
+        };
+      }),
+    }));
+  };
+
+  const renderSimpleField = (field) => {
+    const setting = draft.fieldSettings.find((item) => item.key === field.key);
+
+    if (!setting) {
+      return null;
+    }
+
+    const isVisible = setting.visible !== false && setting.position !== "hidden";
 
     return (
-      <section
-        className={`template-section-card template-drop-zone${
-          draggedItem ? " is-drop-ready" : ""
-        }`}
-        key={section.value}
-        onDragOver={(e) => e.preventDefault()}
-        onDrop={(e) => {
-          e.preventDefault();
-          if (draggedItem) {
-            moveLayoutItemToSection(draggedItem, section.value);
-            setDraggedItem(null);
-          }
-        }}
-      >
-        <div className="template-section-title">
+      <article className={`template-simple-field${isVisible ? " is-active" : ""}`} key={field.key}>
+        <label className="template-field-switch">
+          <input
+            type="checkbox"
+            checked={isVisible}
+            onChange={(e) => setFieldVisibility(field.key, e.target.checked)}
+          />
+          <span aria-hidden="true" />
           <div>
-            <h3>{section.title}</h3>
-            <p>{section.helper}</p>
+            <strong>{field.label}</strong>
+            <small>{field.group}</small>
           </div>
-          <strong>{items.length}</strong>
-        </div>
-        {items.length === 0 ? (
-          <p className="template-section-empty">Drop a field here.</p>
-        ) : (
-          <div className="template-section-items">
-            {items.map((item, index) => renderLayoutItem(item, index, items))}
+        </label>
+
+        {isVisible && (
+          <div className="template-field-control-grid">
+            <label>
+              <span>Print as</span>
+              <input
+                value={setting.label}
+                onChange={(e) => updateFieldSetting(field.key, "label", e.target.value)}
+                placeholder={field.label}
+              />
+            </label>
+            <label>
+              <span>Default</span>
+              <input
+                value={setting.defaultValue}
+                onChange={(e) => updateFieldSetting(field.key, "defaultValue", e.target.value)}
+                placeholder="Optional"
+              />
+            </label>
+            <label>
+              <span>Print area</span>
+              <select
+                value={normalizeTemplatePosition(setting.position)}
+                onChange={(e) => updateFieldSetting(field.key, "position", e.target.value)}
+              >
+                {printableSections.map((section) => (
+                  <option key={section.value} value={section.value}>
+                    {section.title}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
         )}
-      </section>
+      </article>
     );
   };
 
@@ -2772,7 +2639,7 @@ function TemplatesPage({ currentUser, onLogout }) {
               <span>2</span>
               <div>
                 <h3>Choose a layout type</h3>
-                <p>Start with a preset that matches the product. You can adjust it after.</p>
+                <p>Start with the closest preset. The field switches below handle the rest.</p>
               </div>
             </div>
 
@@ -2795,30 +2662,51 @@ function TemplatesPage({ currentUser, onLogout }) {
             <div className="template-builder-intro">
               <span>3</span>
               <div>
-                <h3>Drag fields into sections</h3>
+                <h3>Pick the fields to print</h3>
                 <p>
-                  Put every field where it should print. Move unused fields into Hidden fields.
+                  Switch fields on or off, rename the printed label, and choose where it should
+                  appear on the PDF.
                 </p>
               </div>
             </div>
 
-            <div className="template-drag-hint">
-              <strong>Tip:</strong> drag a field card to another section, or use the section
-              dropdown for precise control.
+            <div className="template-layout-tip">
+              <strong>Simple rule:</strong> start from the preset, hide fields you do not need, and
+              move only the few fields that need a different print area.
             </div>
 
-            <div className="template-section-board">
-              {templateBuilderSections.map((section) => renderDropSection(section))}
+            <div className="template-field-groups">
+              {Object.entries(standardFieldGroups).map(([group, groupFields]) => (
+                <section className="template-field-group" key={group}>
+                  <div className="template-field-group-title">
+                    <h3>{group}</h3>
+                    <span>
+                      {
+                        groupFields.filter((field) => {
+                          const setting = draft.fieldSettings.find(
+                            (item) => item.key === field.key
+                          );
+                          return setting && setting.visible !== false && setting.position !== "hidden";
+                        }).length
+                      }{" "}
+                      visible
+                    </span>
+                  </div>
+                  <div className="template-simple-field-list">
+                    {groupFields.map((field) => renderSimpleField(field))}
+                  </div>
+                </section>
+              ))}
             </div>
 
             <div className="custom-field-builder custom-field-builder-primary">
               <div className="section-heading section-heading-with-action">
                 <div>
                   <p className="step-label">Step 4</p>
-                  <h3>Add extra product fields</h3>
+                  <h3>Add fields only this product needs</h3>
                   <p>
                     Add values like CAS No., grade, assay, country of origin, or any field a
-                    vendor needs for this product.
+                    vendor needs for this product. Leave the blank row empty if not needed.
                   </p>
                 </div>
                 <button className="secondary-button" type="button" onClick={addCustomField}>
@@ -2859,7 +2747,7 @@ function TemplatesPage({ currentUser, onLogout }) {
                     />
                   </label>
                   <label>
-                    <span>Print Section</span>
+                    <span>Print Area</span>
                     <select
                       value={field.position}
                       onChange={(e) => updateCustomField(field.id, "position", e.target.value)}
@@ -2892,90 +2780,46 @@ function TemplatesPage({ currentUser, onLogout }) {
               ))}
             </div>
 
-            <details className="template-advanced">
-              <summary>
-                <span>Logo and detailed controls</span>
-                <small>Override the template logo or make a field required.</small>
-              </summary>
-              <div className="template-field-grid">
-                {draft.fieldSettings
-                  .filter((setting) => setting.key === "manufacturerLogo")
-                  .map((setting) => {
-                  const templateField = customizableTemplateFields.find(
-                    (field) => field.key === setting.key
-                  );
-
-                  return (
-                    <div className="template-field-row template-field-row-logo" key={setting.key}>
-                      <div>
-                        <p className="history-title">{templateField?.label || setting.key}</p>
-                        <p className="history-meta">{templateField?.group || "Field"}</p>
-                      </div>
-                      {setting.key === "manufacturerLogo" ? (
-                        <div className="template-logo-control">
-                          <label>
-                            <span>Logo Override</span>
-                            <input
-                              type="file"
-                              accept="image/*"
-                              onChange={(e) =>
-                                handleTemplateLogoUpload(setting.key, e.target.files?.[0])
-                              }
-                            />
-                          </label>
-                          <small>Leave empty to use the profile logo for this template.</small>
-                          {setting.defaultValue && (
-                            <div className="logo-preview template-logo-preview">
-                              <img src={setting.defaultValue} alt="Template logo preview" />
-                              <button
-                                className="secondary-button"
-                                type="button"
-                                onClick={() =>
-                                  updateFieldSetting(setting.key, "defaultValue", "")
-                                }
-                              >
-                                Use Profile Logo
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <label>
-                          <span>Default Value</span>
-                          <input
-                            value={setting.defaultValue}
-                            onChange={(e) =>
-                              updateFieldSetting(setting.key, "defaultValue", e.target.value)
-                            }
-                            placeholder="Optional"
-                          />
-                        </label>
-                      )}
-                    </div>
-                  );
-                })}
-                {draft.customFields
-                  .filter((field) => field.label.trim())
-                  .map((field) => (
-                    <div className="template-field-row template-field-row-compact" key={field.id}>
-                      <div>
-                        <p className="history-title">{field.label}</p>
-                        <p className="history-meta">Custom field</p>
-                      </div>
-                      <label className="inline-check">
-                        <input
-                          type="checkbox"
-                          checked={field.required}
-                          onChange={(e) =>
-                            updateCustomField(field.id, "required", e.target.checked)
-                          }
-                        />
-                        <span>Required</span>
-                      </label>
-                    </div>
-                  ))}
+            <section className="template-simple-card template-logo-simple">
+              <div className="template-simple-header">
+                <div>
+                  <span>Optional</span>
+                  <h3>Template logo</h3>
+                  <p>Use the vendor profile logo by default, or override it for this product.</p>
+                </div>
+                {logoSetting?.defaultValue && (
+                  <button
+                    className="secondary-button compact-button"
+                    type="button"
+                    onClick={() => updateFieldSetting("manufacturerLogo", "defaultValue", "")}
+                  >
+                    Use Profile Logo
+                  </button>
+                )}
               </div>
-            </details>
+              <div className="template-logo-control">
+                <label>
+                  <span>Logo Override</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) =>
+                      handleTemplateLogoUpload("manufacturerLogo", e.target.files?.[0])
+                    }
+                  />
+                </label>
+                {logoSetting?.defaultValue ? (
+                  <div className="logo-preview template-logo-preview">
+                    <img src={logoSetting.defaultValue} alt="Template logo preview" />
+                    <small>This logo will print for labels created from this template.</small>
+                  </div>
+                ) : (
+                  <p className="template-muted-note">
+                    No override selected. The saved profile logo will be used.
+                  </p>
+                )}
+              </div>
+            </section>
 
             {notice && <p className="status-message">{notice}</p>}
 
