@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import * as XLSX from "xlsx";
 import { hasFirebaseWebConfig, sendFirebaseOtp } from "./firebaseAuth";
@@ -112,6 +112,7 @@ const customizableTemplateFields = [
   { key: "manufacturerEmail", label: "Manufacturer Email", group: "Manufacturer" },
   { key: "manufacturerPhone", label: "Manufacturer Phone", group: "Manufacturer" },
   { key: "manufacturerLogo", label: "Manufacturer Logo", group: "Manufacturer" },
+  { key: "qrCode", label: "QR Code", group: "System" },
 ];
 
 const templateLayoutPositions = [
@@ -802,6 +803,7 @@ const emptyTemplateDraft = () => ({
   },
   fieldSettings: defaultTemplateFieldSettings(),
   customFields: [emptyTemplateField()],
+  designerItems: [],
 });
 
 const normalizeTemplateFieldKey = (value = "", fallback = "field") =>
@@ -810,6 +812,85 @@ const normalizeTemplateFieldKey = (value = "", fallback = "field") =>
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "_")
     .replace(/^_+|_+$/g, "") || fallback;
+
+const clampNumber = (value, min, max, fallback) => {
+  const number = Number(value);
+
+  if (!Number.isFinite(number)) {
+    return fallback;
+  }
+
+  return Math.min(Math.max(number, min), max);
+};
+
+const makeDesignerItemId = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+const designerItemTypeFor = (item = {}) => {
+  if (["text", "logo", "qr"].includes(item.type)) {
+    return item.type;
+  }
+
+  if (item.key === "manufacturerLogo") {
+    return "logo";
+  }
+
+  if (item.key === "qrCode") {
+    return "qr";
+  }
+
+  return "text";
+};
+
+const normalizeDesignerItem = (item = {}, index = 0) => {
+  const type = designerItemTypeFor(item);
+  const widthFallback = type === "qr" ? 16 : type === "logo" ? 22 : 34;
+  const heightFallback = type === "qr" ? 16 : type === "logo" ? 13 : 7;
+  const key = String(item.key || "").trim();
+  const meta = customizableTemplateFields.find((field) => field.key === key);
+
+  return {
+    id: String(item.id || makeDesignerItemId()),
+    key,
+    source: ["standard", "custom", "system"].includes(item.source)
+      ? item.source
+      : type === "qr"
+        ? "system"
+        : "standard",
+    type,
+    label: String(item.label || meta?.label || key || `Field ${index + 1}`).trim(),
+    defaultValue: String(item.defaultValue || "").trim(),
+    x: clampNumber(item.x, 0, 95, index % 2 === 0 ? 8 : 52),
+    y: clampNumber(item.y, 0, 95, 12 + Math.floor(index / 2) * 8),
+    width: clampNumber(item.width, 5, 96, widthFallback),
+    height: clampNumber(item.height, 4, 86, heightFallback),
+    fontSize: clampNumber(item.fontSize, 8, 34, type === "text" ? 15 : 14),
+    bold: item.bold !== false,
+    align: ["left", "center", "right"].includes(item.align) ? item.align : "left",
+  };
+};
+
+const normalizeDesignerItems = (items = []) =>
+  (Array.isArray(items) ? items : [])
+    .map((item, index) => normalizeDesignerItem(item, index))
+    .filter((item) => item.key || item.type === "qr");
+
+const createDesignerItemFromField = (field, index = 0) => {
+  const type = designerItemTypeFor(field);
+
+  return normalizeDesignerItem(
+    {
+      id: makeDesignerItemId(),
+      key: field.key || normalizeTemplateFieldKey(field.label, `field_${index + 1}`),
+      source: field.source || (type === "qr" ? "system" : "standard"),
+      type,
+      label: field.label,
+      defaultValue: field.defaultValue || "",
+      x: type === "qr" ? 72 : index % 2 === 0 ? 8 : 52,
+      y: type === "qr" ? 32 : 12 + Math.floor(index / 2) * 8,
+    },
+    index
+  );
+};
 
 const buildTemplatePayload = (draft, ownerPhone = getSavedPhone()) => ({
   ownerPhone,
@@ -848,6 +929,7 @@ const buildTemplatePayload = (draft, ownerPhone = getSavedPhone()) => ({
       order: Number(field.order) || index + 100,
     }))
     .filter((field) => field.label),
+  designerItems: normalizeDesignerItems(draft.designerItems),
 });
 
 const templateToDraft = (template = {}) => ({
@@ -882,6 +964,7 @@ const templateToDraft = (template = {}) => ({
         order: Number(field.order) || 100,
       }))
     : [emptyTemplateField()],
+  designerItems: normalizeDesignerItems(template.designerItems || []),
 });
 
 const templateFieldSettingMap = (template) =>
@@ -900,6 +983,43 @@ const templateFieldVisible = (template, key) => {
 
 const templateFieldDefault = (template, key) =>
   templateFieldSettingMap(template)[key]?.defaultValue || "";
+
+const designerPreviewValue = (item, template, values = {}) => {
+  if (item.type === "qr") {
+    return "";
+  }
+
+  if (item.type === "logo") {
+    return (
+      item.defaultValue ||
+      values.manufacturerLogo ||
+      templateFieldDefault(template, "manufacturerLogo") ||
+      ""
+    );
+  }
+
+  if (item.source === "custom") {
+    const customField = (template?.customFields || []).find(
+      (field) => field.key === item.key || normalizeTemplateFieldKey(field.label) === item.key
+    );
+
+    return (
+      values[item.key] ||
+      customField?.defaultValue ||
+      item.defaultValue ||
+      "Custom value"
+    );
+  }
+
+  return (
+    values[item.key] ||
+    templateFieldDefault(template, item.key) ||
+    template?.defaults?.[item.key] ||
+    item.defaultValue ||
+    templatePreviewFallbacks[item.key] ||
+    "Sample value"
+  );
+};
 
 const templateFieldLabelsPayload = (template) =>
   (template?.fieldSettings || []).reduce((items, setting) => {
@@ -971,6 +1091,7 @@ const templatePreviewFields = (template = {}, values = {}) => {
 };
 
 function TemplateLayoutPreview({ template, values = {}, title = "Template Preview" }) {
+  const designerItems = normalizeDesignerItems(template?.designerItems || []);
   const fieldsForPreview = templatePreviewFields(template, values);
   const groups = templateLayoutPositions.reduce((items, option) => {
     if (option.value !== "hidden") {
@@ -993,22 +1114,61 @@ function TemplateLayoutPreview({ template, values = {}, title = "Template Previe
         <p className="step-label">{title}</p>
         <h3>{template?.name || "Standard label"}</h3>
       </div>
-      <div className="template-preview-sheet">
-        <div className="template-preview-top">
-          <div>{(groups.left || []).map(renderField)}</div>
-          <div>{(groups.right || []).map(renderField)}</div>
+      {designerItems.length > 0 ? (
+        <div className="template-preview-sheet template-preview-sheet-designer">
+          {designerItems.map((item) => {
+            const value = designerPreviewValue(item, template, values);
+
+            return (
+              <div
+                className={`template-designer-item template-preview-designer-item template-designer-${item.type}`}
+                key={item.id}
+                style={{
+                  left: `${item.x}%`,
+                  top: `${item.y}%`,
+                  width: `${item.width}%`,
+                  height: `${item.height}%`,
+                  fontSize: `${item.fontSize * 0.72}px`,
+                  fontWeight: item.bold ? 800 : 500,
+                  textAlign: item.align,
+                }}
+              >
+                {item.type === "qr" ? (
+                  <span className="template-designer-fake-qr" aria-label="QR preview" />
+                ) : item.type === "logo" ? (
+                  value ? (
+                    <img src={value} alt="" />
+                  ) : (
+                    <span className="template-designer-logo-placeholder">Logo</span>
+                  )
+                ) : (
+                  <>
+                    <span className="template-designer-item-label">{item.label}</span>
+                    <span className="template-designer-item-value">{value}</span>
+                  </>
+                )}
+              </div>
+            );
+          })}
         </div>
-        {(groups.center || []).length > 0 && (
-          <div className="template-preview-center">
-            {(groups.center || []).map(renderField)}
+      ) : (
+        <div className="template-preview-sheet">
+          <div className="template-preview-top">
+            <div>{(groups.left || []).map(renderField)}</div>
+            <div>{(groups.right || []).map(renderField)}</div>
           </div>
-        )}
-        {(groups.bottom || []).length > 0 && (
-          <div className="template-preview-bottom">
-            {(groups.bottom || []).map(renderField)}
-          </div>
-        )}
-      </div>
+          {(groups.center || []).length > 0 && (
+            <div className="template-preview-center">
+              {(groups.center || []).map(renderField)}
+            </div>
+          )}
+          {(groups.bottom || []).length > 0 && (
+            <div className="template-preview-bottom">
+              {(groups.bottom || []).map(renderField)}
+            </div>
+          )}
+        </div>
+      )}
     </section>
   );
 }
@@ -2256,6 +2416,7 @@ function HistoryPage({ currentUser, onLogout }) {
 }
 
 function TemplatesPage({ currentUser, onLogout }) {
+  const designerCanvasRef = useRef(null);
   const [templates, setTemplates] = useState([]);
   const [draft, setDraft] = useState(emptyTemplateDraft);
   const [editingId, setEditingId] = useState("");
@@ -2263,6 +2424,8 @@ function TemplatesPage({ currentUser, onLogout }) {
   const [notice, setNotice] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [activePresetId, setActivePresetId] = useState("export");
+  const [selectedDesignerItemId, setSelectedDesignerItemId] = useState("");
+  const [designerDrag, setDesignerDrag] = useState(null);
 
   const loadTemplates = () => {
     setStatus("loading");
@@ -2281,6 +2444,53 @@ function TemplatesPage({ currentUser, onLogout }) {
   useEffect(() => {
     loadTemplates();
   }, []);
+
+  useEffect(() => {
+    if (!designerDrag) {
+      return undefined;
+    }
+
+    const handleMove = (event) => {
+      const rect = designerCanvasRef.current?.getBoundingClientRect();
+
+      if (!rect) {
+        return;
+      }
+
+      setDraft((values) => ({
+        ...values,
+        designerItems: normalizeDesignerItems(values.designerItems).map((item) =>
+          item.id === designerDrag.id
+            ? {
+                ...item,
+                x: clampNumber(
+                  ((event.clientX - rect.left) / rect.width) * 100 - item.width / 2,
+                  0,
+                  100 - item.width,
+                  item.x
+                ),
+                y: clampNumber(
+                  ((event.clientY - rect.top) / rect.height) * 100 - item.height / 2,
+                  0,
+                  100 - item.height,
+                  item.y
+                ),
+              }
+            : item
+        ),
+      }));
+    };
+
+    const handleUp = () => setDesignerDrag(null);
+
+    window.addEventListener("pointermove", handleMove);
+    window.addEventListener("pointerup", handleUp);
+
+    return () => {
+      window.removeEventListener("pointermove", handleMove);
+      window.removeEventListener("pointerup", handleUp);
+    };
+  }, [designerDrag]);
 
   const updateDraftField = (field, value) => {
     setDraft((values) => ({ ...values, [field]: value }));
@@ -2441,7 +2651,7 @@ function TemplatesPage({ currentUser, onLogout }) {
   );
   const logoSetting = draft.fieldSettings.find((setting) => setting.key === "manufacturerLogo");
   const standardFieldGroups = customizableTemplateFields
-    .filter((field) => field.key !== "manufacturerLogo")
+    .filter((field) => !["manufacturerLogo", "qrCode"].includes(field.key))
     .reduce((groups, field) => {
       groups[field.group] = groups[field.group] || [];
       groups[field.group].push(field);
@@ -2470,6 +2680,108 @@ function TemplatesPage({ currentUser, onLogout }) {
         };
       }),
     }));
+  };
+
+  const designerItems = normalizeDesignerItems(draft.designerItems);
+  const selectedDesignerItem = designerItems.find((item) => item.id === selectedDesignerItemId);
+  const designerDraftTemplate = buildTemplatePayload(draft, currentUser?.phone || getSavedPhone());
+  const designerStandardFields = customizableTemplateFields;
+  const designerCustomFields = draft.customFields
+    .filter((field) => field.label.trim())
+    .map((field, index) => ({
+      key: normalizeTemplateFieldKey(field.label, `custom_${index + 1}`),
+      label: field.label.trim(),
+      source: "custom",
+      type: field.type || "text",
+      defaultValue: field.defaultValue,
+    }));
+
+  const setDesignerItems = (updater) => {
+    setDraft((values) => {
+      const currentItems = normalizeDesignerItems(values.designerItems);
+      const nextItems = typeof updater === "function" ? updater(currentItems) : updater;
+
+      return { ...values, designerItems: normalizeDesignerItems(nextItems) };
+    });
+  };
+
+  const updateDesignerItem = (id, field, value) => {
+    const numericFields = new Set(["x", "y", "width", "height", "fontSize"]);
+
+    setDesignerItems((items) =>
+      items.map((item) =>
+        item.id === id
+          ? { ...item, [field]: numericFields.has(field) ? Number(value) : value }
+          : item
+      )
+    );
+  };
+
+  const addDesignerItem = (field) => {
+    const currentCount = normalizeDesignerItems(draft.designerItems).length;
+    const nextItem = createDesignerItemFromField(field, currentCount);
+
+    setSelectedDesignerItemId(nextItem.id);
+    setDesignerItems((items) => [...items, nextItem]);
+  };
+
+  const removeDesignerItem = (id) => {
+    const nextItems = designerItems.filter((item) => item.id !== id);
+
+    setSelectedDesignerItemId(nextItems[0]?.id || "");
+    setDesignerItems(nextItems);
+  };
+
+  const clearDesignerCanvas = () => {
+    setDesignerItems([]);
+    setSelectedDesignerItemId("");
+  };
+
+  const autoArrangeDesignerItems = () => {
+    const autoFields = [
+      ["drumNo", 8, 10, 28, 6],
+      ["commodity", 8, 18, 42, 6],
+      ["lotNo", 8, 26, 36, 6],
+      ["poNo", 8, 34, 36, 6],
+      ["mfgDate", 8, 42, 30, 6],
+      ["bestBefore", 8, 50, 30, 6],
+      ["netWt", 8, 58, 30, 6],
+      ["tareWt", 8, 66, 30, 6],
+      ["grossWt", 8, 74, 30, 6],
+      ["formatNo", 58, 10, 35, 5],
+      ["qrCode", 70, 35, 16, 16],
+      ["customerName", 8, 82, 40, 6],
+      ["customerAddress", 8, 89, 44, 6],
+      ["warningText", 36, 57, 35, 6],
+      ["storage", 36, 64, 35, 6],
+      ["license", 36, 71, 35, 6],
+      ["manufacturerLogo", 8, 77, 20, 13],
+      ["manufacturer", 38, 80, 42, 6],
+      ["manufacturerAddress", 38, 87, 48, 6],
+    ];
+    const centeredFields = ["formatNo", "warningText", "storage", "license", "manufacturer"];
+    const nextItems = autoFields
+      .map(([key, x, y, width, height], index) => {
+        const field = customizableTemplateFields.find((item) => item.key === key);
+
+        if (!field) {
+          return null;
+        }
+
+        return {
+          ...createDesignerItemFromField(field, index),
+          x,
+          y,
+          width,
+          height,
+          align: centeredFields.includes(key) ? "center" : "left",
+        };
+      })
+      .filter(Boolean);
+
+    setDesignerItems(nextItems);
+    setSelectedDesignerItemId(nextItems[0]?.id || "");
+    setNotice("A clean starter canvas is ready. Drag any field to adjust it.");
   };
 
   const renderSimpleField = (field) => {
@@ -2662,10 +2974,227 @@ function TemplatesPage({ currentUser, onLogout }) {
             <div className="template-builder-intro">
               <span>3</span>
               <div>
-                <h3>Pick the fields to print</h3>
+                <h3>Arrange fields on the label</h3>
+                <p>Add fields, drag them on the canvas, and save this product layout.</p>
+              </div>
+            </div>
+
+            <section className="template-designer-panel">
+              <div className="template-designer-toolbar">
+                <div>
+                  <h3>Visual label canvas</h3>
+                  <p>Click a field to edit size, label, and alignment.</p>
+                </div>
+                <div className="template-designer-toolbar-actions">
+                  <button
+                    className="secondary-button compact-button"
+                    type="button"
+                    onClick={autoArrangeDesignerItems}
+                  >
+                    Auto arrange
+                  </button>
+                  <button
+                    className="secondary-button compact-button"
+                    type="button"
+                    onClick={clearDesignerCanvas}
+                  >
+                    Clear canvas
+                  </button>
+                </div>
+              </div>
+
+              <div className="template-designer-field-bank">
+                {[...designerStandardFields, ...designerCustomFields].map((field, index) => (
+                  <button
+                    className="template-designer-add"
+                    key={`${field.source || "standard"}-${field.key}-${index}`}
+                    type="button"
+                    onClick={() => addDesignerItem(field)}
+                  >
+                    + {field.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="template-designer-workspace">
+                <div className="template-designer-canvas-wrap">
+                  <div className="template-designer-canvas" ref={designerCanvasRef}>
+                    {designerItems.length === 0 && (
+                      <div className="template-designer-empty">
+                        <div>
+                          <strong>Start with Auto arrange</strong>
+                          <span>or add fields above and drag them here.</span>
+                        </div>
+                      </div>
+                    )}
+                    {designerItems.map((item) => {
+                      const value = designerPreviewValue(item, designerDraftTemplate);
+
+                      return (
+                        <button
+                          className={`template-designer-item template-designer-${item.type}${
+                            selectedDesignerItemId === item.id ? " is-selected" : ""
+                          }`}
+                          key={item.id}
+                          type="button"
+                          onClick={() => setSelectedDesignerItemId(item.id)}
+                          onPointerDown={(event) => {
+                            event.preventDefault();
+                            event.currentTarget.setPointerCapture?.(event.pointerId);
+                            setSelectedDesignerItemId(item.id);
+                            setDesignerDrag({ id: item.id });
+                          }}
+                          style={{
+                            left: `${item.x}%`,
+                            top: `${item.y}%`,
+                            width: `${item.width}%`,
+                            height: `${item.height}%`,
+                            fontSize: `${item.fontSize}px`,
+                            fontWeight: item.bold ? 800 : 500,
+                            textAlign: item.align,
+                          }}
+                        >
+                          {item.type === "qr" ? (
+                            <span className="template-designer-fake-qr" aria-hidden="true" />
+                          ) : item.type === "logo" ? (
+                            value ? (
+                              <img src={value} alt="" />
+                            ) : (
+                              <span className="template-designer-logo-placeholder">Logo</span>
+                            )
+                          ) : (
+                            <>
+                              <span className="template-designer-item-label">{item.label}</span>
+                              <span className="template-designer-item-value">{value}</span>
+                            </>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <aside className="template-designer-inspector">
+                  {selectedDesignerItem ? (
+                    <>
+                      <h3>Selected field</h3>
+                      <label>
+                        <span>Print label</span>
+                        <input
+                          value={selectedDesignerItem.label}
+                          onChange={(e) =>
+                            updateDesignerItem(selectedDesignerItem.id, "label", e.target.value)
+                          }
+                        />
+                      </label>
+                      <div className="template-inspector-grid">
+                        <label>
+                          <span>Left %</span>
+                          <input
+                            type="number"
+                            min="0"
+                            max="95"
+                            value={selectedDesignerItem.x}
+                            onChange={(e) =>
+                              updateDesignerItem(selectedDesignerItem.id, "x", e.target.value)
+                            }
+                          />
+                        </label>
+                        <label>
+                          <span>Top %</span>
+                          <input
+                            type="number"
+                            min="0"
+                            max="95"
+                            value={selectedDesignerItem.y}
+                            onChange={(e) =>
+                              updateDesignerItem(selectedDesignerItem.id, "y", e.target.value)
+                            }
+                          />
+                        </label>
+                        <label>
+                          <span>Width %</span>
+                          <input
+                            type="number"
+                            min="5"
+                            max="96"
+                            value={selectedDesignerItem.width}
+                            onChange={(e) =>
+                              updateDesignerItem(selectedDesignerItem.id, "width", e.target.value)
+                            }
+                          />
+                        </label>
+                        <label>
+                          <span>Height %</span>
+                          <input
+                            type="number"
+                            min="4"
+                            max="86"
+                            value={selectedDesignerItem.height}
+                            onChange={(e) =>
+                              updateDesignerItem(selectedDesignerItem.id, "height", e.target.value)
+                            }
+                          />
+                        </label>
+                        <label>
+                          <span>Font</span>
+                          <input
+                            type="number"
+                            min="8"
+                            max="34"
+                            value={selectedDesignerItem.fontSize}
+                            onChange={(e) =>
+                              updateDesignerItem(selectedDesignerItem.id, "fontSize", e.target.value)
+                            }
+                          />
+                        </label>
+                        <label>
+                          <span>Align</span>
+                          <select
+                            value={selectedDesignerItem.align}
+                            onChange={(e) =>
+                              updateDesignerItem(selectedDesignerItem.id, "align", e.target.value)
+                            }
+                          >
+                            <option value="left">Left</option>
+                            <option value="center">Center</option>
+                            <option value="right">Right</option>
+                          </select>
+                        </label>
+                      </div>
+                      <label className="template-inspector-check">
+                        <input
+                          type="checkbox"
+                          checked={selectedDesignerItem.bold}
+                          onChange={(e) =>
+                            updateDesignerItem(selectedDesignerItem.id, "bold", e.target.checked)
+                          }
+                        />
+                        <span>Bold text</span>
+                      </label>
+                      <button
+                        className="danger-button"
+                        type="button"
+                        onClick={() => removeDesignerItem(selectedDesignerItem.id)}
+                      >
+                        Remove field
+                      </button>
+                    </>
+                  ) : (
+                    <p className="template-inspector-empty">
+                      Select a field on the canvas to edit its size and style.
+                    </p>
+                  )}
+                </aside>
+              </div>
+            </section>
+
+            <div className="template-builder-intro">
+              <span>4</span>
+              <div>
+                <h3>Advanced field rules</h3>
                 <p>
-                  Switch fields on or off, rename the printed label, and choose where it should
-                  appear on the PDF.
+                  Optional: use these section controls only when you do not need the visual canvas.
                 </p>
               </div>
             </div>
@@ -2702,7 +3231,7 @@ function TemplatesPage({ currentUser, onLogout }) {
             <div className="custom-field-builder custom-field-builder-primary">
               <div className="section-heading section-heading-with-action">
                 <div>
-                  <p className="step-label">Step 4</p>
+                  <p className="step-label">Step 5</p>
                   <h3>Add fields only this product needs</h3>
                   <p>
                     Add values like CAS No., grade, assay, country of origin, or any field a
@@ -3543,6 +4072,7 @@ function App() {
         templateName: selectedTemplate?.name || "",
         fieldLabels: templateFieldLabelsPayload(selectedTemplate),
         fieldSettings: selectedTemplate?.fieldSettings || [],
+        designerItems: selectedTemplate?.designerItems || [],
         hiddenFields: templateHiddenFieldsPayload(selectedTemplate),
         customFields: selectedTemplate
           ? (selectedTemplate.customFields || []).map((field) => ({

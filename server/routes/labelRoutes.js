@@ -295,6 +295,7 @@ const STANDARD_FIELD_LABELS = {
   manufacturerEmail: "EMAIL",
   manufacturerPhone: "CELL",
   manufacturerLogo: "Manufacturer Logo",
+  qrCode: "QR Code",
 };
 
 const STANDARD_FIELD_KEYS = Object.keys(STANDARD_FIELD_LABELS);
@@ -511,6 +512,118 @@ const normalizeCustomFields = (fields = []) =>
     }))
     .filter((field) => field.label);
 
+const DESIGNER_ITEM_TYPES = new Set(["text", "logo", "qr"]);
+const DESIGNER_ALIGNMENTS = new Set(["left", "center", "right"]);
+
+const clampDesignerNumber = (value, min, max, fallback) => {
+  const number = Number(value);
+  if (!Number.isFinite(number)) {
+    return fallback;
+  }
+
+  return Math.min(Math.max(number, min), max);
+};
+
+const normalizeDesignerItems = (items = []) =>
+  (Array.isArray(items) ? items : [])
+    .map((item, index) => {
+      const key = String(item.key || "").trim();
+      const type = DESIGNER_ITEM_TYPES.has(item.type)
+        ? item.type
+        : key === "qrCode"
+          ? "qr"
+          : key === "manufacturerLogo"
+            ? "logo"
+            : "text";
+      const widthFallback = type === "qr" ? 16 : type === "logo" ? 22 : 34;
+      const heightFallback = type === "qr" ? 16 : type === "logo" ? 13 : 7;
+
+      return {
+        id: String(item.id || `${key || type}-${index}`),
+        key,
+        source: ["standard", "custom", "system"].includes(item.source)
+          ? item.source
+          : type === "qr"
+            ? "system"
+            : "standard",
+        type,
+        label: String(item.label || STANDARD_FIELD_LABELS[key] || key || `Field ${index + 1}`).trim(),
+        defaultValue: String(item.defaultValue || "").trim(),
+        x: clampDesignerNumber(item.x, 0, 95, index % 2 === 0 ? 8 : 52),
+        y: clampDesignerNumber(item.y, 0, 95, 12 + Math.floor(index / 2) * 8),
+        width: clampDesignerNumber(item.width, 5, 96, widthFallback),
+        height: clampDesignerNumber(item.height, 4, 86, heightFallback),
+        fontSize: clampDesignerNumber(item.fontSize, 8, 34, type === "text" ? 15 : 14),
+        bold: item.bold !== false,
+        align: DESIGNER_ALIGNMENTS.has(item.align) ? item.align : "left",
+      };
+    })
+    .filter((item) => item.key || item.type === "qr");
+
+const customFieldValueMap = (fields = []) =>
+  normalizeCustomFields(fields).reduce((items, field) => {
+    items[field.key] = field.value || field.defaultValue || "";
+    return items;
+  }, {});
+
+const designerValue = (data = {}, item = {}, qr = "") => {
+  if (item.type === "qr") {
+    return qr;
+  }
+
+  if (item.type === "logo") {
+    return getManufacturerLogo(item.defaultValue || data.manufacturerLogo);
+  }
+
+  if (item.source === "custom") {
+    return customFieldValueMap(data.customFields)[item.key] || item.defaultValue || "";
+  }
+
+  return data[item.key] || item.defaultValue || "";
+};
+
+const designerItemStyle = (item = {}) =>
+  [
+    `left:${item.x}%`,
+    `top:${item.y}%`,
+    `width:${item.width}%`,
+    `height:${item.height}%`,
+    `font-size:${item.fontSize}px`,
+    `font-weight:${item.bold ? 800 : 500}`,
+    `text-align:${item.align}`,
+  ].join(";");
+
+const designerLayoutHtml = (data = {}, qr = "") => {
+  const items = normalizeDesignerItems(data.designerItems);
+
+  if (!items.length) {
+    return "";
+  }
+
+  return `<div class="designer-canvas-pdf">${items
+    .map((item) => {
+      const value = designerValue(data, item, qr);
+
+      if (item.type !== "qr" && !String(value || "").trim()) {
+        return "";
+      }
+
+      if (item.type === "qr" || item.type === "logo") {
+        return `
+          <div class="designer-pdf-item designer-pdf-media designer-pdf-${item.type}" style="${designerItemStyle(item)}">
+            <img src="${escapeHtml(value)}" />
+          </div>`;
+      }
+
+      return `
+        <div class="designer-pdf-item designer-pdf-text" style="${designerItemStyle(item)}">
+          <span class="designer-pdf-label">${escapeHtml(item.label)}</span>
+          <span class="designer-pdf-value">${escapeHtml(value)}</span>
+        </div>`;
+    })
+    .join("")}</div>`;
+};
+
 const normalizeTemplateData = (body = {}) => ({
   ownerPhone: normalizePhone(body.ownerPhone),
   name: String(body.name || body.productName || "").trim(),
@@ -525,6 +638,7 @@ const normalizeTemplateData = (body = {}) => ({
   },
   fieldSettings: normalizeFieldSettings(body.fieldSettings),
   customFields: normalizeCustomFields(body.customFields),
+  designerItems: normalizeDesignerItems(body.designerItems),
 });
 
 const serializeTemplate = (template = {}) => ({
@@ -549,7 +663,9 @@ const customFieldsHtml = (fields = []) =>
 
 const templateValues = (data, qr) => {
   const manufacturerLogoValue = getManufacturerLogo(data.manufacturerLogo);
-  const useCustomLayout = templateLayoutActive(data);
+  const designerItems = normalizeDesignerItems(data.designerItems);
+  const useDesignerLayout = designerItems.length > 0;
+  const useCustomLayout = !useDesignerLayout && templateLayoutActive(data);
   const hideManufacturerLogo =
     isFieldHidden(data, "manufacturerLogo") || !manufacturerLogoValue;
   const hideManufacturerBlock =
@@ -562,17 +678,37 @@ const templateValues = (data, qr) => {
     ].every((key) => isFieldHidden(data, key)) && hideManufacturerLogo;
 
   return {
-    labelModeClass: useCustomLayout ? "custom-layout-label" : "",
+    labelModeClass: useDesignerLayout
+      ? "designer-layout-label"
+      : useCustomLayout
+        ? "custom-layout-label"
+        : "",
+    designerLayoutHtml: useDesignerLayout ? designerLayoutHtml(data, qr) : "",
     labelFormatNo: escapeHtml(fieldLabel(data, "formatNo")),
     formatNo: escapeHtml(data.formatNo),
-    hideFormatNo: useCustomLayout ? "layout-hidden" : hideClass(data, "formatNo"),
+    hideFormatNo:
+      useDesignerLayout || useCustomLayout ? "layout-hidden" : hideClass(data, "formatNo"),
     mainFieldsHtml: mainFieldsHtml(data),
-    leftFieldsHtml: useCustomLayout
+    leftFieldsHtml: useDesignerLayout
+      ? ""
+      : useCustomLayout
       ? layoutFieldsHtml(data, "left")
       : `${mainFieldsHtml(data)}${customFieldsHtml(data.customFields)}`,
-    rightFieldsHtml: useCustomLayout ? layoutFieldsHtml(data, "right") : "",
-    centerFieldsHtml: useCustomLayout ? layoutFieldsHtml(data, "center") : "",
-    bottomFieldsHtml: useCustomLayout ? layoutFieldsHtml(data, "bottom") : "",
+    rightFieldsHtml: useDesignerLayout
+      ? ""
+      : useCustomLayout
+        ? layoutFieldsHtml(data, "right")
+        : "",
+    centerFieldsHtml: useDesignerLayout
+      ? ""
+      : useCustomLayout
+        ? layoutFieldsHtml(data, "center")
+        : "",
+    bottomFieldsHtml: useDesignerLayout
+      ? ""
+      : useCustomLayout
+        ? layoutFieldsHtml(data, "bottom")
+        : "",
     drumNo: escapeHtml(data.drumNo),
     commodity: escapeHtml(data.commodity),
     lotNo: escapeHtml(data.lotNo),
@@ -593,19 +729,25 @@ const templateValues = (data, qr) => {
     manufacturerEmail: escapeHtml(data.manufacturerEmail),
     manufacturerPhone: escapeHtml(data.manufacturerPhone),
     customFieldsHtml: customFieldsHtml(data.customFields),
-    hideCustomerName: useCustomLayout ? "layout-hidden" : hideClass(data, "customerName"),
-    hideCustomerAddress: useCustomLayout
+    hideCustomerName:
+      useDesignerLayout || useCustomLayout ? "layout-hidden" : hideClass(data, "customerName"),
+    hideCustomerAddress: useDesignerLayout || useCustomLayout
       ? "layout-hidden"
       : hideClass(data, "customerAddress"),
     hideCustomerBlock:
+      useDesignerLayout ||
       useCustomLayout ||
       (isFieldHidden(data, "customerName") && isFieldHidden(data, "customerAddress"))
         ? "is-hidden"
         : "",
-    hideWarningText: useCustomLayout ? "layout-hidden" : hideClass(data, "warningText"),
-    hideStorage: useCustomLayout ? "layout-hidden" : hideClass(data, "storage"),
-    hideLicense: useCustomLayout ? "layout-hidden" : hideClass(data, "license"),
-    hideManufacturerBlock: useCustomLayout || hideManufacturerBlock ? "is-hidden" : "",
+    hideWarningText:
+      useDesignerLayout || useCustomLayout ? "layout-hidden" : hideClass(data, "warningText"),
+    hideStorage:
+      useDesignerLayout || useCustomLayout ? "layout-hidden" : hideClass(data, "storage"),
+    hideLicense:
+      useDesignerLayout || useCustomLayout ? "layout-hidden" : hideClass(data, "license"),
+    hideManufacturerBlock:
+      useDesignerLayout || useCustomLayout || hideManufacturerBlock ? "is-hidden" : "",
     hideManufacturer: hideClass(data, "manufacturer"),
     hideManufacturerAddress: hideClass(data, "manufacturerAddress"),
     hideManufacturerLogo: hideManufacturerLogo ? "is-hidden" : "",

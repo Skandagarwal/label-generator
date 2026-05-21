@@ -28,13 +28,18 @@ const LabelSchema = new mongoose.Schema(
     templateId: String,
     templateName: String,
     fieldLabels: mongoose.Schema.Types.Mixed,
+    fieldSettings: mongoose.Schema.Types.Mixed,
+    designerItems: mongoose.Schema.Types.Mixed,
     hiddenFields: [String],
     customFields: [
       {
         key: String,
         label: String,
         type: String,
+        defaultValue: String,
         value: String,
+        position: String,
+        order: Number,
       },
     ],
     ownerPhone: { type: String, index: true },

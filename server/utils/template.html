@@ -334,6 +334,54 @@
       font-size: 15px;
     }
 
+    .designer-layout-label {
+      padding: 0;
+    }
+
+    .designer-layout-label .top-right,
+    .designer-layout-label .content,
+    .designer-layout-label .center-fields,
+    .designer-layout-label .center-text,
+    .designer-layout-label .license-row,
+    .designer-layout-label .bottom-fields,
+    .designer-layout-label .manufacturer-block {
+      display: none;
+    }
+
+    .designer-canvas-pdf {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .designer-pdf-item {
+      position: absolute;
+      color: #202030;
+      overflow: hidden;
+      overflow-wrap: anywhere;
+      white-space: pre-line;
+      line-height: 1.2;
+      font-family: "Times New Roman", serif;
+    }
+
+    .designer-pdf-label {
+      display: block;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .designer-pdf-value {
+      display: block;
+    }
+
+    .designer-pdf-media img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+    }
+
     @media print {
       body {
         margin: 0;
@@ -345,6 +393,8 @@
 <body>
 
 <div class="label {{labelModeClass}}">
+  {{designerLayoutHtml}}
+
   <div class="top-right {{hideFormatNo}}">
     {{labelFormatNo}}: - {{formatNo}}
   </div>
