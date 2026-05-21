@@ -1834,6 +1834,7 @@ dd {
 
 .template-form-card,
 .template-list-card {
+  min-width: 0;
   padding: 24px;
   background: rgba(255, 255, 255, 0.96);
   border: 1px solid var(--line);
@@ -2488,6 +2489,13 @@ dd {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+  align-items: center;
+  min-width: 0;
+}
+
+.template-actions a,
+.template-actions button {
+  flex: 0 1 auto;
 }
 
 .template-list-card h2 {
@@ -2583,6 +2591,16 @@ dd {
   color: var(--ink);
   font-weight: 800;
   overflow-wrap: anywhere;
+}
+
+@media (max-width: 1180px) {
+  .template-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .template-preview-sticky {
+    position: static;
+  }
 }
 
 @media (max-width: 900px) {
