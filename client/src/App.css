@@ -815,6 +815,18 @@ body {
   align-items: flex-start;
   justify-content: space-between;
   gap: 14px;
+  min-width: 0;
+}
+
+.section-heading-with-action > div {
+  min-width: 0;
+}
+
+.section-heading-with-action > .primary-button,
+.section-heading-with-action > .secondary-button,
+.section-heading-with-action > .danger-button,
+.section-heading-with-action > button {
+  flex: 0 0 auto;
 }
 
 .section-heading h2,
@@ -1825,10 +1837,10 @@ dd {
 
 .template-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
   gap: 20px;
   align-items: start;
-  max-width: 1180px;
+  max-width: 1280px;
   margin: 0 auto;
 }
 
@@ -1855,7 +1867,7 @@ dd {
 
 .template-preview-sticky {
   position: sticky;
-  top: 20px;
+  top: 118px;
   z-index: 2;
   display: grid;
   gap: 12px;
@@ -1888,6 +1900,7 @@ dd {
   display: grid;
   gap: 12px;
   padding: 16px;
+  margin-top: 4px;
   background: #fbfdfc;
   border: 1px solid var(--line-soft);
   border-radius: 12px;
@@ -2050,21 +2063,28 @@ dd {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  max-height: 118px;
+  padding: 10px;
+  overflow: auto;
+  background: #f8fbf9;
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
 }
 
 .template-designer-add {
-  padding: 8px 12px;
+  padding: 7px 10px;
   color: var(--green);
   background: #f3faf6;
   border: 1px solid #cfe1d9;
   border-radius: 999px;
+  font-size: 13px;
   font-weight: 800;
   cursor: pointer;
 }
 
 .template-designer-workspace {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 280px;
+  grid-template-columns: minmax(520px, 1fr) minmax(240px, 280px);
   gap: 16px;
   align-items: start;
 }
@@ -2107,6 +2127,7 @@ dd {
   display: grid;
   align-content: start;
   gap: 2px;
+  min-width: 0;
   padding: 6px;
   overflow: hidden;
   color: var(--ink);
@@ -2232,10 +2253,85 @@ dd {
 
 .template-preview-sheet-designer {
   position: relative;
-  min-height: 260px;
+  min-height: 230px;
   padding: 0;
   overflow: hidden;
   aspect-ratio: 1.414 / 1;
+}
+
+.template-advanced-rules {
+  display: grid;
+  gap: 14px;
+  padding: 14px;
+  background: #f6faf8;
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
+}
+
+.template-advanced-rules summary {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  color: var(--ink);
+  list-style: none;
+  cursor: pointer;
+}
+
+.template-advanced-rules summary::-webkit-details-marker {
+  display: none;
+}
+
+.template-advanced-rules summary::after {
+  content: "+";
+  display: inline-grid;
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  margin-left: auto;
+  place-items: center;
+  color: var(--green);
+  background: #ffffff;
+  border: 1px solid #cfe1d9;
+  border-radius: 10px;
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.template-advanced-rules[open] summary::after {
+  content: "-";
+}
+
+.template-advanced-rules summary strong,
+.template-advanced-rules summary small {
+  display: block;
+}
+
+.template-advanced-rules summary strong {
+  font-size: 18px;
+}
+
+.template-advanced-rules summary small {
+  margin-top: 3px;
+  color: #6f817b;
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.template-advanced-step {
+  display: inline-grid;
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  color: #ffffff;
+  background: var(--green);
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.template-advanced-rules[open] .template-layout-tip {
+  margin-top: 14px;
 }
 
 .template-preview-sheet-designer .template-designer-item {
@@ -2824,7 +2920,7 @@ dd {
   overflow-wrap: anywhere;
 }
 
-@media (max-width: 1180px) {
+@media (max-width: 1280px) {
   .template-layout {
     grid-template-columns: 1fr;
   }
@@ -3265,6 +3361,13 @@ dd {
   .section-heading-with-action,
   .history-toolbar {
     display: grid;
+  }
+
+  .section-heading-with-action > .primary-button,
+  .section-heading-with-action > .secondary-button,
+  .section-heading-with-action > .danger-button,
+  .section-heading-with-action > button {
+    width: 100%;
   }
 
   .drum-table-head {

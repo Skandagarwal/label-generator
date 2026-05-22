@@ -1065,7 +1065,12 @@ const previewValueForField = (template, key, values = {}) => {
 
 const templatePreviewFields = (template = {}, values = {}) => {
   const builtInFields = (template.fieldSettings || defaultTemplateFieldSettings())
-    .filter((setting) => setting.visible !== false && setting.position !== "hidden")
+    .filter(
+      (setting) =>
+        setting.visible !== false &&
+        setting.position !== "hidden" &&
+        !["manufacturerLogo", "qrCode"].includes(setting.key)
+    )
     .map((setting) => ({
       key: setting.key,
       label:
@@ -3189,44 +3194,48 @@ function TemplatesPage({ currentUser, onLogout }) {
               </div>
             </section>
 
-            <div className="template-builder-intro">
-              <span>4</span>
-              <div>
-                <h3>Advanced field rules</h3>
-                <p>
-                  Optional: use these section controls only when you do not need the visual canvas.
-                </p>
+            <details className="template-advanced-rules">
+              <summary>
+                <span className="template-advanced-step">4</span>
+                <span>
+                  <strong>Advanced field rules</strong>
+                  <small>Optional field visibility, labels, and print areas.</small>
+                </span>
+              </summary>
+
+              <div className="template-layout-tip">
+                <strong>Simple rule:</strong> start from the preset, hide fields you do not need,
+                and move only the few fields that need a different print area.
               </div>
-            </div>
 
-            <div className="template-layout-tip">
-              <strong>Simple rule:</strong> start from the preset, hide fields you do not need, and
-              move only the few fields that need a different print area.
-            </div>
-
-            <div className="template-field-groups">
-              {Object.entries(standardFieldGroups).map(([group, groupFields]) => (
-                <section className="template-field-group" key={group}>
-                  <div className="template-field-group-title">
-                    <h3>{group}</h3>
-                    <span>
-                      {
-                        groupFields.filter((field) => {
-                          const setting = draft.fieldSettings.find(
-                            (item) => item.key === field.key
-                          );
-                          return setting && setting.visible !== false && setting.position !== "hidden";
-                        }).length
-                      }{" "}
-                      visible
-                    </span>
-                  </div>
-                  <div className="template-simple-field-list">
-                    {groupFields.map((field) => renderSimpleField(field))}
-                  </div>
-                </section>
-              ))}
-            </div>
+              <div className="template-field-groups">
+                {Object.entries(standardFieldGroups).map(([group, groupFields]) => (
+                  <section className="template-field-group" key={group}>
+                    <div className="template-field-group-title">
+                      <h3>{group}</h3>
+                      <span>
+                        {
+                          groupFields.filter((field) => {
+                            const setting = draft.fieldSettings.find(
+                              (item) => item.key === field.key
+                            );
+                            return (
+                              setting &&
+                              setting.visible !== false &&
+                              setting.position !== "hidden"
+                            );
+                          }).length
+                        }{" "}
+                        visible
+                      </span>
+                    </div>
+                    <div className="template-simple-field-list">
+                      {groupFields.map((field) => renderSimpleField(field))}
+                    </div>
+                  </section>
+                ))}
+              </div>
+            </details>
 
             <div className="custom-field-builder custom-field-builder-primary">
               <div className="section-heading section-heading-with-action">
