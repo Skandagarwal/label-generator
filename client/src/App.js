@@ -847,6 +847,8 @@ const normalizeDesignerItem = (item = {}, index = 0) => {
   const heightFallback = type === "qr" ? 16 : type === "logo" ? 13 : 7;
   const key = String(item.key || "").trim();
   const meta = customizableTemplateFields.find((field) => field.key === key);
+  const width = clampNumber(item.width, 5, 96, widthFallback);
+  const height = clampNumber(item.height, 4, 86, heightFallback);
 
   return {
     id: String(item.id || makeDesignerItemId()),
@@ -859,10 +861,10 @@ const normalizeDesignerItem = (item = {}, index = 0) => {
     type,
     label: String(item.label || meta?.label || key || `Field ${index + 1}`).trim(),
     defaultValue: String(item.defaultValue || "").trim(),
-    x: clampNumber(item.x, 0, 95, index % 2 === 0 ? 8 : 52),
-    y: clampNumber(item.y, 0, 95, 12 + Math.floor(index / 2) * 8),
-    width: clampNumber(item.width, 5, 96, widthFallback),
-    height: clampNumber(item.height, 4, 86, heightFallback),
+    x: clampNumber(item.x, 0, 100 - width, index % 2 === 0 ? 8 : 52),
+    y: clampNumber(item.y, 0, 100 - height, 12 + Math.floor(index / 2) * 8),
+    width,
+    height,
     fontSize: clampNumber(item.fontSize, 8, 34, type === "text" ? 15 : 14),
     bold: item.bold !== false,
     align: ["left", "center", "right"].includes(item.align) ? item.align : "left",
@@ -873,6 +875,44 @@ const normalizeDesignerItems = (items = []) =>
   (Array.isArray(items) ? items : [])
     .map((item, index) => normalizeDesignerItem(item, index))
     .filter((item) => item.key || item.type === "qr");
+
+const designerSliderConfig = {
+  x: { label: "Left", min: 0, max: 95, step: 1, suffix: "%" },
+  y: { label: "Top", min: 0, max: 95, step: 1, suffix: "%" },
+  width: { label: "Width", min: 8, max: 96, step: 1, suffix: "%" },
+  height: { label: "Height", min: 5, max: 86, step: 1, suffix: "%" },
+  fontSize: { label: "Text size", min: 8, max: 34, step: 1, suffix: "px" },
+};
+
+const clampDesignerItemValue = (item, field, value) => {
+  const number = Number(value);
+
+  if (!Number.isFinite(number)) {
+    return item[field];
+  }
+
+  if (field === "width") {
+    return clampNumber(number, 8, 100 - item.x, item.width);
+  }
+
+  if (field === "height") {
+    return clampNumber(number, 5, 100 - item.y, item.height);
+  }
+
+  if (field === "x") {
+    return clampNumber(number, 0, 100 - item.width, item.x);
+  }
+
+  if (field === "y") {
+    return clampNumber(number, 0, 100 - item.height, item.y);
+  }
+
+  if (field === "fontSize") {
+    return clampNumber(number, 8, 34, item.fontSize);
+  }
+
+  return number;
+};
 
 const createDesignerItemFromField = (field, index = 0) => {
   const type = designerItemTypeFor(field);
@@ -2716,9 +2756,52 @@ function TemplatesPage({ currentUser, onLogout }) {
     setDesignerItems((items) =>
       items.map((item) =>
         item.id === id
-          ? { ...item, [field]: numericFields.has(field) ? Number(value) : value }
+          ? {
+              ...item,
+              [field]: numericFields.has(field)
+                ? clampDesignerItemValue(item, field, value)
+                : value,
+            }
           : item
       )
+    );
+  };
+
+  const renderDesignerSlider = (field) => {
+    if (!selectedDesignerItem) {
+      return null;
+    }
+
+    const config = designerSliderConfig[field];
+    const max =
+      field === "x"
+        ? Math.max(config.min, 100 - selectedDesignerItem.width)
+        : field === "y"
+          ? Math.max(config.min, 100 - selectedDesignerItem.height)
+          : field === "width"
+            ? Math.max(config.min, 100 - selectedDesignerItem.x)
+            : field === "height"
+              ? Math.max(config.min, 100 - selectedDesignerItem.y)
+              : config.max;
+
+    return (
+      <label className="template-slider-control" key={field}>
+        <span>
+          {config.label}
+          <strong>
+            {Math.round(selectedDesignerItem[field])}
+            {config.suffix}
+          </strong>
+        </span>
+        <input
+          type="range"
+          min={config.min}
+          max={max}
+          step={config.step}
+          value={selectedDesignerItem[field]}
+          onChange={(e) => updateDesignerItem(selectedDesignerItem.id, field, e.target.value)}
+        />
+      </label>
     );
   };
 
@@ -3092,67 +3175,8 @@ function TemplatesPage({ currentUser, onLogout }) {
                           }
                         />
                       </label>
-                      <div className="template-inspector-grid">
-                        <label>
-                          <span>Left %</span>
-                          <input
-                            type="number"
-                            min="0"
-                            max="95"
-                            value={selectedDesignerItem.x}
-                            onChange={(e) =>
-                              updateDesignerItem(selectedDesignerItem.id, "x", e.target.value)
-                            }
-                          />
-                        </label>
-                        <label>
-                          <span>Top %</span>
-                          <input
-                            type="number"
-                            min="0"
-                            max="95"
-                            value={selectedDesignerItem.y}
-                            onChange={(e) =>
-                              updateDesignerItem(selectedDesignerItem.id, "y", e.target.value)
-                            }
-                          />
-                        </label>
-                        <label>
-                          <span>Width %</span>
-                          <input
-                            type="number"
-                            min="5"
-                            max="96"
-                            value={selectedDesignerItem.width}
-                            onChange={(e) =>
-                              updateDesignerItem(selectedDesignerItem.id, "width", e.target.value)
-                            }
-                          />
-                        </label>
-                        <label>
-                          <span>Height %</span>
-                          <input
-                            type="number"
-                            min="4"
-                            max="86"
-                            value={selectedDesignerItem.height}
-                            onChange={(e) =>
-                              updateDesignerItem(selectedDesignerItem.id, "height", e.target.value)
-                            }
-                          />
-                        </label>
-                        <label>
-                          <span>Font</span>
-                          <input
-                            type="number"
-                            min="8"
-                            max="34"
-                            value={selectedDesignerItem.fontSize}
-                            onChange={(e) =>
-                              updateDesignerItem(selectedDesignerItem.id, "fontSize", e.target.value)
-                            }
-                          />
-                        </label>
+                      <div className="template-slider-stack">
+                        {["x", "y", "width", "height", "fontSize"].map(renderDesignerSlider)}
                         <label>
                           <span>Align</span>
                           <select
