@@ -537,6 +537,10 @@ const normalizeDesignerItems = (items = []) =>
             : "text";
       const widthFallback = type === "qr" ? 16 : type === "logo" ? 22 : 34;
       const heightFallback = type === "qr" ? 16 : type === "logo" ? 13 : 7;
+      const width = clampDesignerNumber(item.width, 5, 96, widthFallback);
+      const height = clampDesignerNumber(item.height, 4, 86, heightFallback);
+      const fallbackX = index % 2 === 0 ? 8 : 52;
+      const fallbackY = 12 + Math.floor(index / 2) * 8;
 
       return {
         id: String(item.id || `${key || type}-${index}`),
@@ -549,10 +553,10 @@ const normalizeDesignerItems = (items = []) =>
         type,
         label: String(item.label || STANDARD_FIELD_LABELS[key] || key || `Field ${index + 1}`).trim(),
         defaultValue: String(item.defaultValue || "").trim(),
-        x: clampDesignerNumber(item.x, 0, 95, index % 2 === 0 ? 8 : 52),
-        y: clampDesignerNumber(item.y, 0, 95, 12 + Math.floor(index / 2) * 8),
-        width: clampDesignerNumber(item.width, 5, 96, widthFallback),
-        height: clampDesignerNumber(item.height, 4, 86, heightFallback),
+        x: clampDesignerNumber(item.x, 0, 100 - width, Math.min(fallbackX, 100 - width)),
+        y: clampDesignerNumber(item.y, 0, 100 - height, Math.min(fallbackY, 100 - height)),
+        width,
+        height,
         fontSize: clampDesignerNumber(item.fontSize, 8, 34, type === "text" ? 15 : 14),
         bold: item.bold !== false,
         align: DESIGNER_ALIGNMENTS.has(item.align) ? item.align : "left",
@@ -618,6 +622,7 @@ const designerLayoutHtml = (data = {}, qr = "") => {
       return `
         <div class="designer-pdf-item designer-pdf-text" style="${designerItemStyle(item)}">
           <span class="designer-pdf-label">${escapeHtml(item.label)}</span>
+          <span class="designer-pdf-separator">:</span>
           <span class="designer-pdf-value">${escapeHtml(value)}</span>
         </div>`;
     })

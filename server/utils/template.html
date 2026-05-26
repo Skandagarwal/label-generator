@@ -359,20 +359,36 @@
       position: absolute;
       color: #202030;
       overflow: hidden;
-      overflow-wrap: anywhere;
-      white-space: pre-line;
-      line-height: 1.2;
+      line-height: 1.18;
       font-family: "Times New Roman", serif;
     }
 
+    .designer-pdf-text {
+      display: grid;
+      grid-template-columns: max-content 4mm minmax(0, 1fr);
+      column-gap: 1.5mm;
+      align-items: start;
+      min-height: 5mm;
+    }
+
     .designer-pdf-label {
-      display: block;
+      display: inline-block;
       font-weight: 700;
       text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .designer-pdf-separator {
+      display: inline-block;
+      font-weight: 700;
+      text-align: center;
     }
 
     .designer-pdf-value {
-      display: block;
+      display: inline-block;
+      min-width: 0;
+      overflow-wrap: anywhere;
+      white-space: pre-line;
     }
 
     .designer-pdf-media img {
