@@ -334,70 +334,6 @@
       font-size: 15px;
     }
 
-    .designer-layout-label {
-      padding: 0;
-    }
-
-    .designer-layout-label .top-right,
-    .designer-layout-label .content,
-    .designer-layout-label .center-fields,
-    .designer-layout-label .center-text,
-    .designer-layout-label .license-row,
-    .designer-layout-label .bottom-fields,
-    .designer-layout-label .manufacturer-block {
-      display: none;
-    }
-
-    .designer-canvas-pdf {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-    }
-
-    .designer-pdf-item {
-      position: absolute;
-      color: #202030;
-      overflow: hidden;
-      line-height: 1.18;
-      font-family: "Times New Roman", serif;
-    }
-
-    .designer-pdf-text {
-      display: grid;
-      grid-template-columns: max-content 4mm minmax(0, 1fr);
-      column-gap: 1.5mm;
-      align-items: start;
-      min-height: 5mm;
-    }
-
-    .designer-pdf-label {
-      display: inline-block;
-      font-weight: 700;
-      text-transform: uppercase;
-      white-space: nowrap;
-    }
-
-    .designer-pdf-separator {
-      display: inline-block;
-      font-weight: 700;
-      text-align: center;
-    }
-
-    .designer-pdf-value {
-      display: inline-block;
-      min-width: 0;
-      overflow-wrap: anywhere;
-      white-space: pre-line;
-    }
-
-    .designer-pdf-media img {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-      display: block;
-    }
-
     @media print {
       body {
         margin: 0;
@@ -408,9 +344,7 @@
 
 <body>
 
-<div class="label {{labelModeClass}}">
-  {{designerLayoutHtml}}
-
+<div class="label">
   <div class="top-right {{hideFormatNo}}">
     {{labelFormatNo}}: - {{formatNo}}
   </div>

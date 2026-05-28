@@ -6,7 +6,7 @@ const fs = require("fs");
 const path = require("path");
 const { spawnSync } = require("child_process");
 
-const { labelStore, templateStore } = require("../services/dataStore");
+const { labelStore } = require("../services/dataStore");
 const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN || "http://localhost:3000";
 const PUBLIC_API_ORIGIN = process.env.PUBLIC_API_ORIGIN || "http://localhost:5050";
 
@@ -298,83 +298,12 @@ const STANDARD_FIELD_LABELS = {
   qrCode: "QR Code",
 };
 
-const STANDARD_FIELD_KEYS = Object.keys(STANDARD_FIELD_LABELS);
-const TEMPLATE_POSITIONS = new Set(["left", "right", "center", "bottom", "hidden"]);
-const normalizeTemplatePosition = (position, fallback = "left") =>
-  TEMPLATE_POSITIONS.has(position) ? position : fallback;
+const fieldLabel = (data = {}, key) => STANDARD_FIELD_LABELS[key] || key;
 
-const normalizeFieldSettings = (settings = []) =>
-  (Array.isArray(settings) ? settings : [])
-    .map((setting) => ({
-      key: String(setting.key || "").trim(),
-      label: String(setting.label || "").trim(),
-      visible: setting.visible !== false,
-      defaultValue: String(setting.defaultValue || "").trim(),
-      position: normalizeTemplatePosition(setting.position, "left"),
-      order: Number(setting.order) || 0,
-    }))
-    .filter((setting) => STANDARD_FIELD_KEYS.includes(setting.key));
-
-const fieldSettingsMap = (settings = []) =>
-  normalizeFieldSettings(settings).reduce((items, setting) => {
-    items[setting.key] = setting;
-    return items;
-  }, {});
-
-const fieldLabel = (data = {}, key) =>
-  data.fieldLabels?.[key] ||
-  fieldSettingsMap(data.fieldSettings)[key]?.label ||
-  STANDARD_FIELD_LABELS[key] ||
-  key;
-
-const isFieldHidden = (data = {}, key) =>
-  Array.isArray(data.hiddenFields) && data.hiddenFields.includes(key);
-
-const hideClass = (data, key) => (isFieldHidden(data, key) ? "is-hidden" : "");
-
-const templateLayoutActive = (data = {}) =>
-  Array.isArray(data.fieldSettings) && data.fieldSettings.length > 0;
-
-const defaultFieldPosition = (key) => {
-  if (["warningText", "storage", "license"].includes(key)) {
-    return "center";
-  }
-
-  if (
-    [
-      "manufacturer",
-      "manufacturerAddress",
-      "manufacturerWebsite",
-      "manufacturerEmail",
-      "manufacturerPhone",
-      "manufacturerLogo",
-    ].includes(key)
-  ) {
-    return "bottom";
-  }
-
-  if (key === "formatNo") {
-    return "right";
-  }
-
-  return "left";
-};
-
-const fieldPosition = (data = {}, key) =>
-  normalizeTemplatePosition(
-    fieldSettingsMap(data.fieldSettings)[key]?.position,
-    defaultFieldPosition(key)
-  );
-
-const fieldOrder = (data = {}, key, fallback = 0) => {
-  const order = Number(fieldSettingsMap(data.fieldSettings)[key]?.order);
-  return Number.isFinite(order) ? order : fallback;
-};
+const hideClass = () => "";
 
 const labelRowHtml = (data, key, value) =>
-  isFieldHidden(data, key)
-    ? ""
-    : `
+  `
       <div class="row">
         <div class="label-name">${escapeHtml(fieldLabel(data, key))}</div>
         <div>:</div>
@@ -396,89 +325,13 @@ const mainFieldsHtml = (data = {}) =>
     .map(([key, value]) => labelRowHtml(data, key, value))
     .join("");
 
-const standardLayoutFieldValues = (data = {}) => [
-  ["formatNo", data.formatNo],
-  ["drumNo", data.drumNo],
-  ["commodity", data.commodity],
-  ["lotNo", data.lotNo],
-  ["poNo", data.poNo],
-  ["mfgDate", data.mfgDate],
-  ["bestBefore", data.bestBefore],
-  ["netWt", data.netWt],
-  ["tareWt", data.tareWt],
-  ["grossWt", data.grossWt],
-  ["customerName", data.customerName],
-  ["customerAddress", data.customerAddress],
-  ["warningText", data.warningText],
-  ["storage", data.storage],
-  ["license", data.license],
-  ["manufacturer", data.manufacturer],
-  ["manufacturerAddress", data.manufacturerAddress],
-  ["manufacturerWebsite", data.manufacturerWebsite],
-  ["manufacturerEmail", data.manufacturerEmail],
-  ["manufacturerPhone", data.manufacturerPhone],
-  ["manufacturerLogo", getManufacturerLogo(data.manufacturerLogo)],
-];
-
-const layoutRowHtml = (label, value, key) =>
-  key === "manufacturerLogo"
-    ? `
-      <div class="row">
-        <div class="label-name">${escapeHtml(label)}</div>
-        <div>:</div>
-        <div class="value"><img class="manufacturer-logo" src="${escapeHtml(value || "")}" /></div>
-      </div>`
-    : `
-      <div class="row">
-        <div class="label-name">${escapeHtml(label)}</div>
-        <div>:</div>
-        <div class="value">${escapeHtml(value || "")}</div>
-      </div>`;
-
-const layoutFieldsHtml = (data = {}, position) => {
-  const standardItems = standardLayoutFieldValues(data)
-    .map(([key, value], index) => ({
-      key,
-      label: fieldLabel(data, key),
-      value,
-      position: fieldPosition(data, key),
-      order: fieldOrder(data, key, index),
-    }))
-    .filter(
-      (item) =>
-        item.position === position &&
-        !isFieldHidden(data, item.key) &&
-        String(item.value || "").trim()
-    );
-
-  const customItems = normalizeCustomFields(data.customFields)
-    .filter(
-      (field) =>
-        field.position === position &&
-        !isFieldHidden(data, field.key) &&
-        String(field.value || "").trim()
-    )
-    .map((field) => ({
-      key: field.key,
-      label: field.label,
-      value: field.value,
-      position: field.position,
-      order: field.order,
-    }));
-
-  return [...standardItems, ...customItems]
-    .sort((a, b) => a.order - b.order)
-    .map((item) => layoutRowHtml(item.label, item.value, item.key))
-    .join("");
-};
-
 const contactParts = (data = {}) =>
   [
     { key: "manufacturerWebsite", value: data.manufacturerWebsite },
     { key: "manufacturerEmail", value: data.manufacturerEmail },
     { key: "manufacturerPhone", value: data.manufacturerPhone },
   ]
-    .filter((part) => !isFieldHidden(data, part.key) && String(part.value || "").trim())
+    .filter((part) => String(part.value || "").trim())
     .map((part) => `${fieldLabel(data, part.key)}: ${part.value}`)
     .join("  •  ");
 
@@ -493,186 +346,9 @@ const serializeLabel = (label) => {
   };
 };
 
-const normalizeCustomFields = (fields = []) =>
-  (Array.isArray(fields) ? fields : [])
-    .map((field, index) => ({
-      key:
-        String(field.key || field.label || `field_${index + 1}`)
-          .trim()
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, "_")
-          .replace(/^_+|_+$/g, "") || `field_${index + 1}`,
-      label: String(field.label || "").trim(),
-      type: ["text", "number", "date", "textarea"].includes(field.type) ? field.type : "text",
-      required: Boolean(field.required),
-      defaultValue: String(field.defaultValue || "").trim(),
-      value: String(field.value || "").trim(),
-      position: normalizeTemplatePosition(field.position, "bottom"),
-      order: Number(field.order) || index + 100,
-    }))
-    .filter((field) => field.label);
-
-const DESIGNER_ITEM_TYPES = new Set(["text", "logo", "qr"]);
-const DESIGNER_ALIGNMENTS = new Set(["left", "center", "right"]);
-
-const clampDesignerNumber = (value, min, max, fallback) => {
-  const number = Number(value);
-  if (!Number.isFinite(number)) {
-    return fallback;
-  }
-
-  return Math.min(Math.max(number, min), max);
-};
-
-const normalizeDesignerItems = (items = []) =>
-  (Array.isArray(items) ? items : [])
-    .map((item, index) => {
-      const key = String(item.key || "").trim();
-      const type = DESIGNER_ITEM_TYPES.has(item.type)
-        ? item.type
-        : key === "qrCode"
-          ? "qr"
-          : key === "manufacturerLogo"
-            ? "logo"
-            : "text";
-      const widthFallback = type === "qr" ? 16 : type === "logo" ? 22 : 34;
-      const heightFallback = type === "qr" ? 16 : type === "logo" ? 13 : 7;
-      const width = clampDesignerNumber(item.width, 5, 96, widthFallback);
-      const height = clampDesignerNumber(item.height, 4, 86, heightFallback);
-      const fallbackX = index % 2 === 0 ? 8 : 52;
-      const fallbackY = 12 + Math.floor(index / 2) * 8;
-
-      return {
-        id: String(item.id || `${key || type}-${index}`),
-        key,
-        source: ["standard", "custom", "system"].includes(item.source)
-          ? item.source
-          : type === "qr"
-            ? "system"
-            : "standard",
-        type,
-        label: String(item.label || STANDARD_FIELD_LABELS[key] || key || `Field ${index + 1}`).trim(),
-        defaultValue: String(item.defaultValue || "").trim(),
-        x: clampDesignerNumber(item.x, 0, 100 - width, Math.min(fallbackX, 100 - width)),
-        y: clampDesignerNumber(item.y, 0, 100 - height, Math.min(fallbackY, 100 - height)),
-        width,
-        height,
-        fontSize: clampDesignerNumber(item.fontSize, 8, 34, type === "text" ? 15 : 14),
-        bold: item.bold !== false,
-        align: DESIGNER_ALIGNMENTS.has(item.align) ? item.align : "left",
-      };
-    })
-    .filter((item) => item.key || item.type === "qr");
-
-const customFieldValueMap = (fields = []) =>
-  normalizeCustomFields(fields).reduce((items, field) => {
-    items[field.key] = field.value || field.defaultValue || "";
-    return items;
-  }, {});
-
-const designerValue = (data = {}, item = {}, qr = "") => {
-  if (item.type === "qr") {
-    return qr;
-  }
-
-  if (item.type === "logo") {
-    return getManufacturerLogo(item.defaultValue || data.manufacturerLogo);
-  }
-
-  if (item.source === "custom") {
-    return customFieldValueMap(data.customFields)[item.key] || item.defaultValue || "";
-  }
-
-  return data[item.key] || item.defaultValue || "";
-};
-
-const designerItemStyle = (item = {}) =>
-  [
-    `left:${item.x}%`,
-    `top:${item.y}%`,
-    `width:${item.width}%`,
-    `height:${item.height}%`,
-    `font-size:${item.fontSize}px`,
-    `font-weight:${item.bold ? 800 : 500}`,
-    `text-align:${item.align}`,
-  ].join(";");
-
-const designerLayoutHtml = (data = {}, qr = "") => {
-  const items = normalizeDesignerItems(data.designerItems);
-
-  if (!items.length) {
-    return "";
-  }
-
-  return `<div class="designer-canvas-pdf">${items
-    .map((item) => {
-      const value = designerValue(data, item, qr);
-
-      if (item.type !== "qr" && !String(value || "").trim()) {
-        return "";
-      }
-
-      if (item.type === "qr" || item.type === "logo") {
-        return `
-          <div class="designer-pdf-item designer-pdf-media designer-pdf-${item.type}" style="${designerItemStyle(item)}">
-            <img src="${escapeHtml(value)}" />
-          </div>`;
-      }
-
-      return `
-        <div class="designer-pdf-item designer-pdf-text" style="${designerItemStyle(item)}">
-          <span class="designer-pdf-label">${escapeHtml(item.label)}</span>
-          <span class="designer-pdf-separator">:</span>
-          <span class="designer-pdf-value">${escapeHtml(value)}</span>
-        </div>`;
-    })
-    .join("")}</div>`;
-};
-
-const normalizeTemplateData = (body = {}) => ({
-  ownerPhone: normalizePhone(body.ownerPhone),
-  name: String(body.name || body.productName || "").trim(),
-  productName: String(body.productName || body.name || "").trim(),
-  defaults: {
-    formatNo: String(body.defaults?.formatNo || "").trim(),
-    commodity: String(body.defaults?.commodity || body.productName || "").trim(),
-    warningText: String(body.defaults?.warningText || "").trim(),
-    storage: String(body.defaults?.storage || "").trim(),
-    license: String(body.defaults?.license || "").trim(),
-    bestBeforeGap: String(body.defaults?.bestBeforeGap || "").trim(),
-  },
-  fieldSettings: normalizeFieldSettings(body.fieldSettings),
-  customFields: normalizeCustomFields(body.customFields),
-  designerItems: normalizeDesignerItems(body.designerItems),
-});
-
-const serializeTemplate = (template = {}) => ({
-  ...template,
-  _id: String(template._id || template.id || ""),
-  createdAt: template.createdAt,
-  updatedAt: template.updatedAt,
-});
-
-const customFieldsHtml = (fields = []) =>
-  normalizeCustomFields(fields)
-    .filter((field) => field.value)
-    .map(
-      (field) => `
-      <div class="row custom-field-row">
-        <div class="label-name">${escapeHtml(field.label)}</div>
-        <div>:</div>
-        <div class="value">${escapeHtml(field.value)}</div>
-      </div>`
-    )
-    .join("");
-
 const templateValues = (data, qr) => {
   const manufacturerLogoValue = getManufacturerLogo(data.manufacturerLogo);
-  const designerItems = normalizeDesignerItems(data.designerItems);
-  const useDesignerLayout = designerItems.length > 0;
-  const useCustomLayout = !useDesignerLayout && templateLayoutActive(data);
-  const hideManufacturerLogo =
-    isFieldHidden(data, "manufacturerLogo") || !manufacturerLogoValue;
+  const hideManufacturerLogo = !manufacturerLogoValue;
   const hideManufacturerBlock =
     [
       "manufacturer",
@@ -680,40 +356,17 @@ const templateValues = (data, qr) => {
       "manufacturerWebsite",
       "manufacturerEmail",
       "manufacturerPhone",
-    ].every((key) => isFieldHidden(data, key)) && hideManufacturerLogo;
+    ].every((key) => !String(data[key] || "").trim()) && hideManufacturerLogo;
 
   return {
-    labelModeClass: useDesignerLayout
-      ? "designer-layout-label"
-      : useCustomLayout
-        ? "custom-layout-label"
-        : "",
-    designerLayoutHtml: useDesignerLayout ? designerLayoutHtml(data, qr) : "",
     labelFormatNo: escapeHtml(fieldLabel(data, "formatNo")),
     formatNo: escapeHtml(data.formatNo),
-    hideFormatNo:
-      useDesignerLayout || useCustomLayout ? "layout-hidden" : hideClass(data, "formatNo"),
+    hideFormatNo: hideClass(data, "formatNo"),
     mainFieldsHtml: mainFieldsHtml(data),
-    leftFieldsHtml: useDesignerLayout
-      ? ""
-      : useCustomLayout
-      ? layoutFieldsHtml(data, "left")
-      : `${mainFieldsHtml(data)}${customFieldsHtml(data.customFields)}`,
-    rightFieldsHtml: useDesignerLayout
-      ? ""
-      : useCustomLayout
-        ? layoutFieldsHtml(data, "right")
-        : "",
-    centerFieldsHtml: useDesignerLayout
-      ? ""
-      : useCustomLayout
-        ? layoutFieldsHtml(data, "center")
-        : "",
-    bottomFieldsHtml: useDesignerLayout
-      ? ""
-      : useCustomLayout
-        ? layoutFieldsHtml(data, "bottom")
-        : "",
+    leftFieldsHtml: mainFieldsHtml(data),
+    rightFieldsHtml: "",
+    centerFieldsHtml: "",
+    bottomFieldsHtml: "",
     drumNo: escapeHtml(data.drumNo),
     commodity: escapeHtml(data.commodity),
     lotNo: escapeHtml(data.lotNo),
@@ -733,26 +386,16 @@ const templateValues = (data, qr) => {
     manufacturerWebsite: escapeHtml(data.manufacturerWebsite),
     manufacturerEmail: escapeHtml(data.manufacturerEmail),
     manufacturerPhone: escapeHtml(data.manufacturerPhone),
-    customFieldsHtml: customFieldsHtml(data.customFields),
-    hideCustomerName:
-      useDesignerLayout || useCustomLayout ? "layout-hidden" : hideClass(data, "customerName"),
-    hideCustomerAddress: useDesignerLayout || useCustomLayout
-      ? "layout-hidden"
-      : hideClass(data, "customerAddress"),
+    hideCustomerName: hideClass(data, "customerName"),
+    hideCustomerAddress: hideClass(data, "customerAddress"),
     hideCustomerBlock:
-      useDesignerLayout ||
-      useCustomLayout ||
-      (isFieldHidden(data, "customerName") && isFieldHidden(data, "customerAddress"))
+      !String(data.customerName || "").trim() && !String(data.customerAddress || "").trim()
         ? "is-hidden"
         : "",
-    hideWarningText:
-      useDesignerLayout || useCustomLayout ? "layout-hidden" : hideClass(data, "warningText"),
-    hideStorage:
-      useDesignerLayout || useCustomLayout ? "layout-hidden" : hideClass(data, "storage"),
-    hideLicense:
-      useDesignerLayout || useCustomLayout ? "layout-hidden" : hideClass(data, "license"),
-    hideManufacturerBlock:
-      useDesignerLayout || useCustomLayout || hideManufacturerBlock ? "is-hidden" : "",
+    hideWarningText: hideClass(data, "warningText"),
+    hideStorage: hideClass(data, "storage"),
+    hideLicense: hideClass(data, "license"),
+    hideManufacturerBlock: hideManufacturerBlock ? "is-hidden" : "",
     hideManufacturer: hideClass(data, "manufacturer"),
     hideManufacturerAddress: hideClass(data, "manufacturerAddress"),
     hideManufacturerLogo: hideManufacturerLogo ? "is-hidden" : "",
@@ -771,7 +414,7 @@ const templateValues = (data, qr) => {
 
 const renderLabelsHtml = (template, labels, options = {}) => {
   const pdfLayout = normalizePdfLayout(options.layout);
-  const labelStart = template.indexOf('<div class="label {{labelModeClass}}">');
+  const labelStart = template.indexOf('<div class="label">');
   const labelEnd = template.lastIndexOf("</div>");
 
   if (labelStart === -1 || labelEnd === -1) {
@@ -912,84 +555,6 @@ router.get("/labels", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Could not load label history" });
-  }
-});
-
-router.get("/templates", async (req, res) => {
-  try {
-    const templates = await templateStore.list(normalizePhone(req.query.ownerPhone));
-    res.json(templates.map(serializeTemplate));
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Could not load product templates" });
-  }
-});
-
-router.post("/templates", async (req, res) => {
-  try {
-    const data = normalizeTemplateData(req.body);
-
-    if (!data.ownerPhone) {
-      return res.status(400).json({ message: "Owner phone is required" });
-    }
-
-    if (!data.name) {
-      return res.status(400).json({ message: "Template name is required" });
-    }
-
-    const template = await templateStore.create(data);
-    res.status(201).json(serializeTemplate(template));
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Could not save product template" });
-  }
-});
-
-router.put("/templates/:id", async (req, res) => {
-  try {
-    const existingTemplate = await templateStore.getById(req.params.id);
-
-    if (!existingTemplate) {
-      return res.status(404).json({ message: "Template not found" });
-    }
-
-    const requestOwnerPhone = normalizePhone(req.body?.ownerPhone || req.query.ownerPhone);
-    const templateOwnerPhone = normalizePhone(existingTemplate.ownerPhone);
-
-    if (!requestOwnerPhone || (templateOwnerPhone && requestOwnerPhone !== templateOwnerPhone)) {
-      return res.status(403).json({ message: "Only the template owner can update it" });
-    }
-
-    const data = normalizeTemplateData(req.body);
-    const template = await templateStore.updateById(req.params.id, data);
-
-    res.json(serializeTemplate(template));
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Could not update product template" });
-  }
-});
-
-router.delete("/templates/:id", async (req, res) => {
-  try {
-    const existingTemplate = await templateStore.getById(req.params.id);
-
-    if (!existingTemplate) {
-      return res.status(404).json({ message: "Template not found" });
-    }
-
-    const requestOwnerPhone = normalizePhone(req.query.ownerPhone || req.body?.ownerPhone);
-    const templateOwnerPhone = normalizePhone(existingTemplate.ownerPhone);
-
-    if (!requestOwnerPhone || (templateOwnerPhone && requestOwnerPhone !== templateOwnerPhone)) {
-      return res.status(403).json({ message: "Only the template owner can delete it" });
-    }
-
-    await templateStore.deleteById(req.params.id);
-    res.json({ message: "Template deleted" });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Could not delete product template" });
   }
 });
 

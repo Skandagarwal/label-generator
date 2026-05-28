@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import * as XLSX from "xlsx";
 import { hasFirebaseWebConfig, sendFirebaseOtp } from "./firebaseAuth";
@@ -89,181 +89,6 @@ const fieldsByName = fields.reduce((items, field) => {
   items[field.name] = field;
   return items;
 }, {});
-
-const customizableTemplateFields = [
-  { key: "formatNo", label: "Format No", group: "Batch" },
-  { key: "drumNo", label: "Drum No", group: "Batch" },
-  { key: "commodity", label: "Commodity", group: "Batch" },
-  { key: "lotNo", label: "Lot No", group: "Batch" },
-  { key: "poNo", label: "P.O. No", group: "Batch" },
-  { key: "mfgDate", label: "Mfg. Date", group: "Batch" },
-  { key: "bestBefore", label: "Best Before", group: "Batch" },
-  { key: "netWt", label: "Net Wt.", group: "Weights" },
-  { key: "tareWt", label: "Tare Wt.", group: "Weights" },
-  { key: "grossWt", label: "Gross Wt.", group: "Weights" },
-  { key: "customerName", label: "Buyer / Customer Name", group: "Buyer" },
-  { key: "customerAddress", label: "Buyer / Customer Address", group: "Buyer" },
-  { key: "warningText", label: "Warning Text", group: "Compliance" },
-  { key: "storage", label: "Storage Condition", group: "Compliance" },
-  { key: "license", label: "License Number", group: "Compliance" },
-  { key: "manufacturer", label: "Manufacturer Name", group: "Manufacturer" },
-  { key: "manufacturerAddress", label: "Manufacturer Address", group: "Manufacturer" },
-  { key: "manufacturerWebsite", label: "Manufacturer Website", group: "Manufacturer" },
-  { key: "manufacturerEmail", label: "Manufacturer Email", group: "Manufacturer" },
-  { key: "manufacturerPhone", label: "Manufacturer Phone", group: "Manufacturer" },
-  { key: "manufacturerLogo", label: "Manufacturer Logo", group: "Manufacturer" },
-  { key: "qrCode", label: "QR Code", group: "System" },
-];
-
-const templateLayoutPositions = [
-  { value: "left", label: "Left details" },
-  { value: "right", label: "Right details" },
-  { value: "center", label: "Center notice" },
-  { value: "bottom", label: "Bottom block" },
-  { value: "hidden", label: "Hidden" },
-];
-
-const templateBuilderSections = [
-  {
-    value: "left",
-    title: "Main label details",
-    helper: "Product, lot, dates, drum, and weight fields that buyers read first.",
-  },
-  {
-    value: "right",
-    title: "Right side / QR area",
-    helper: "Keep short fields here so the QR block has enough clean space.",
-  },
-  {
-    value: "center",
-    title: "Center notice",
-    helper: "Warnings, storage condition, and compliance text.",
-  },
-  {
-    value: "bottom",
-    title: "Manufacturer footer",
-    helper: "Manufacturer name, address, contact, logo, and extra footer details.",
-  },
-  {
-    value: "hidden",
-    title: "Hidden fields",
-    helper: "Fields saved in the template but not printed on the label.",
-  },
-];
-
-const templateLayoutPresets = [
-  {
-    id: "export",
-    name: "Export Label",
-    helper: "Best for the current drum label format with buyer, compliance, and manufacturer blocks.",
-    fields: {
-      drumNo: { position: "left", order: 10 },
-      commodity: { position: "left", order: 20 },
-      lotNo: { position: "left", order: 30 },
-      poNo: { position: "left", order: 40 },
-      mfgDate: { position: "left", order: 50 },
-      bestBefore: { position: "left", order: 60 },
-      netWt: { position: "left", order: 70 },
-      tareWt: { position: "left", order: 80 },
-      grossWt: { position: "left", order: 90 },
-      formatNo: { position: "right", order: 10 },
-      customerName: { position: "right", order: 20 },
-      customerAddress: { position: "right", order: 30 },
-      warningText: { position: "center", order: 10 },
-      storage: { position: "center", order: 20 },
-      license: { position: "center", order: 30 },
-      manufacturerLogo: { position: "bottom", order: 10 },
-      manufacturer: { position: "bottom", order: 20 },
-      manufacturerAddress: { position: "bottom", order: 30 },
-      manufacturerWebsite: { position: "bottom", order: 40 },
-      manufacturerEmail: { position: "bottom", order: 50 },
-      manufacturerPhone: { position: "bottom", order: 60 },
-    },
-  },
-  {
-    id: "balanced",
-    name: "Balanced Two Column",
-    helper: "Splits batch details and weights evenly for labels with more fields.",
-    fields: {
-      formatNo: { position: "right", order: 10 },
-      drumNo: { position: "left", order: 10 },
-      commodity: { position: "left", order: 20 },
-      lotNo: { position: "left", order: 30 },
-      poNo: { position: "left", order: 40 },
-      mfgDate: { position: "right", order: 20 },
-      bestBefore: { position: "right", order: 30 },
-      netWt: { position: "right", order: 40 },
-      tareWt: { position: "right", order: 50 },
-      grossWt: { position: "right", order: 60 },
-      customerName: { position: "left", order: 50 },
-      customerAddress: { position: "left", order: 60 },
-      warningText: { position: "center", order: 10 },
-      storage: { position: "center", order: 20 },
-      license: { position: "center", order: 30 },
-      manufacturerLogo: { position: "bottom", order: 10 },
-      manufacturer: { position: "bottom", order: 20 },
-      manufacturerAddress: { position: "bottom", order: 30 },
-      manufacturerWebsite: { position: "bottom", order: 40 },
-      manufacturerEmail: { position: "bottom", order: 50 },
-      manufacturerPhone: { position: "bottom", order: 60 },
-    },
-  },
-  {
-    id: "compact",
-    name: "Compact Product",
-    helper: "Keeps only the important fields visible for simple domestic labels.",
-    fields: {
-      drumNo: { position: "left", order: 10 },
-      commodity: { position: "left", order: 20 },
-      lotNo: { position: "left", order: 30 },
-      mfgDate: { position: "left", order: 40 },
-      bestBefore: { position: "left", order: 50 },
-      netWt: { position: "right", order: 10 },
-      tareWt: { position: "right", order: 20 },
-      grossWt: { position: "right", order: 30 },
-      warningText: { position: "center", order: 10 },
-      storage: { position: "center", order: 20 },
-      license: { position: "center", order: 30 },
-      manufacturer: { position: "bottom", order: 10 },
-      manufacturerLogo: { position: "bottom", order: 20 },
-      formatNo: { position: "hidden", order: 10 },
-      poNo: { position: "hidden", order: 20 },
-      customerName: { position: "hidden", order: 30 },
-      customerAddress: { position: "hidden", order: 40 },
-      manufacturerAddress: { position: "hidden", order: 50 },
-      manufacturerWebsite: { position: "hidden", order: 60 },
-      manufacturerEmail: { position: "hidden", order: 70 },
-      manufacturerPhone: { position: "hidden", order: 80 },
-    },
-  },
-];
-
-const defaultTemplatePositionFor = (field, index = 0) => {
-  if (["warningText", "storage", "license"].includes(field.key)) {
-    return "center";
-  }
-
-  if (field.group === "Manufacturer") {
-    return "bottom";
-  }
-
-  return index % 2 === 0 ? "left" : "right";
-};
-
-const normalizeTemplatePosition = (value = "left") =>
-  templateLayoutPositions.some((option) => option.value === value) ? value : "left";
-
-const emptyFieldSetting = (field, index = 0) => ({
-  key: field.key,
-  label: field.label,
-  visible: true,
-  defaultValue: fieldsByName[field.key]?.defaultValue || "",
-  position: defaultTemplatePositionFor(field, index),
-  order: index + 1,
-});
-
-const defaultTemplateFieldSettings = () =>
-  customizableTemplateFields.map((field, index) => emptyFieldSetting(field, index));
 
 const emptyForm = fields.reduce((values, field) => {
   values[field.name] = field.defaultValue || "";
@@ -771,453 +596,6 @@ const labelDeleteUrl = (id) => {
   return `${API_BASE}/labels/${id}${params}`;
 };
 
-const templatesApiUrl = () => {
-  const ownerPhone = getSavedPhone();
-  const params = ownerPhone ? `?ownerPhone=${encodeURIComponent(ownerPhone)}` : "";
-
-  return `${API_BASE}/templates${params}`;
-};
-
-const templateApiUrl = (id) => `${API_BASE}/templates/${id}`;
-
-const emptyTemplateField = () => ({
-  id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-  label: "",
-  type: "text",
-  required: false,
-  defaultValue: "",
-  position: "bottom",
-  order: 100,
-});
-
-const emptyTemplateDraft = () => ({
-  name: "",
-  productName: "",
-  defaults: {
-    formatNo: "AE/API/ST/SOP-11/F1-00",
-    commodity: "",
-    warningText: "",
-    storage: "",
-    license: "",
-    bestBeforeGap: "2",
-  },
-  fieldSettings: defaultTemplateFieldSettings(),
-  customFields: [emptyTemplateField()],
-  designerItems: [],
-});
-
-const normalizeTemplateFieldKey = (value = "", fallback = "field") =>
-  String(value || fallback)
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "_")
-    .replace(/^_+|_+$/g, "") || fallback;
-
-const clampNumber = (value, min, max, fallback) => {
-  const number = Number(value);
-
-  if (!Number.isFinite(number)) {
-    return fallback;
-  }
-
-  return Math.min(Math.max(number, min), max);
-};
-
-const makeDesignerItemId = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-
-const designerItemTypeFor = (item = {}) => {
-  if (["text", "logo", "qr"].includes(item.type)) {
-    return item.type;
-  }
-
-  if (item.key === "manufacturerLogo") {
-    return "logo";
-  }
-
-  if (item.key === "qrCode") {
-    return "qr";
-  }
-
-  return "text";
-};
-
-const normalizeDesignerItem = (item = {}, index = 0) => {
-  const type = designerItemTypeFor(item);
-  const widthFallback = type === "qr" ? 16 : type === "logo" ? 22 : 34;
-  const heightFallback = type === "qr" ? 16 : type === "logo" ? 13 : 7;
-  const key = String(item.key || "").trim();
-  const meta = customizableTemplateFields.find((field) => field.key === key);
-  const width = clampNumber(item.width, 5, 96, widthFallback);
-  const height = clampNumber(item.height, 4, 86, heightFallback);
-
-  return {
-    id: String(item.id || makeDesignerItemId()),
-    key,
-    source: ["standard", "custom", "system"].includes(item.source)
-      ? item.source
-      : type === "qr"
-        ? "system"
-        : "standard",
-    type,
-    label: String(item.label || meta?.label || key || `Field ${index + 1}`).trim(),
-    defaultValue: String(item.defaultValue || "").trim(),
-    x: clampNumber(item.x, 0, 100 - width, index % 2 === 0 ? 8 : 52),
-    y: clampNumber(item.y, 0, 100 - height, 12 + Math.floor(index / 2) * 8),
-    width,
-    height,
-    fontSize: clampNumber(item.fontSize, 8, 34, type === "text" ? 15 : 14),
-    bold: item.bold !== false,
-    align: ["left", "center", "right"].includes(item.align) ? item.align : "left",
-  };
-};
-
-const normalizeDesignerItems = (items = []) =>
-  (Array.isArray(items) ? items : [])
-    .map((item, index) => normalizeDesignerItem(item, index))
-    .filter((item) => item.key || item.type === "qr");
-
-const designerSliderConfig = {
-  x: { label: "Left", min: 0, max: 95, step: 1, suffix: "%" },
-  y: { label: "Top", min: 0, max: 95, step: 1, suffix: "%" },
-  width: { label: "Width", min: 8, max: 96, step: 1, suffix: "%" },
-  height: { label: "Height", min: 5, max: 86, step: 1, suffix: "%" },
-  fontSize: { label: "Text size", min: 8, max: 34, step: 1, suffix: "px" },
-};
-
-const clampDesignerItemValue = (item, field, value) => {
-  const number = Number(value);
-
-  if (!Number.isFinite(number)) {
-    return item[field];
-  }
-
-  if (field === "width") {
-    return clampNumber(number, 8, 100 - item.x, item.width);
-  }
-
-  if (field === "height") {
-    return clampNumber(number, 5, 100 - item.y, item.height);
-  }
-
-  if (field === "x") {
-    return clampNumber(number, 0, 100 - item.width, item.x);
-  }
-
-  if (field === "y") {
-    return clampNumber(number, 0, 100 - item.height, item.y);
-  }
-
-  if (field === "fontSize") {
-    return clampNumber(number, 8, 34, item.fontSize);
-  }
-
-  return number;
-};
-
-const createDesignerItemFromField = (field, index = 0) => {
-  const type = designerItemTypeFor(field);
-
-  return normalizeDesignerItem(
-    {
-      id: makeDesignerItemId(),
-      key: field.key || normalizeTemplateFieldKey(field.label, `field_${index + 1}`),
-      source: field.source || (type === "qr" ? "system" : "standard"),
-      type,
-      label: field.label,
-      defaultValue: field.defaultValue || "",
-      x: type === "qr" ? 72 : index % 2 === 0 ? 8 : 52,
-      y: type === "qr" ? 32 : 12 + Math.floor(index / 2) * 8,
-    },
-    index
-  );
-};
-
-const buildTemplatePayload = (draft, ownerPhone = getSavedPhone()) => ({
-  ownerPhone,
-  name: draft.name.trim(),
-  productName: draft.productName.trim() || draft.name.trim(),
-  defaults: {
-    formatNo: draft.defaults.formatNo.trim(),
-    commodity: draft.defaults.commodity.trim() || draft.productName.trim(),
-    warningText: draft.defaults.warningText.trim(),
-    storage: draft.defaults.storage.trim(),
-    license: draft.defaults.license.trim(),
-    bestBeforeGap: draft.defaults.bestBeforeGap || "2",
-  },
-  fieldSettings: draft.fieldSettings.map((setting) => ({
-    key: setting.key,
-    label:
-      setting.label.trim() ||
-      customizableTemplateFields.find((field) => field.key === setting.key)?.label ||
-      setting.key,
-    visible: setting.visible !== false,
-    defaultValue: setting.defaultValue.trim(),
-    position:
-      setting.visible === false
-        ? "hidden"
-        : normalizeTemplatePosition(setting.position),
-    order: Number(setting.order) || 0,
-  })),
-  customFields: draft.customFields
-    .map((field, index) => ({
-      key: normalizeTemplateFieldKey(field.label, `field_${index + 1}`),
-      label: field.label.trim(),
-      type: field.type || "text",
-      required: Boolean(field.required),
-      defaultValue: field.defaultValue.trim(),
-      position: normalizeTemplatePosition(field.position || "bottom"),
-      order: Number(field.order) || index + 100,
-    }))
-    .filter((field) => field.label),
-  designerItems: normalizeDesignerItems(draft.designerItems),
-});
-
-const templateToDraft = (template = {}) => ({
-  name: template.name || "",
-  productName: template.productName || "",
-  defaults: {
-    formatNo: template.defaults?.formatNo || "AE/API/ST/SOP-11/F1-00",
-    commodity: template.defaults?.commodity || "",
-    warningText: template.defaults?.warningText || "",
-    storage: template.defaults?.storage || "",
-    license: template.defaults?.license || "",
-    bestBeforeGap: template.defaults?.bestBeforeGap || "2",
-  },
-  fieldSettings: defaultTemplateFieldSettings().map((setting) => {
-    const savedSetting = (template.fieldSettings || []).find((item) => item.key === setting.key);
-
-    return {
-      ...setting,
-      ...savedSetting,
-      visible: savedSetting?.visible !== false,
-      position: normalizeTemplatePosition(
-        savedSetting?.position || setting.position
-      ),
-      order: Number(savedSetting?.order || setting.order) || setting.order,
-    };
-  }),
-  customFields: template.customFields?.length
-    ? template.customFields.map((field) => ({
-        ...emptyTemplateField(),
-        ...field,
-        position: normalizeTemplatePosition(field.position || "bottom"),
-        order: Number(field.order) || 100,
-      }))
-    : [emptyTemplateField()],
-  designerItems: normalizeDesignerItems(template.designerItems || []),
-});
-
-const templateFieldSettingMap = (template) =>
-  (template?.fieldSettings || []).reduce((items, setting) => {
-    items[setting.key] = setting;
-    return items;
-  }, {});
-
-const templateFieldLabel = (template, key, fallback) =>
-  templateFieldSettingMap(template)[key]?.label || fallback;
-
-const templateFieldVisible = (template, key) => {
-  const setting = templateFieldSettingMap(template)[key];
-  return !setting || (setting.visible !== false && setting.position !== "hidden");
-};
-
-const templateFieldDefault = (template, key) =>
-  templateFieldSettingMap(template)[key]?.defaultValue || "";
-
-const designerPreviewValue = (item, template, values = {}) => {
-  if (item.type === "qr") {
-    return "";
-  }
-
-  if (item.type === "logo") {
-    return (
-      item.defaultValue ||
-      values.manufacturerLogo ||
-      templateFieldDefault(template, "manufacturerLogo") ||
-      ""
-    );
-  }
-
-  if (item.source === "custom") {
-    const customField = (template?.customFields || []).find(
-      (field) => field.key === item.key || normalizeTemplateFieldKey(field.label) === item.key
-    );
-
-    return (
-      values[item.key] ||
-      customField?.defaultValue ||
-      item.defaultValue ||
-      "Custom value"
-    );
-  }
-
-  return (
-    values[item.key] ||
-    templateFieldDefault(template, item.key) ||
-    template?.defaults?.[item.key] ||
-    item.defaultValue ||
-    templatePreviewFallbacks[item.key] ||
-    "Sample value"
-  );
-};
-
-const templateFieldLabelsPayload = (template) =>
-  (template?.fieldSettings || []).reduce((items, setting) => {
-    if (setting.label) {
-      items[setting.key] = setting.label;
-    }
-    return items;
-  }, {});
-
-const templateHiddenFieldsPayload = (template) =>
-  (template?.fieldSettings || [])
-    .filter((setting) => setting.visible === false || setting.position === "hidden")
-    .map((setting) => setting.key);
-
-const templatePreviewFallbacks = {
-  formatNo: "AE/API/ST/SOP-11/F1-00",
-  drumNo: "1/8",
-  commodity: "L-CARNITINE BASE",
-  lotNo: "AE/API/1102",
-  poNo: "ANE-PO-2026-24/006",
-  mfgDate: "03/05/2026",
-  bestBefore: "02/05/2028",
-  netWt: "25.000 KGS.",
-  tareWt: "3.640 KGS.",
-  grossWt: "28.640 KGS.",
-  customerName: "DHARMANADAN EXPORT PVT.LTD.",
-  customerAddress: "AHMEDABAD - 382427",
-  warningText: '"NOT FOR MEDICINAL USE"',
-  storage: "COOL AND DRY PLACE",
-  license: "10016051001567",
-  manufacturer: "AGGARWWAL EXPORTS",
-  manufacturerAddress: "B/6-9, ROSHAN BAGH INDUSTRIAL ESTATE",
-  manufacturerWebsite: "www.example.com",
-  manufacturerEmail: "info@example.com",
-  manufacturerPhone: "+91-9000000000",
-};
-
-const previewValueForField = (template, key, values = {}) => {
-  const value = values[key] || templateFieldDefault(template, key);
-
-  return value || template?.defaults?.[key] || templatePreviewFallbacks[key] || "Sample value";
-};
-
-const templatePreviewFields = (template = {}, values = {}) => {
-  const builtInFields = (template.fieldSettings || defaultTemplateFieldSettings())
-    .filter(
-      (setting) =>
-        setting.visible !== false &&
-        setting.position !== "hidden" &&
-        !["manufacturerLogo", "qrCode"].includes(setting.key)
-    )
-    .map((setting) => ({
-      key: setting.key,
-      label:
-        setting.label ||
-        customizableTemplateFields.find((field) => field.key === setting.key)?.label ||
-        setting.key,
-      value: previewValueForField(template, setting.key, values),
-      position: normalizeTemplatePosition(setting.position),
-      order: Number(setting.order) || 0,
-    }));
-
-  const customFields = (template.customFields || [])
-    .filter((field) => field.label && field.position !== "hidden")
-    .map((field, index) => ({
-      key: field.key || `custom_${index}`,
-      label: field.label,
-      value: values[field.key] || field.defaultValue || "Custom value",
-      position: normalizeTemplatePosition(field.position || "bottom"),
-      order: Number(field.order) || index + 100,
-    }));
-
-  return [...builtInFields, ...customFields].sort((a, b) => a.order - b.order);
-};
-
-function TemplateLayoutPreview({ template, values = {}, title = "Template Preview" }) {
-  const designerItems = normalizeDesignerItems(template?.designerItems || []);
-  const fieldsForPreview = templatePreviewFields(template, values);
-  const groups = templateLayoutPositions.reduce((items, option) => {
-    if (option.value !== "hidden") {
-      items[option.value] = fieldsForPreview.filter(
-        (field) => normalizeTemplatePosition(field.position) === option.value
-      );
-    }
-    return items;
-  }, {});
-  const renderField = (field) => (
-    <div className="template-preview-row" key={field.key}>
-      <span>{field.label}</span>
-      <strong>{field.value}</strong>
-    </div>
-  );
-
-  return (
-    <section className="template-preview-card" aria-label={title}>
-      <div className="section-heading">
-        <p className="step-label">{title}</p>
-        <h3>{template?.name || "Standard label"}</h3>
-      </div>
-      {designerItems.length > 0 ? (
-        <div className="template-preview-sheet template-preview-sheet-designer">
-          {designerItems.map((item) => {
-            const value = designerPreviewValue(item, template, values);
-
-            return (
-              <div
-                className={`template-designer-item template-preview-designer-item template-designer-${item.type}`}
-                key={item.id}
-                style={{
-                  left: `${item.x}%`,
-                  top: `${item.y}%`,
-                  width: `${item.width}%`,
-                  height: `${item.height}%`,
-                  fontSize: `${item.fontSize * 0.72}px`,
-                  fontWeight: item.bold ? 800 : 500,
-                  textAlign: item.align,
-                }}
-              >
-                {item.type === "qr" ? (
-                  <span className="template-designer-fake-qr" aria-label="QR preview" />
-                ) : item.type === "logo" ? (
-                  value ? (
-                    <img src={value} alt="" />
-                  ) : (
-                    <span className="template-designer-logo-placeholder">Logo</span>
-                  )
-                ) : (
-                  <>
-                    <span className="template-designer-item-label">{item.label}</span>
-                    <span className="template-designer-item-value">{value}</span>
-                  </>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="template-preview-sheet">
-          <div className="template-preview-top">
-            <div>{(groups.left || []).map(renderField)}</div>
-            <div>{(groups.right || []).map(renderField)}</div>
-          </div>
-          {(groups.center || []).length > 0 && (
-            <div className="template-preview-center">
-              {(groups.center || []).map(renderField)}
-            </div>
-          )}
-          {(groups.bottom || []).length > 0 && (
-            <div className="template-preview-bottom">
-              {(groups.bottom || []).map(renderField)}
-            </div>
-          )}
-        </div>
-      )}
-    </section>
-  );
-}
-
 const firebaseOtpErrorMessage = (err = {}) => {
   const code = err.code || "";
 
@@ -1312,7 +690,6 @@ function AppNav({ currentUser = "", onLogout }) {
     ? [
         { href: "/home", label: "Home" },
         { href: "/create", label: "Create" },
-        { href: "/templates", label: "Templates" },
         { href: "/history", label: "History" },
         { href: "/profile", label: "Profile" },
       ]
@@ -1378,7 +755,7 @@ function LandingPage({ currentUser, onLogout }) {
           <div className="landing-metrics" aria-label="BatchMark highlights">
             <span>Bulk drum labels</span>
             <span>Buyer-safe QR pages</span>
-            <span>Reusable templates</span>
+            <span>Saved history</span>
           </div>
         </div>
 
@@ -1471,7 +848,7 @@ function LandingPage({ currentUser, onLogout }) {
           <span className="feature-number">02</span>
           <h2>Share buyer-safe QR records</h2>
           <p>
-            Each QR opens only the public label record. Vendor profile, templates, history, and
+            Each QR opens only the public label record. Vendor profile, history, and
             private dashboard actions remain protected behind login.
           </p>
         </article>
@@ -1479,8 +856,8 @@ function LandingPage({ currentUser, onLogout }) {
           <span className="feature-number">03</span>
           <h2>Reuse approved details</h2>
           <p>
-            Save manufacturer logo, address, contact details, compliance text, and product
-            templates so repeated export labels stay consistent.
+            Save manufacturer logo, address, contact details, and compliance text so repeated
+            export labels stay consistent.
           </p>
         </article>
       </section>
@@ -1492,7 +869,7 @@ function LandingPage({ currentUser, onLogout }) {
         </div>
         <ol>
           <li>Login with phone OTP and load the vendor profile.</li>
-          <li>Choose a saved template or enter product, lot, buyer, and compliance details.</li>
+          <li>Enter product, lot, buyer, and compliance details.</li>
           <li>Add drums manually, use quick setup, or import weights from a sheet.</li>
           <li>Generate PDFs, print labels, and keep every batch grouped in history.</li>
         </ol>
@@ -1502,8 +879,8 @@ function LandingPage({ currentUser, onLogout }) {
         <article>
           <h2>Designed for real label variation</h2>
           <p>
-            Different products can need different fields and positions. BatchMark supports saved
-            templates so vendors do not need to rebuild common formats every time.
+            Different products can need different details. BatchMark keeps the current flow simple
+            while leaving room for a cleaner custom format system later.
           </p>
         </article>
         <article>
@@ -2460,998 +1837,6 @@ function HistoryPage({ currentUser, onLogout }) {
   );
 }
 
-function TemplatesPage({ currentUser, onLogout }) {
-  const designerCanvasRef = useRef(null);
-  const [templates, setTemplates] = useState([]);
-  const [draft, setDraft] = useState(emptyTemplateDraft);
-  const [editingId, setEditingId] = useState("");
-  const [status, setStatus] = useState("loading");
-  const [notice, setNotice] = useState("");
-  const [isSaving, setIsSaving] = useState(false);
-  const [activePresetId, setActivePresetId] = useState("export");
-  const [selectedDesignerItemId, setSelectedDesignerItemId] = useState("");
-  const [designerDrag, setDesignerDrag] = useState(null);
-
-  const loadTemplates = () => {
-    setStatus("loading");
-    axios
-      .get(templatesApiUrl())
-      .then((res) => {
-        setTemplates(res.data || []);
-        setStatus("ready");
-      })
-      .catch((err) => {
-        console.error(err);
-        setStatus("error");
-      });
-  };
-
-  useEffect(() => {
-    loadTemplates();
-  }, []);
-
-  useEffect(() => {
-    if (!designerDrag) {
-      return undefined;
-    }
-
-    const handleMove = (event) => {
-      const rect = designerCanvasRef.current?.getBoundingClientRect();
-
-      if (!rect) {
-        return;
-      }
-
-      setDraft((values) => ({
-        ...values,
-        designerItems: normalizeDesignerItems(values.designerItems).map((item) =>
-          item.id === designerDrag.id
-            ? {
-                ...item,
-                x: clampNumber(
-                  ((event.clientX - rect.left) / rect.width) * 100 - item.width / 2,
-                  0,
-                  100 - item.width,
-                  item.x
-                ),
-                y: clampNumber(
-                  ((event.clientY - rect.top) / rect.height) * 100 - item.height / 2,
-                  0,
-                  100 - item.height,
-                  item.y
-                ),
-              }
-            : item
-        ),
-      }));
-    };
-
-    const handleUp = () => setDesignerDrag(null);
-
-    window.addEventListener("pointermove", handleMove);
-    window.addEventListener("pointerup", handleUp);
-
-    return () => {
-      window.removeEventListener("pointermove", handleMove);
-      window.removeEventListener("pointerup", handleUp);
-    };
-  }, [designerDrag]);
-
-  const updateDraftField = (field, value) => {
-    setDraft((values) => ({ ...values, [field]: value }));
-  };
-
-  const updateDraftDefault = (field, value) => {
-    setDraft((values) => ({
-      ...values,
-      defaults: { ...values.defaults, [field]: value },
-    }));
-  };
-
-  const updateFieldSetting = (key, field, value) => {
-    setDraft((values) => ({
-      ...values,
-      fieldSettings: values.fieldSettings.map((setting) =>
-        setting.key === key ? { ...setting, [field]: value } : setting
-      ),
-    }));
-  };
-
-  const handleTemplateLogoUpload = (key, file) => {
-    if (!file) {
-      return;
-    }
-
-    if (!file.type.startsWith("image/")) {
-      setNotice("Please choose an image file for the template logo.");
-      return;
-    }
-
-    const reader = new FileReader();
-
-    reader.onload = () => {
-      updateFieldSetting(key, "defaultValue", reader.result || "");
-      setNotice("Template logo selected. Save the template to keep it.");
-    };
-    reader.onerror = () => setNotice("Could not read this template logo file.");
-    reader.readAsDataURL(file);
-  };
-
-  const updateCustomField = (id, field, value) => {
-    setDraft((values) => ({
-      ...values,
-      customFields: values.customFields.map((item) =>
-        item.id === id ? { ...item, [field]: value } : item
-      ),
-    }));
-  };
-
-  const addCustomField = () => {
-    setDraft((values) => ({
-      ...values,
-      customFields: [...values.customFields, emptyTemplateField()],
-    }));
-  };
-
-  const removeCustomField = (id) => {
-    setDraft((values) => ({
-      ...values,
-      customFields:
-        values.customFields.length === 1
-          ? [emptyTemplateField()]
-          : values.customFields.filter((field) => field.id !== id),
-    }));
-  };
-
-  const applyLayoutPreset = (preset) => {
-    setActivePresetId(preset.id);
-    setDraft((values) => ({
-      ...values,
-      fieldSettings: values.fieldSettings.map((setting) => {
-        const presetField = preset.fields[setting.key];
-
-        if (!presetField) {
-          return setting;
-        }
-
-        return {
-          ...setting,
-          position: presetField.position,
-          order: presetField.order,
-          visible: presetField.position !== "hidden",
-        };
-      }),
-      customFields: values.customFields.map((field, index) => ({
-        ...field,
-        position: field.label.trim() ? normalizeTemplatePosition(field.position) : field.position,
-        order: Number(field.order) || index + 100,
-      })),
-    }));
-    setNotice(`${preset.name} layout applied. Review fields and save when ready.`);
-  };
-
-  const resetDraft = () => {
-    setDraft(emptyTemplateDraft());
-    setEditingId("");
-    setActivePresetId("export");
-    setNotice("");
-  };
-
-  const editTemplate = (template) => {
-    setDraft(templateToDraft(template));
-    setEditingId(template._id);
-    setActivePresetId("");
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  const saveTemplate = async (e) => {
-    e.preventDefault();
-    const payload = buildTemplatePayload(draft);
-
-    if (!payload.name) {
-      setNotice("Template name is required.");
-      return;
-    }
-
-    setIsSaving(true);
-
-    try {
-      if (editingId) {
-        await axios.put(templateApiUrl(editingId), payload);
-      } else {
-        await axios.post(templatesApiUrl(), payload);
-      }
-      resetDraft();
-      loadTemplates();
-      setNotice("Template saved.");
-    } catch (err) {
-      console.error(err);
-      setNotice(err.response?.data?.message || "Could not save this template.");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const deleteTemplate = async (template) => {
-    if (!window.confirm(`Delete ${template.name}?`)) {
-      return;
-    }
-
-    try {
-      await axios.delete(templateApiUrl(template._id), {
-        data: { ownerPhone: getSavedPhone() },
-      });
-      setTemplates((items) => items.filter((item) => item._id !== template._id));
-      if (editingId === template._id) {
-        resetDraft();
-      }
-    } catch (err) {
-      console.error(err);
-      setNotice("Could not delete this template.");
-    }
-  };
-
-  const printableSections = templateBuilderSections.filter(
-    (section) => section.value !== "hidden"
-  );
-  const logoSetting = draft.fieldSettings.find((setting) => setting.key === "manufacturerLogo");
-  const standardFieldGroups = customizableTemplateFields
-    .filter((field) => !["manufacturerLogo", "qrCode"].includes(field.key))
-    .reduce((groups, field) => {
-      groups[field.group] = groups[field.group] || [];
-      groups[field.group].push(field);
-      return groups;
-    }, {});
-
-  const setFieldVisibility = (key, isVisible) => {
-    setDraft((values) => ({
-      ...values,
-      fieldSettings: values.fieldSettings.map((setting, index) => {
-        if (setting.key !== key) {
-          return setting;
-        }
-
-        const meta = customizableTemplateFields.find((field) => field.key === key) || setting;
-        const nextPosition = isVisible
-          ? normalizeTemplatePosition(setting.position) === "hidden"
-            ? defaultTemplatePositionFor(meta, index)
-            : normalizeTemplatePosition(setting.position)
-          : "hidden";
-
-        return {
-          ...setting,
-          visible: isVisible,
-          position: nextPosition,
-        };
-      }),
-    }));
-  };
-
-  const designerItems = normalizeDesignerItems(draft.designerItems);
-  const selectedDesignerItem = designerItems.find((item) => item.id === selectedDesignerItemId);
-  const designerDraftTemplate = buildTemplatePayload(draft, currentUser?.phone || getSavedPhone());
-  const designerStandardFields = customizableTemplateFields;
-  const designerCustomFields = draft.customFields
-    .filter((field) => field.label.trim())
-    .map((field, index) => ({
-      key: normalizeTemplateFieldKey(field.label, `custom_${index + 1}`),
-      label: field.label.trim(),
-      source: "custom",
-      type: field.type || "text",
-      defaultValue: field.defaultValue,
-    }));
-
-  const setDesignerItems = (updater) => {
-    setDraft((values) => {
-      const currentItems = normalizeDesignerItems(values.designerItems);
-      const nextItems = typeof updater === "function" ? updater(currentItems) : updater;
-
-      return { ...values, designerItems: normalizeDesignerItems(nextItems) };
-    });
-  };
-
-  const updateDesignerItem = (id, field, value) => {
-    const numericFields = new Set(["x", "y", "width", "height", "fontSize"]);
-
-    setDesignerItems((items) =>
-      items.map((item) =>
-        item.id === id
-          ? {
-              ...item,
-              [field]: numericFields.has(field)
-                ? clampDesignerItemValue(item, field, value)
-                : value,
-            }
-          : item
-      )
-    );
-  };
-
-  const renderDesignerSlider = (field) => {
-    if (!selectedDesignerItem) {
-      return null;
-    }
-
-    const config = designerSliderConfig[field];
-    const max =
-      field === "x"
-        ? Math.max(config.min, 100 - selectedDesignerItem.width)
-        : field === "y"
-          ? Math.max(config.min, 100 - selectedDesignerItem.height)
-          : field === "width"
-            ? Math.max(config.min, 100 - selectedDesignerItem.x)
-            : field === "height"
-              ? Math.max(config.min, 100 - selectedDesignerItem.y)
-              : config.max;
-
-    return (
-      <label className="template-slider-control" key={field}>
-        <span>
-          {config.label}
-          <strong>
-            {Math.round(selectedDesignerItem[field])}
-            {config.suffix}
-          </strong>
-        </span>
-        <input
-          type="range"
-          min={config.min}
-          max={max}
-          step={config.step}
-          value={selectedDesignerItem[field]}
-          onChange={(e) => updateDesignerItem(selectedDesignerItem.id, field, e.target.value)}
-        />
-      </label>
-    );
-  };
-
-  const addDesignerItem = (field) => {
-    const currentCount = normalizeDesignerItems(draft.designerItems).length;
-    const nextItem = createDesignerItemFromField(field, currentCount);
-
-    setSelectedDesignerItemId(nextItem.id);
-    setDesignerItems((items) => [...items, nextItem]);
-  };
-
-  const removeDesignerItem = (id) => {
-    const nextItems = designerItems.filter((item) => item.id !== id);
-
-    setSelectedDesignerItemId(nextItems[0]?.id || "");
-    setDesignerItems(nextItems);
-  };
-
-  const clearDesignerCanvas = () => {
-    setDesignerItems([]);
-    setSelectedDesignerItemId("");
-  };
-
-  const autoArrangeDesignerItems = () => {
-    const autoFields = [
-      ["drumNo", 8, 10, 28, 6],
-      ["commodity", 8, 18, 42, 6],
-      ["lotNo", 8, 26, 36, 6],
-      ["poNo", 8, 34, 36, 6],
-      ["mfgDate", 8, 42, 30, 6],
-      ["bestBefore", 8, 50, 30, 6],
-      ["netWt", 8, 58, 30, 6],
-      ["tareWt", 8, 66, 30, 6],
-      ["grossWt", 8, 74, 30, 6],
-      ["formatNo", 58, 10, 35, 5],
-      ["qrCode", 70, 35, 16, 16],
-      ["customerName", 8, 82, 40, 6],
-      ["customerAddress", 8, 89, 44, 6],
-      ["warningText", 36, 57, 35, 6],
-      ["storage", 36, 64, 35, 6],
-      ["license", 36, 71, 35, 6],
-      ["manufacturerLogo", 8, 77, 20, 13],
-      ["manufacturer", 38, 80, 42, 6],
-      ["manufacturerAddress", 38, 87, 48, 6],
-    ];
-    const centeredFields = ["formatNo", "warningText", "storage", "license", "manufacturer"];
-    const nextItems = autoFields
-      .map(([key, x, y, width, height], index) => {
-        const field = customizableTemplateFields.find((item) => item.key === key);
-
-        if (!field) {
-          return null;
-        }
-
-        return {
-          ...createDesignerItemFromField(field, index),
-          x,
-          y,
-          width,
-          height,
-          align: centeredFields.includes(key) ? "center" : "left",
-        };
-      })
-      .filter(Boolean);
-
-    setDesignerItems(nextItems);
-    setSelectedDesignerItemId(nextItems[0]?.id || "");
-    setNotice("A clean starter canvas is ready. Drag any field to adjust it.");
-  };
-
-  const renderSimpleField = (field) => {
-    const setting = draft.fieldSettings.find((item) => item.key === field.key);
-
-    if (!setting) {
-      return null;
-    }
-
-    const isVisible = setting.visible !== false && setting.position !== "hidden";
-
-    return (
-      <article className={`template-simple-field${isVisible ? " is-active" : ""}`} key={field.key}>
-        <label className="template-field-switch">
-          <input
-            type="checkbox"
-            checked={isVisible}
-            onChange={(e) => setFieldVisibility(field.key, e.target.checked)}
-          />
-          <span aria-hidden="true" />
-          <div>
-            <strong>{field.label}</strong>
-            <small>{field.group}</small>
-          </div>
-        </label>
-
-        {isVisible && (
-          <div className="template-field-control-grid">
-            <label>
-              <span>Print as</span>
-              <input
-                value={setting.label}
-                onChange={(e) => updateFieldSetting(field.key, "label", e.target.value)}
-                placeholder={field.label}
-              />
-            </label>
-            <label>
-              <span>Default</span>
-              <input
-                value={setting.defaultValue}
-                onChange={(e) => updateFieldSetting(field.key, "defaultValue", e.target.value)}
-                placeholder="Optional"
-              />
-            </label>
-            <label>
-              <span>Print area</span>
-              <select
-                value={normalizeTemplatePosition(setting.position)}
-                onChange={(e) => updateFieldSetting(field.key, "position", e.target.value)}
-              >
-                {printableSections.map((section) => (
-                  <option key={section.value} value={section.value}>
-                    {section.title}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-        )}
-      </article>
-    );
-  };
-
-  return (
-    <main className="page-shell">
-      <AppNav currentUser={currentUser} onLogout={onLogout} />
-      <header className="site-header">
-        <div>
-          <h1>Product Templates</h1>
-          <p className="header-copy">
-            Build product-wise label formats with simple sections and a live preview.
-          </p>
-        </div>
-      </header>
-
-      <div className="template-layout">
-        <section className="template-form-card">
-          <div className="section-heading section-heading-with-action">
-            <div>
-              <h2>{editingId ? "Edit Template" : "New Template"}</h2>
-              <p>Defaults fill the create-label form. Custom fields print on the PDF.</p>
-            </div>
-            {editingId && (
-              <button className="secondary-button" type="button" onClick={resetDraft}>
-                New
-              </button>
-            )}
-          </div>
-
-          <form className="template-form" onSubmit={saveTemplate}>
-            <div className="template-builder-intro">
-              <span>1</span>
-              <div>
-                <h3>Start with product defaults</h3>
-                <p>
-                  These values prefill the create-label page whenever this template is selected.
-                </p>
-              </div>
-            </div>
-            <div className="form-grid">
-              <label className="field">
-                <span>Template Name</span>
-                <input
-                  value={draft.name}
-                  onChange={(e) => updateDraftField("name", e.target.value)}
-                  placeholder="L-Carnitine Export Label"
-                  required
-                />
-              </label>
-              <label className="field">
-                <span>Product / Commodity</span>
-                <input
-                  value={draft.productName}
-                  onChange={(e) => {
-                    updateDraftField("productName", e.target.value);
-                    updateDraftDefault("commodity", e.target.value);
-                  }}
-                  placeholder="L-CARNITINE BASE"
-                />
-              </label>
-              <label className="field">
-                <span>Format No</span>
-                <input
-                  value={draft.defaults.formatNo}
-                  onChange={(e) => updateDraftDefault("formatNo", e.target.value)}
-                />
-              </label>
-              <label className="field">
-                <span>Best Before Gap</span>
-                <select
-                  value={draft.defaults.bestBeforeGap}
-                  onChange={(e) => updateDraftDefault("bestBeforeGap", e.target.value)}
-                >
-                  {fieldsByName.bestBeforeGap.options.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="field">
-                <span>Warning Text</span>
-                <input
-                  value={draft.defaults.warningText}
-                  onChange={(e) => updateDraftDefault("warningText", e.target.value)}
-                  placeholder='"NOT FOR MEDICINAL USE"'
-                />
-              </label>
-              <label className="field">
-                <span>Storage Condition</span>
-                <input
-                  value={draft.defaults.storage}
-                  onChange={(e) => updateDraftDefault("storage", e.target.value)}
-                  placeholder="Cool and dry place"
-                />
-              </label>
-              <label className="field">
-                <span>License Number</span>
-                <input
-                  value={draft.defaults.license}
-                  onChange={(e) => updateDraftDefault("license", e.target.value)}
-                />
-              </label>
-            </div>
-
-            <div className="template-builder-intro">
-              <span>2</span>
-              <div>
-                <h3>Choose a layout type</h3>
-                <p>Start with the closest preset. The field switches below handle the rest.</p>
-              </div>
-            </div>
-
-            <div className="layout-preset-grid" role="list" aria-label="Template layout presets">
-              {templateLayoutPresets.map((preset) => (
-                <button
-                  className={`layout-preset-card${
-                    activePresetId === preset.id ? " is-selected" : ""
-                  }`}
-                  key={preset.id}
-                  type="button"
-                  onClick={() => applyLayoutPreset(preset)}
-                >
-                  <strong>{preset.name}</strong>
-                  <span>{preset.helper}</span>
-                </button>
-              ))}
-            </div>
-
-            <div className="template-builder-intro">
-              <span>3</span>
-              <div>
-                <h3>Arrange fields on the label</h3>
-                <p>Add fields, drag them on the canvas, and save this product layout.</p>
-              </div>
-            </div>
-
-            <section className="template-designer-panel">
-              <div className="template-designer-toolbar">
-                <div>
-                  <h3>Visual label canvas</h3>
-                  <p>Click a field to edit size, label, and alignment.</p>
-                </div>
-                <div className="template-designer-toolbar-actions">
-                  <button
-                    className="secondary-button compact-button"
-                    type="button"
-                    onClick={autoArrangeDesignerItems}
-                  >
-                    Auto arrange
-                  </button>
-                  <button
-                    className="secondary-button compact-button"
-                    type="button"
-                    onClick={clearDesignerCanvas}
-                  >
-                    Clear canvas
-                  </button>
-                </div>
-              </div>
-
-              <div className="template-designer-field-bank">
-                {[...designerStandardFields, ...designerCustomFields].map((field, index) => (
-                  <button
-                    className="template-designer-add"
-                    key={`${field.source || "standard"}-${field.key}-${index}`}
-                    type="button"
-                    onClick={() => addDesignerItem(field)}
-                  >
-                    + {field.label}
-                  </button>
-                ))}
-              </div>
-
-              <div className="template-designer-workspace">
-                <div className="template-designer-canvas-wrap">
-                  <div className="template-designer-canvas" ref={designerCanvasRef}>
-                    {designerItems.length === 0 && (
-                      <div className="template-designer-empty">
-                        <div>
-                          <strong>Start with Auto arrange</strong>
-                          <span>or add fields above and drag them here.</span>
-                        </div>
-                      </div>
-                    )}
-                    {designerItems.map((item) => {
-                      const value = designerPreviewValue(item, designerDraftTemplate);
-
-                      return (
-                        <button
-                          className={`template-designer-item template-designer-${item.type}${
-                            selectedDesignerItemId === item.id ? " is-selected" : ""
-                          }`}
-                          key={item.id}
-                          type="button"
-                          onClick={() => setSelectedDesignerItemId(item.id)}
-                          onPointerDown={(event) => {
-                            event.preventDefault();
-                            event.currentTarget.setPointerCapture?.(event.pointerId);
-                            setSelectedDesignerItemId(item.id);
-                            setDesignerDrag({ id: item.id });
-                          }}
-                          style={{
-                            left: `${item.x}%`,
-                            top: `${item.y}%`,
-                            width: `${item.width}%`,
-                            height: `${item.height}%`,
-                            fontSize: `${item.fontSize}px`,
-                            fontWeight: item.bold ? 800 : 500,
-                            textAlign: item.align,
-                          }}
-                        >
-                          {item.type === "qr" ? (
-                            <span className="template-designer-fake-qr" aria-hidden="true" />
-                          ) : item.type === "logo" ? (
-                            value ? (
-                              <img src={value} alt="" />
-                            ) : (
-                              <span className="template-designer-logo-placeholder">Logo</span>
-                            )
-                          ) : (
-                            <>
-                              <span className="template-designer-item-label">{item.label}</span>
-                              <span className="template-designer-item-value">{value}</span>
-                            </>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <aside className="template-designer-inspector">
-                  {selectedDesignerItem ? (
-                    <>
-                      <h3>Selected field</h3>
-                      <label>
-                        <span>Print label</span>
-                        <input
-                          value={selectedDesignerItem.label}
-                          onChange={(e) =>
-                            updateDesignerItem(selectedDesignerItem.id, "label", e.target.value)
-                          }
-                        />
-                      </label>
-                      <div className="template-slider-stack">
-                        {["x", "y", "width", "height", "fontSize"].map(renderDesignerSlider)}
-                        <label>
-                          <span>Align</span>
-                          <select
-                            value={selectedDesignerItem.align}
-                            onChange={(e) =>
-                              updateDesignerItem(selectedDesignerItem.id, "align", e.target.value)
-                            }
-                          >
-                            <option value="left">Left</option>
-                            <option value="center">Center</option>
-                            <option value="right">Right</option>
-                          </select>
-                        </label>
-                      </div>
-                      <label className="template-inspector-check">
-                        <input
-                          type="checkbox"
-                          checked={selectedDesignerItem.bold}
-                          onChange={(e) =>
-                            updateDesignerItem(selectedDesignerItem.id, "bold", e.target.checked)
-                          }
-                        />
-                        <span>Bold text</span>
-                      </label>
-                      <button
-                        className="danger-button"
-                        type="button"
-                        onClick={() => removeDesignerItem(selectedDesignerItem.id)}
-                      >
-                        Remove field
-                      </button>
-                    </>
-                  ) : (
-                    <p className="template-inspector-empty">
-                      Select a field on the canvas to edit its size and style.
-                    </p>
-                  )}
-                </aside>
-              </div>
-            </section>
-
-            <details className="template-advanced-rules">
-              <summary>
-                <span className="template-advanced-step">4</span>
-                <span>
-                  <strong>Advanced field rules</strong>
-                  <small>Optional field visibility, labels, and print areas.</small>
-                </span>
-              </summary>
-
-              <div className="template-layout-tip">
-                <strong>Simple rule:</strong> start from the preset, hide fields you do not need,
-                and move only the few fields that need a different print area.
-              </div>
-
-              <div className="template-field-groups">
-                {Object.entries(standardFieldGroups).map(([group, groupFields]) => (
-                  <section className="template-field-group" key={group}>
-                    <div className="template-field-group-title">
-                      <h3>{group}</h3>
-                      <span>
-                        {
-                          groupFields.filter((field) => {
-                            const setting = draft.fieldSettings.find(
-                              (item) => item.key === field.key
-                            );
-                            return (
-                              setting &&
-                              setting.visible !== false &&
-                              setting.position !== "hidden"
-                            );
-                          }).length
-                        }{" "}
-                        visible
-                      </span>
-                    </div>
-                    <div className="template-simple-field-list">
-                      {groupFields.map((field) => renderSimpleField(field))}
-                    </div>
-                  </section>
-                ))}
-              </div>
-            </details>
-
-            <div className="custom-field-builder custom-field-builder-primary">
-              <div className="section-heading section-heading-with-action">
-                <div>
-                  <p className="step-label">Step 5</p>
-                  <h3>Add fields only this product needs</h3>
-                  <p>
-                    Add values like CAS No., grade, assay, country of origin, or any field a
-                    vendor needs for this product. Leave the blank row empty if not needed.
-                  </p>
-                </div>
-                <button className="secondary-button" type="button" onClick={addCustomField}>
-                  Add Field
-                </button>
-              </div>
-
-              {draft.customFields.map((field) => (
-                <div className="custom-field-row" key={field.id}>
-                  <label>
-                    <span>Field Name</span>
-                    <input
-                      value={field.label}
-                      onChange={(e) => updateCustomField(field.id, "label", e.target.value)}
-                      placeholder="Assay / Grade / CAS No."
-                    />
-                  </label>
-                  <label>
-                    <span>Type</span>
-                    <select
-                      value={field.type}
-                      onChange={(e) => updateCustomField(field.id, "type", e.target.value)}
-                    >
-                      <option value="text">Text</option>
-                      <option value="number">Number</option>
-                      <option value="date">Date</option>
-                      <option value="textarea">Long text</option>
-                    </select>
-                  </label>
-                  <label>
-                    <span>Default Value</span>
-                    <input
-                      value={field.defaultValue}
-                      onChange={(e) =>
-                        updateCustomField(field.id, "defaultValue", e.target.value)
-                      }
-                      placeholder="Optional"
-                    />
-                  </label>
-                  <label>
-                    <span>Print Area</span>
-                    <select
-                      value={field.position}
-                      onChange={(e) => updateCustomField(field.id, "position", e.target.value)}
-                    >
-                      {templateBuilderSections.map((section) => (
-                        <option key={section.value} value={section.value}>
-                          {section.title}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="inline-check">
-                    <input
-                      type="checkbox"
-                      checked={field.required}
-                      onChange={(e) =>
-                        updateCustomField(field.id, "required", e.target.checked)
-                      }
-                    />
-                    <span>Required</span>
-                  </label>
-                  <button
-                    className="secondary-button"
-                    type="button"
-                    onClick={() => removeCustomField(field.id)}
-                  >
-                    Remove
-                  </button>
-                </div>
-              ))}
-            </div>
-
-            <section className="template-simple-card template-logo-simple">
-              <div className="template-simple-header">
-                <div>
-                  <span>Optional</span>
-                  <h3>Template logo</h3>
-                  <p>Use the vendor profile logo by default, or override it for this product.</p>
-                </div>
-                {logoSetting?.defaultValue && (
-                  <button
-                    className="secondary-button compact-button"
-                    type="button"
-                    onClick={() => updateFieldSetting("manufacturerLogo", "defaultValue", "")}
-                  >
-                    Use Profile Logo
-                  </button>
-                )}
-              </div>
-              <div className="template-logo-control">
-                <label>
-                  <span>Logo Override</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) =>
-                      handleTemplateLogoUpload("manufacturerLogo", e.target.files?.[0])
-                    }
-                  />
-                </label>
-                {logoSetting?.defaultValue ? (
-                  <div className="logo-preview template-logo-preview">
-                    <img src={logoSetting.defaultValue} alt="Template logo preview" />
-                    <small>This logo will print for labels created from this template.</small>
-                  </div>
-                ) : (
-                  <p className="template-muted-note">
-                    No override selected. The saved profile logo will be used.
-                  </p>
-                )}
-              </div>
-            </section>
-
-            {notice && <p className="status-message">{notice}</p>}
-
-            <div className="template-actions">
-              <button type="submit" disabled={isSaving}>
-                {isSaving ? "Saving..." : editingId ? "Update Template" : "Save Template"}
-              </button>
-              <a className="button-link secondary-link" href="/create">
-                Use in Label
-              </a>
-            </div>
-          </form>
-        </section>
-
-        <aside className="template-side-panel">
-          <div className="template-preview-sticky">
-            <TemplateLayoutPreview
-              template={buildTemplatePayload(draft, currentUser?.phone || getSavedPhone())}
-              title="Live Preview"
-            />
-            <div className="template-preview-help">
-              <strong>Preview updates live</strong>
-              <span>Save the template, then select it on the create-label page.</span>
-            </div>
-          </div>
-
-          <section className="template-list-card">
-            <h2>Saved Templates</h2>
-            {status === "loading" && <p className="empty-state">Loading templates...</p>}
-            {status === "error" && <p className="empty-state">Could not load templates.</p>}
-            {status === "ready" && templates.length === 0 && (
-              <p className="empty-state">No templates saved yet.</p>
-            )}
-            <div className="template-list">
-              {templates.map((template) => (
-                <article className="template-card" key={template._id}>
-                  <div>
-                    <p className="history-title">{template.name}</p>
-                    <p className="history-meta">
-                      {template.productName || template.defaults?.commodity || "No product"} ·{" "}
-                      {pluralize(template.customFields?.length || 0, "custom field")}
-                    </p>
-                  </div>
-                  <div className="row-actions">
-                    <button
-                      className="secondary-button row-action"
-                      type="button"
-                      onClick={() => editTemplate(template)}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      className="danger-button row-action"
-                      type="button"
-                      onClick={() => deleteTemplate(template)}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </section>
-        </aside>
-      </div>
-      <AppFooter />
-    </main>
-  );
-}
-
 function LabelDetails({ id }) {
   const [label, setLabel] = useState(null);
   const [status, setStatus] = useState("loading");
@@ -3507,75 +1892,67 @@ function LabelDetails({ id }) {
     }
   };
 
-  const fieldLabels = label.fieldLabels || {};
-  const hiddenFields = Array.isArray(label.hiddenFields) ? label.hiddenFields : [];
-  const visibleField = (key) => !hiddenFields.includes(key);
-  const displayFieldLabel = (key, fallback) => fieldLabels[key] || fallback;
-  const visibleItems = (items) => items.filter((item) => visibleField(item.key));
-  const verificationItems = visibleItems([
-    { key: "commodity", label: displayFieldLabel("commodity", "Commodity"), value: label.commodity },
-    { key: "lotNo", label: displayFieldLabel("lotNo", "Lot No"), value: label.lotNo },
-    { key: "drumNo", label: displayFieldLabel("drumNo", "Drum No"), value: label.drumNo },
-    { key: "poNo", label: displayFieldLabel("poNo", "P.O. No"), value: label.poNo },
-    { key: "mfgDate", label: displayFieldLabel("mfgDate", "Mfg. Date"), value: label.mfgDate },
-    { key: "bestBefore", label: displayFieldLabel("bestBefore", "Best Before"), value: label.bestBefore },
-  ]);
+  const verificationItems = [
+    { key: "commodity", label: "Commodity", value: label.commodity },
+    { key: "lotNo", label: "Lot No", value: label.lotNo },
+    { key: "drumNo", label: "Drum No", value: label.drumNo },
+    { key: "poNo", label: "P.O. No", value: label.poNo },
+    { key: "mfgDate", label: "Mfg. Date", value: label.mfgDate },
+    { key: "bestBefore", label: "Best Before", value: label.bestBefore },
+  ];
 
-  const weightItems = visibleItems([
-    { key: "netWt", label: displayFieldLabel("netWt", "Net Wt."), value: label.netWt },
-    { key: "tareWt", label: displayFieldLabel("tareWt", "Tare Wt."), value: label.tareWt },
-    { key: "grossWt", label: displayFieldLabel("grossWt", "Gross Wt."), value: label.grossWt },
-  ]);
+  const weightItems = [
+    { key: "netWt", label: "Net Wt.", value: label.netWt },
+    { key: "tareWt", label: "Tare Wt.", value: label.tareWt },
+    { key: "grossWt", label: "Gross Wt.", value: label.grossWt },
+  ];
 
-  const manufacturerItems = visibleItems([
+  const manufacturerItems = [
     {
       key: "manufacturer",
-      label: displayFieldLabel("manufacturer", "Manufacturer"),
+      label: "Manufacturer",
       value: label.manufacturer,
     },
     {
       key: "manufacturerAddress",
-      label: displayFieldLabel("manufacturerAddress", "Address"),
+      label: "Address",
       value: label.manufacturerAddress,
     },
-  ]);
-  const customerItems = visibleItems([
+  ];
+  const customerItems = [
     {
       key: "customerName",
-      label: displayFieldLabel("customerName", "Name"),
+      label: "Name",
       value: label.customerName,
     },
     {
       key: "customerAddress",
-      label: displayFieldLabel("customerAddress", "Address"),
+      label: "Address",
       value: label.customerAddress,
     },
-  ]);
-  const complianceItems = visibleItems([
+  ];
+  const complianceItems = [
     {
       key: "warningText",
-      label: displayFieldLabel("warningText", "Warning"),
+      label: "Warning",
       value: label.warningText,
     },
     {
       key: "storage",
-      label: displayFieldLabel("storage", "Storage Condition"),
+      label: "Storage Condition",
       value: label.storage,
     },
     {
       key: "license",
-      label: displayFieldLabel("license", "License Number"),
+      label: "License Number",
       value: label.license,
     },
     {
       key: "formatNo",
-      label: displayFieldLabel("formatNo", "Format No"),
+      label: "Format No",
       value: label.formatNo,
     },
-  ]);
-  const customItems = Array.isArray(label.customFields)
-    ? label.customFields.filter((field) => field.value)
-    : [];
+  ];
 
   return (
     <main className="page-shell public-label-shell">
@@ -3652,22 +2029,6 @@ function LabelDetails({ id }) {
             ))}
           </dl>
         </section>
-        )}
-
-        {customItems.length > 0 && (
-          <section className="public-manufacturer-panel">
-            <div className="section-heading">
-              <h2>Product Details</h2>
-            </div>
-            <dl className="details-grid">
-              {customItems.map((item) => (
-                <div key={item.key || item.label}>
-                  <dt>{item.label}</dt>
-                  <dd>{item.value}</dd>
-                </div>
-              ))}
-            </dl>
-          </section>
         )}
 
         {complianceItems.length > 0 && (
@@ -3778,9 +2139,6 @@ function App() {
   const [statusMessage, setStatusMessage] = useState("");
   const [generationProgress, setGenerationProgress] = useState(null);
   const [pdfLayout, setPdfLayout] = useState("single");
-  const [templates, setTemplates] = useState([]);
-  const [selectedTemplateId, setSelectedTemplateId] = useState("");
-  const [customFieldValues, setCustomFieldValues] = useState({});
   const currentManufacturerDetails = getSavedManufacturerDetails(currentUser);
   const currentManufacturer = currentManufacturerDetails.manufacturer || currentUser;
   const currentPath = window.location.pathname;
@@ -3789,7 +2147,6 @@ function App() {
   const isHistoryPage = currentPath === "/history";
   const isHomePage = currentPath === "/home";
   const isProfilePage = currentPath === "/profile";
-  const isTemplatesPage = currentPath === "/templates";
   const infoPage = currentPath.match(/^\/(about|features|contact)$/)?.[1];
 
   const labelId = useMemo(() => {
@@ -3805,30 +2162,10 @@ function App() {
     [drumItems, visibleDrumCount]
   );
   const hiddenDrumCount = Math.max(drumItems.length - visibleDrumItems.length, 0);
-  const selectedTemplate = useMemo(
-    () => templates.find((template) => template._id === selectedTemplateId),
-    [templates, selectedTemplateId]
-  );
-
   useEffect(() => {
     if (currentUser) {
       setForm((values) => applyUserDefaults(values, currentUser));
     }
-  }, [currentUser]);
-
-  useEffect(() => {
-    if (!currentUser) {
-      setTemplates([]);
-      return;
-    }
-
-    axios
-      .get(templatesApiUrl())
-      .then((res) => setTemplates(res.data || []))
-      .catch((err) => {
-        console.error(err);
-        setTemplates([]);
-      });
   }, [currentUser]);
 
   const handleChange = (e) => {
@@ -3859,65 +2196,12 @@ function App() {
     });
   };
 
-  const handleTemplateSelect = (e) => {
-    const templateId = e.target.value;
-    const template = templates.find((item) => item._id === templateId);
-
-    setSelectedTemplateId(templateId);
-    setStatusMessage("");
-
-    if (!template) {
-      setCustomFieldValues({});
-      return;
-    }
-
-    const defaults = template.defaults || {};
-    const nextGap = defaults.bestBeforeGap || form.bestBeforeGap;
-    setForm((values) => ({
-      ...values,
-      ...customizableTemplateFields.reduce((items, field) => {
-        const defaultValue = templateFieldDefault(template, field.key);
-
-        if (defaultValue && values[field.key] !== undefined) {
-          items[field.key] = defaultValue;
-        }
-
-        return items;
-      }, {}),
-      formatNo: templateFieldDefault(template, "formatNo") || defaults.formatNo || values.formatNo,
-      commodity:
-        templateFieldDefault(template, "commodity") ||
-        defaults.commodity ||
-        template.productName ||
-        values.commodity,
-      warningText:
-        templateFieldDefault(template, "warningText") || defaults.warningText || values.warningText,
-      storage: templateFieldDefault(template, "storage") || defaults.storage || values.storage,
-      license: templateFieldDefault(template, "license") || defaults.license || values.license,
-      bestBeforeGap: nextGap,
-      bestBefore: toInputDate(calculateBestBefore(values.mfgDate, nextGap)) || values.bestBefore,
-    }));
-    setCustomFieldValues(
-      (template.customFields || []).reduce((values, field) => {
-        values[field.key] = field.defaultValue || "";
-        return values;
-      }, {})
-    );
-  };
-
-  const handleCustomFieldValueChange = (key, value) => {
-    setStatusMessage("");
-    setCustomFieldValues((values) => ({ ...values, [key]: value }));
-  };
-
   const handleReset = () => {
     setForm(applyUserDefaults(emptyForm, currentUser));
     setDrumItems([emptyDrumItem()]);
     setVisibleDrumCount(DRUM_ROWS_BATCH_SIZE);
     setBulkDrumText("");
     setQuickDrumSetup({ count: "", netWt: "", tareWt: "" });
-    setSelectedTemplateId("");
-    setCustomFieldValues({});
     setPdfLayout("single");
     setStatusMessage("");
   };
@@ -4092,31 +2376,6 @@ function App() {
         pdfLayout,
         ownerPhone: getSavedPhone(),
         manufacturer: currentManufacturer,
-        ...customizableTemplateFields.reduce((items, field) => {
-          const defaultValue = templateFieldDefault(selectedTemplate, field.key);
-
-          if (defaultValue) {
-            items[field.key] = defaultValue;
-          }
-
-          return items;
-        }, {}),
-        templateId: selectedTemplate?._id || "",
-        templateName: selectedTemplate?.name || "",
-        fieldLabels: templateFieldLabelsPayload(selectedTemplate),
-        fieldSettings: selectedTemplate?.fieldSettings || [],
-        designerItems: selectedTemplate?.designerItems || [],
-        hiddenFields: templateHiddenFieldsPayload(selectedTemplate),
-        customFields: selectedTemplate
-          ? (selectedTemplate.customFields || []).map((field) => ({
-              key: field.key,
-              label: field.label,
-              type: field.type,
-              position: field.position,
-              order: field.order,
-              value: customFieldValues[field.key] || "",
-            }))
-          : [],
         drumItems: validDrumItems.map(({ netWt, tareWt, grossWt }, index) => ({
           drumNo: formatDrumSequence(index, validDrumItems.length),
           netWt: formatWeight(netWt),
@@ -4206,10 +2465,6 @@ function App() {
     );
   }
 
-  if (isTemplatesPage) {
-    return <TemplatesPage currentUser={currentUser} onLogout={handleLogout} />;
-  }
-
   if (isHistoryPage) {
     return <HistoryPage currentUser={currentUser} onLogout={handleLogout} />;
   }
@@ -4234,75 +2489,24 @@ function App() {
 
       <div className="workspace">
         <form id="label-form" className="label-form" onSubmit={handleSubmit}>
-          <section className="form-section form-step template-picker-section">
-            <div className="section-heading section-heading-with-action">
-              <div>
-                <p className="step-label">Step 1</p>
-                <h2>Choose Product Template</h2>
-                <p>Select a saved product format, or continue with the standard label fields.</p>
-              </div>
-              <a className="button-link secondary-link" href="/templates">
-                Manage Templates
-              </a>
-            </div>
-            <label className="field">
-              <span>Template</span>
-              <select value={selectedTemplateId} onChange={handleTemplateSelect}>
-                <option value="">No template selected</option>
-                {templates.map((template) => (
-                  <option key={template._id} value={template._id}>
-                    {template.name}
-                  </option>
-                ))}
-              </select>
-              {selectedTemplate && (
-                <small>
-                  {pluralize(selectedTemplate.customFields?.length || 0, "custom field")} will
-                  be included for this product.
-                </small>
-              )}
-            </label>
-            {selectedTemplate && (
-              <TemplateLayoutPreview
-                template={selectedTemplate}
-                values={{
-                  ...form,
-                  manufacturer: currentManufacturer,
-                  manufacturerAddress: currentManufacturerDetails.manufacturerAddress,
-                  manufacturerWebsite: currentManufacturerDetails.manufacturerWebsite,
-                  manufacturerEmail: currentManufacturerDetails.manufacturerEmail,
-                  manufacturerPhone: currentManufacturerDetails.manufacturerPhone,
-                  ...customFieldValues,
-                }}
-                title="Saved Template Preview"
-              />
-            )}
-          </section>
-
           {fieldGroups.map((group) => (
             <div className="form-group-block" key={group.title}>
               <section className="form-section form-step">
                 <div className="section-heading">
                   <p className="step-label">
-                    {group.title === "Batch Details" ? "Step 2" : "Step 4"}
+                    {group.title === "Batch Details" ? "Step 1" : "Step 3"}
                   </p>
                   <h2>{group.title}</h2>
                 </div>
 
                 <div className="form-grid">
-                  {group.fields
-                    .filter((fieldName) => templateFieldVisible(selectedTemplate, fieldName))
-                    .map((fieldName) => {
+                  {group.fields.map((fieldName) => {
                     const field = fieldsByName[fieldName];
                     const isManufacturerField = field.name === "manufacturer";
                     const fieldValue = isManufacturerField
                       ? currentManufacturer
                       : form[field.name];
-                    const displayLabel = templateFieldLabel(
-                      selectedTemplate,
-                      field.name,
-                      field.label
-                    );
+                    const displayLabel = field.label;
 
                     return (
                       <label
@@ -4368,7 +2572,7 @@ function App() {
                 <section className="form-section form-step">
             <div className="section-heading section-heading-with-action">
               <div>
-                <p className="step-label">Step 3</p>
+                <p className="step-label">Step 2</p>
                 <h2>Drum Weights</h2>
                 <p>Each row generates one label with its own weight values.</p>
               </div>
@@ -4548,45 +2752,6 @@ function App() {
             </div>
           ))}
 
-          {selectedTemplate?.customFields?.length > 0 && (
-            <section className="form-section form-step">
-              <div className="section-heading">
-                <p className="step-label">Step 5</p>
-                <h2>Custom Product Fields</h2>
-                <p>These fields come from the selected product template.</p>
-              </div>
-              <div className="form-grid">
-                {selectedTemplate.customFields.map((field) => (
-                  <label
-                    className={field.type === "textarea" ? "field field-wide" : "field"}
-                    key={field.key}
-                  >
-                    <span>{field.label}</span>
-                    {field.type === "textarea" ? (
-                      <textarea
-                        value={customFieldValues[field.key] || ""}
-                        onChange={(e) =>
-                          handleCustomFieldValueChange(field.key, e.target.value)
-                        }
-                        rows="3"
-                        required={field.required}
-                      />
-                    ) : (
-                      <input
-                        type={field.type === "number" || field.type === "date" ? field.type : "text"}
-                        value={customFieldValues[field.key] || ""}
-                        onChange={(e) =>
-                          handleCustomFieldValueChange(field.key, e.target.value)
-                        }
-                        required={field.required}
-                      />
-                    )}
-                  </label>
-                ))}
-              </div>
-          </section>
-          )}
-
           <section className="form-section form-step">
             <div className="section-heading">
               <p className="step-label">Print Layout</p>
@@ -4626,9 +2791,6 @@ function App() {
           <div className="mobile-actions">
             <a className="button-link secondary-link" href="/home">
               Home
-            </a>
-            <a className="button-link secondary-link" href="/templates">
-              Templates
             </a>
             <a className="button-link secondary-link" href="/history">
               History
