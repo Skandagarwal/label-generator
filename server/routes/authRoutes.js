@@ -5,7 +5,28 @@ const router = express.Router();
 const otpStore = new Map();
 const OTP_TTL_MS = 5 * 60 * 1000;
 
-const normalizePhone = (phone = "") => String(phone).replace(/[^\d+]/g, "").trim();
+const normalizePhone = (phone = "") => {
+  const raw = String(phone || "").trim();
+  const digits = raw.replace(/\D/g, "");
+
+  if (!digits) {
+    return "";
+  }
+
+  if (digits.length === 10) {
+    return `+91${digits}`;
+  }
+
+  if (digits.length === 12 && digits.startsWith("91")) {
+    return `+${digits}`;
+  }
+
+  if (raw.startsWith("+")) {
+    return `+${digits}`;
+  }
+
+  return digits;
+};
 
 const isValidPhone = (phone) => /^\+?\d{10,15}$/.test(phone);
 

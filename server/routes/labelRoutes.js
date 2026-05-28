@@ -31,7 +31,28 @@ const getDrumNumbers = (value = "") =>
     .map((item) => item.trim())
     .filter(Boolean);
 
-const normalizePhone = (phone = "") => String(phone).replace(/[^\d+]/g, "").trim();
+const normalizePhone = (phone = "") => {
+  const raw = String(phone || "").trim();
+  const digits = raw.replace(/\D/g, "");
+
+  if (!digits) {
+    return "";
+  }
+
+  if (digits.length === 10) {
+    return `+91${digits}`;
+  }
+
+  if (digits.length === 12 && digits.startsWith("91")) {
+    return `+${digits}`;
+  }
+
+  if (raw.startsWith("+")) {
+    return `+${digits}`;
+  }
+
+  return digits;
+};
 
 const PDF_LAYOUTS = new Set(["single", "two-per-page"]);
 const normalizePdfLayout = (value = "") =>
@@ -549,7 +570,13 @@ const mapWithConcurrency = async (items, limit, task) => {
 
 router.get("/labels", async (req, res) => {
   try {
-    const labels = await labelStore.list(normalizePhone(req.query.ownerPhone));
+    const ownerPhone = normalizePhone(req.query.ownerPhone);
+
+    if (!ownerPhone) {
+      return res.json([]);
+    }
+
+    const labels = await labelStore.list(ownerPhone);
 
     res.json(labels.map(serializeLabel));
   } catch (err) {
@@ -575,15 +602,17 @@ router.post("/labels/batch/pdf", async (req, res) => {
       return res.status(404).send("Labels not found");
     }
 
-    if (requestOwnerPhone) {
-      const hasOtherOwner = labels.some((label) => {
-        const labelOwnerPhone = normalizePhone(label.ownerPhone);
-        return labelOwnerPhone && labelOwnerPhone !== requestOwnerPhone;
-      });
+    if (!requestOwnerPhone) {
+      return res.status(403).send("Owner phone is required to download this batch");
+    }
 
-      if (hasOtherOwner) {
-        return res.status(403).send("Only the label owner can download this batch");
-      }
+    const hasOtherOwner = labels.some((label) => {
+      const labelOwnerPhone = normalizePhone(label.ownerPhone);
+      return labelOwnerPhone && labelOwnerPhone !== requestOwnerPhone;
+    });
+
+    if (hasOtherOwner) {
+      return res.status(403).send("Only the label owner can download this batch");
     }
 
     const pdfLayout = normalizePdfLayout(req.body?.pdfLayout || labels[0]?.pdfLayout);
@@ -667,6 +696,10 @@ router.post("/generate", async (req, res) => {
     const data = normalizeLabelData(req.body);
     const drumItems = getDrumItems(data);
     const pdfLayout = normalizePdfLayout(data.pdfLayout);
+
+    if (!data.ownerPhone) {
+      return res.status(400).send("Login phone is required to generate labels");
+    }
 
     if (!drumItems.length) {
       return res.status(400).send("At least one drum number is required");

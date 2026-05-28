@@ -48,8 +48,37 @@ const toSerializableDate = (value) => {
   return value;
 };
 
-const scopedQuery = (query = {}, ownerPhone = "") =>
-  ownerPhone ? { ...query, ownerPhone } : query;
+const phoneAliases = (phone = "") => {
+  const raw = String(phone || "").trim();
+  const digits = raw.replace(/\D/g, "");
+  const aliases = new Set();
+
+  if (raw) {
+    aliases.add(raw);
+  }
+
+  if (digits) {
+    aliases.add(digits);
+
+    if (digits.length === 10) {
+      aliases.add(`+91${digits}`);
+      aliases.add(`91${digits}`);
+    }
+
+    if (digits.length === 12 && digits.startsWith("91")) {
+      aliases.add(`+${digits}`);
+      aliases.add(digits.slice(2));
+    }
+  }
+
+  aliases.delete("");
+  return Array.from(aliases);
+};
+
+const scopedQuery = (query = {}, ownerPhone = "") => {
+  const aliases = phoneAliases(ownerPhone);
+  return aliases.length ? { ...query, ownerPhone: { $in: aliases } } : query;
+};
 
 const fromFirebaseDoc = (doc) => {
   if (!doc.exists) {
@@ -105,21 +134,26 @@ const serverTimestamp = () =>
 
 const labelStore = {
   async list(ownerPhone = "") {
+    if (!ownerPhone) {
+      return [];
+    }
+
     if (hasFirebaseConfig()) {
-      let query = getFirebaseDb().collection("labels");
+      const labels = new Map();
+      const aliases = phoneAliases(ownerPhone).slice(0, 10);
+      const collection = getFirebaseDb().collection("labels");
+      const snapshots = await Promise.all(
+        aliases.map((alias) => collection.where("ownerPhone", "==", alias).limit(500).get())
+      );
 
-      if (ownerPhone) {
-        query = query.where("ownerPhone", "==", ownerPhone);
-        const snapshot = await query.limit(500).get();
+      snapshots.forEach((snapshot) => {
+        snapshot.docs.forEach((doc) => {
+          labels.set(doc.id, fromFirebaseDoc(doc));
+        });
+      });
 
-        return snapshot.docs
-          .map(fromFirebaseDoc)
-          .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-      }
-
-      const snapshot = await query.orderBy("createdAt", "desc").limit(500).get();
-
-      return snapshot.docs.map(fromFirebaseDoc);
+      return Array.from(labels.values())
+        .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
     }
 
     return Label.find(scopedQuery({}, ownerPhone)).sort({ _id: -1 }).limit(500).lean();
@@ -174,11 +208,22 @@ const labelStore = {
 const userStore = {
   async getByPhone(phone) {
     if (hasFirebaseConfig()) {
-      const doc = await getFirebaseDb().collection("users").doc(phone).get();
-      return fromFirebaseDoc(doc);
+      const collection = getFirebaseDb().collection("users");
+      const aliases = phoneAliases(phone);
+
+      for (const alias of aliases) {
+        const doc = await collection.doc(alias).get();
+        const user = fromFirebaseDoc(doc);
+
+        if (user) {
+          return user;
+        }
+      }
+
+      return null;
     }
 
-    return User.findOne({ phone }).lean();
+    return User.findOne({ phone: { $in: phoneAliases(phone) } }).lean();
   },
 
   async saveLogin(phone, name) {
@@ -186,7 +231,7 @@ const userStore = {
       const ref = getFirebaseDb().collection("users").doc(phone);
       const doc = await ref.get();
       const now = serverTimestamp();
-      const current = doc.exists ? doc.data() : {};
+      const current = doc.exists ? doc.data() : (await this.getByPhone(phone)) || {};
       const user = {
         phone,
         manufacturer: current.manufacturer || name || phone,
@@ -202,7 +247,7 @@ const userStore = {
     }
 
     return User.findOneAndUpdate(
-      { phone },
+      { phone: { $in: phoneAliases(phone) } },
       {
         $setOnInsert: {
           phone,

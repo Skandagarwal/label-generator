@@ -429,11 +429,34 @@ const groupHistoryByDay = (groups = []) => {
 const pluralize = (count, singular, plural = `${singular}s`) =>
   `${count} ${count === 1 ? singular : plural}`;
 
+const normalizePhoneForApp = (phone = "") => {
+  const raw = String(phone || "").trim();
+  const digits = raw.replace(/\D/g, "");
+
+  if (!digits) {
+    return "";
+  }
+
+  if (digits.length === 10) {
+    return `+91${digits}`;
+  }
+
+  if (digits.length === 12 && digits.startsWith("91")) {
+    return `+${digits}`;
+  }
+
+  if (raw.startsWith("+")) {
+    return `+${digits}`;
+  }
+
+  return digits;
+};
+
 const getSavedUser = () =>
   window.localStorage.getItem("labelUserName") ||
   window.localStorage.getItem("labelUserPhone") ||
   "";
-const getSavedPhone = () => window.localStorage.getItem("labelUserPhone") || "";
+const getSavedPhone = () => normalizePhoneForApp(window.localStorage.getItem("labelUserPhone") || "");
 const getProfileStorageKey = (phone = getSavedPhone()) =>
   phone ? `labelUserProfile:${phone}` : "";
 const emptyManufacturerDetails = (userName = "", phone = "") => ({
@@ -493,8 +516,10 @@ const saveUserProfileLocally = (user = {}) => {
     window.localStorage.setItem("labelUserName", user.name);
   }
 
-  if (user.phone) {
-    window.localStorage.setItem("labelUserPhone", user.phone);
+  const userPhone = normalizePhoneForApp(user.phone);
+
+  if (userPhone) {
+    window.localStorage.setItem("labelUserPhone", userPhone);
   }
 
   window.localStorage.setItem("labelUserManufacturer", user.manufacturer || user.name || "");
@@ -503,21 +528,21 @@ const saveUserProfileLocally = (user = {}) => {
   window.localStorage.setItem("labelUserManufacturerEmail", user.manufacturerEmail || "");
   window.localStorage.setItem(
     "labelUserManufacturerPhone",
-    user.manufacturerPhone || user.phone || ""
+    user.manufacturerPhone || userPhone || ""
   );
   window.localStorage.setItem("labelUserManufacturerLogo", user.manufacturerLogo || "");
 
-  if (user.phone) {
+  if (userPhone) {
     window.localStorage.setItem(
-      getProfileStorageKey(user.phone),
+      getProfileStorageKey(userPhone),
       JSON.stringify({
-        phone: user.phone,
-        name: user.name || user.phone,
+        phone: userPhone,
+        name: user.name || userPhone,
         manufacturer: user.manufacturer || user.name || "",
         manufacturerAddress: user.manufacturerAddress || "",
         manufacturerWebsite: user.manufacturerWebsite || "",
         manufacturerEmail: user.manufacturerEmail || "",
-        manufacturerPhone: user.manufacturerPhone || user.phone || "",
+        manufacturerPhone: user.manufacturerPhone || userPhone || "",
         manufacturerLogo: user.manufacturerLogo || "",
       })
     );
@@ -1128,7 +1153,7 @@ function ProfilePage({ userName, onUserUpdate, onLogout }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const nextName = name.trim() || "Vendor";
-    const nextPhone = phone.trim();
+    const nextPhone = normalizePhoneForApp(phone);
     const nextManufacturer = manufacturer.trim() || nextName;
     const payload = {
       phone: nextPhone,
