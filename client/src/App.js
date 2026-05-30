@@ -90,6 +90,56 @@ const fieldsByName = fields.reduce((items, field) => {
   return items;
 }, {});
 
+const printableFieldNames = [
+  "formatNo",
+  "drumNo",
+  "commodity",
+  "lotNo",
+  "poNo",
+  "mfgDate",
+  "bestBefore",
+  "netWt",
+  "tareWt",
+  "grossWt",
+  "customerName",
+  "customerAddress",
+  "warningText",
+  "storage",
+  "license",
+  "manufacturer",
+  "manufacturerAddress",
+  "manufacturerWebsite",
+  "manufacturerEmail",
+  "manufacturerPhone",
+];
+
+const createDefaultFieldSettings = () =>
+  printableFieldNames.reduce((settings, fieldName) => {
+    settings[fieldName] = {
+      visible: true,
+      label: fieldsByName[fieldName]?.label || fieldName,
+    };
+    return settings;
+  }, {});
+
+const getSavedFieldSettings = () => {
+  const defaultSettings = createDefaultFieldSettings();
+
+  try {
+    const saved = JSON.parse(window.localStorage.getItem("batchmarkFieldSettings") || "{}");
+
+    return printableFieldNames.reduce((settings, fieldName) => {
+      settings[fieldName] = {
+        ...defaultSettings[fieldName],
+        ...(saved[fieldName] || {}),
+      };
+      return settings;
+    }, {});
+  } catch (err) {
+    return defaultSettings;
+  }
+};
+
 const emptyForm = fields.reduce((values, field) => {
   values[field.name] = field.defaultValue || "";
   return values;
@@ -1917,6 +1967,17 @@ function LabelDetails({ id }) {
     }
   };
 
+  const isPublicFieldVisible = (fieldName) => !label.hiddenFields?.includes(fieldName);
+  const publicFieldLabel = (fieldName, fallback) =>
+    label.fieldLabels?.[fieldName] || fallback;
+  const visibleDetails = (items) =>
+    items
+      .filter((item) => isPublicFieldVisible(item.key))
+      .map((item) => ({
+        ...item,
+        label: publicFieldLabel(item.key, item.label),
+      }));
+
   const verificationItems = [
     { key: "commodity", label: "Commodity", value: label.commodity },
     { key: "lotNo", label: "Lot No", value: label.lotNo },
@@ -1978,6 +2039,11 @@ function LabelDetails({ id }) {
       value: label.formatNo,
     },
   ];
+  const visibleVerificationItems = visibleDetails(verificationItems);
+  const visibleWeightItems = visibleDetails(weightItems);
+  const visibleManufacturerItems = visibleDetails(manufacturerItems);
+  const visibleCustomerItems = visibleDetails(customerItems);
+  const visibleComplianceItems = visibleDetails(complianceItems);
 
   return (
     <main className="page-shell public-label-shell">
@@ -1999,7 +2065,7 @@ function LabelDetails({ id }) {
         </div>
 
         <div className="public-label-summary">
-          {verificationItems.map((item) => (
+          {visibleVerificationItems.map((item) => (
             <div className="public-data-tile" key={item.label}>
               <dt>{item.label}</dt>
               <dd>{item.value || "-"}</dd>
@@ -2013,7 +2079,7 @@ function LabelDetails({ id }) {
               <h2>Weight Details</h2>
             </div>
             <dl className="mini-details-grid">
-              {weightItems.map((item) => (
+              {visibleWeightItems.map((item) => (
                 <div key={item.label}>
                   <dt>{item.label}</dt>
                   <dd>{item.value || "-"}</dd>
@@ -2022,13 +2088,13 @@ function LabelDetails({ id }) {
             </dl>
           </section>
 
-          {customerItems.length > 0 && (
+          {visibleCustomerItems.length > 0 && (
           <section>
             <div className="section-heading">
               <h2>Customer</h2>
             </div>
             <dl className="mini-details-grid">
-              {customerItems.map((item) => (
+              {visibleCustomerItems.map((item) => (
                 <div key={item.key}>
                   <dt>{item.label}</dt>
                   <dd>{item.value || "-"}</dd>
@@ -2039,14 +2105,14 @@ function LabelDetails({ id }) {
           )}
         </div>
 
-        {manufacturerItems.length > 0 && (
+        {visibleManufacturerItems.length > 0 && (
         <section className="public-manufacturer-panel">
           <div className="section-heading">
             <h2>Manufacturer Details</h2>
             <p>Manufacturer information saved by the label owner.</p>
           </div>
           <dl className="details-grid">
-            {manufacturerItems.map((item) => (
+            {visibleManufacturerItems.map((item) => (
               <div key={item.label}>
                 <dt>{item.label}</dt>
                 <dd>{item.value || "-"}</dd>
@@ -2056,13 +2122,13 @@ function LabelDetails({ id }) {
         </section>
         )}
 
-        {complianceItems.length > 0 && (
+        {visibleComplianceItems.length > 0 && (
           <section className="public-manufacturer-panel">
             <div className="section-heading">
               <h2>Compliance</h2>
             </div>
             <dl className="details-grid">
-              {complianceItems.map((item) => (
+              {visibleComplianceItems.map((item) => (
                 <div key={item.key}>
                   <dt>{item.label}</dt>
                   <dd>{item.value || "-"}</dd>
@@ -2164,6 +2230,8 @@ function App() {
   const [statusMessage, setStatusMessage] = useState("");
   const [generationProgress, setGenerationProgress] = useState(null);
   const [pdfLayout, setPdfLayout] = useState("single");
+  const [fieldSettings, setFieldSettings] = useState(getSavedFieldSettings);
+  const [editingFieldName, setEditingFieldName] = useState("");
   const currentManufacturerDetails = getSavedManufacturerDetails(currentUser);
   const currentManufacturer = currentManufacturerDetails.manufacturer || currentUser;
   const currentPath = window.location.pathname;
@@ -2192,6 +2260,35 @@ function App() {
       setForm((values) => applyUserDefaults(values, currentUser));
     }
   }, [currentUser]);
+
+  useEffect(() => {
+    window.localStorage.setItem("batchmarkFieldSettings", JSON.stringify(fieldSettings));
+  }, [fieldSettings]);
+
+  const getPrintedFieldLabel = (fieldName) =>
+    fieldSettings[fieldName]?.label || fieldsByName[fieldName]?.label || fieldName;
+
+  const updateFieldSetting = (fieldName, patch) => {
+    setStatusMessage("");
+    setFieldSettings((settings) => ({
+      ...settings,
+      [fieldName]: {
+        ...(settings[fieldName] || createDefaultFieldSettings()[fieldName]),
+        ...patch,
+      },
+    }));
+  };
+
+  const toggleFieldVisibility = (fieldName) => {
+    const currentValue = fieldSettings[fieldName]?.visible !== false;
+    updateFieldSetting(fieldName, { visible: !currentValue });
+  };
+
+  const resetFieldSettings = () => {
+    setFieldSettings(createDefaultFieldSettings());
+    setEditingFieldName("");
+    setStatusMessage("PDF field names and visibility reset.");
+  };
 
   const handleChange = (e) => {
     setStatusMessage("");
@@ -2228,6 +2325,7 @@ function App() {
     setBulkDrumText("");
     setQuickDrumSetup({ count: "", netWt: "", tareWt: "" });
     setPdfLayout("single");
+    setEditingFieldName("");
     setStatusMessage("");
   };
 
@@ -2395,10 +2493,25 @@ function App() {
     }
 
     try {
+      const hiddenFields = printableFieldNames.filter(
+        (fieldName) => fieldSettings[fieldName]?.visible === false
+      );
+      const fieldLabels = printableFieldNames.reduce((labels, fieldName) => {
+        const defaultLabel = fieldsByName[fieldName]?.label || fieldName;
+        const customLabel = String(fieldSettings[fieldName]?.label || "").trim();
+
+        if (customLabel && customLabel !== defaultLabel) {
+          labels[fieldName] = customLabel;
+        }
+
+        return labels;
+      }, {});
       const payload = {
         ...form,
         ...currentManufacturerDetails,
         pdfLayout,
+        fieldLabels,
+        hiddenFields,
         ownerPhone: getSavedPhone(),
         manufacturer: currentManufacturer,
         drumItems: validDrumItems.map(({ netWt, tareWt, grossWt }, index) => ({
@@ -2531,7 +2644,7 @@ function App() {
                     const fieldValue = isManufacturerField
                       ? currentManufacturer
                       : form[field.name];
-                    const displayLabel = field.label;
+                    const displayLabel = getPrintedFieldLabel(field.name);
 
                     return (
                       <label
@@ -2585,6 +2698,9 @@ function App() {
                         )}
                         {isManufacturerField && (
                           <small>Controlled from Profile for this logged-in user.</small>
+                        )}
+                        {displayLabel !== field.label && (
+                          <small>Original field: {field.label}</small>
                         )}
                         {!isManufacturerField && field.helper && <small>{field.helper}</small>}
                       </label>
@@ -2776,6 +2892,61 @@ function App() {
               )}
             </div>
           ))}
+
+          <section className="form-section form-step">
+            <div className="section-heading section-heading-with-action">
+              <div>
+                <p className="step-label">Step 4</p>
+                <h2>PDF Fields</h2>
+                <p>Choose what should print on the label and rename field titles when needed.</p>
+              </div>
+              <button className="secondary-button" type="button" onClick={resetFieldSettings}>
+                Reset Fields
+              </button>
+            </div>
+
+            <div className="field-settings-grid">
+              {printableFieldNames.map((fieldName) => {
+                const field = fieldsByName[fieldName];
+                const setting = fieldSettings[fieldName] || {
+                  visible: true,
+                  label: field?.label || fieldName,
+                };
+                const isEditing = editingFieldName === fieldName;
+
+                return (
+                  <div
+                    className={`field-setting-card ${setting.visible === false ? "is-muted" : ""}`}
+                    key={fieldName}
+                  >
+                    <label className="field-toggle">
+                      <input
+                        type="checkbox"
+                        checked={setting.visible !== false}
+                        onChange={() => toggleFieldVisibility(fieldName)}
+                      />
+                      <span>{setting.label || field?.label || fieldName}</span>
+                    </label>
+                    <button
+                      className="secondary-button mini-button"
+                      type="button"
+                      onClick={() => setEditingFieldName(isEditing ? "" : fieldName)}
+                    >
+                      {isEditing ? "Done" : "Edit"}
+                    </button>
+                    {isEditing && (
+                      <input
+                        className="field-name-input"
+                        value={setting.label}
+                        onChange={(e) => updateFieldSetting(fieldName, { label: e.target.value })}
+                        placeholder={field?.label || fieldName}
+                      />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
 
           <section className="form-section form-step">
             <div className="section-heading">

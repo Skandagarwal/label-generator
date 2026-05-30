@@ -24,6 +24,8 @@ const LabelSchema = new mongoose.Schema(
     manufacturerEmail: String,
     manufacturerPhone: String,
     manufacturerLogo: String,
+    fieldLabels: Object,
+    hiddenFields: [String],
     pdfLayout: String,
     ownerPhone: { type: String, index: true },
   },

@@ -992,6 +992,63 @@ dt {
   line-height: 1.4;
 }
 
+.field-settings-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.field-setting-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 12px;
+  background: #ffffff;
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+}
+
+.field-setting-card.is-muted {
+  opacity: 0.66;
+  background: #f6faf8;
+}
+
+.field-toggle {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 10px;
+  color: var(--ink);
+  font-weight: 900;
+}
+
+.field-toggle input {
+  width: 18px;
+  min-height: 18px;
+  padding: 0;
+  accent-color: var(--green);
+  flex: 0 0 auto;
+}
+
+.field-toggle span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mini-button {
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.field-name-input {
+  grid-column: 1 / -1;
+  min-height: 38px;
+}
+
 input,
 textarea,
 select {
@@ -2085,10 +2142,11 @@ dd {
   .stats-grid,
   .public-label-summary,
   .public-label-sections,
-  .form-grid,
-  .details-grid,
-  .quick-drum-grid,
-  .weight-import-grid,
+    .form-grid,
+    .details-grid,
+    .field-settings-grid,
+    .quick-drum-grid,
+    .weight-import-grid,
   .pdf-layout-options,
   .bulk-drum-actions {
     grid-template-columns: 1fr;

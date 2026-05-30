@@ -271,6 +271,13 @@ const normalizeLabelData = (data) => ({
   ...data,
   ownerPhone: normalizePhone(data.ownerPhone),
   pdfLayout: normalizePdfLayout(data.pdfLayout),
+  fieldLabels:
+    data.fieldLabels && typeof data.fieldLabels === "object" && !Array.isArray(data.fieldLabels)
+      ? data.fieldLabels
+      : {},
+  hiddenFields: Array.isArray(data.hiddenFields)
+    ? data.hiddenFields.map((field) => String(field || "").trim()).filter(Boolean)
+    : [],
   mfgDate: formatDate(data.mfgDate),
   bestBefore: formatDate(data.bestBefore),
 });
@@ -319,12 +326,25 @@ const STANDARD_FIELD_LABELS = {
   qrCode: "QR Code",
 };
 
-const fieldLabel = (data = {}, key) => STANDARD_FIELD_LABELS[key] || key;
+const getFieldLabels = (data = {}) =>
+  data.fieldLabels && typeof data.fieldLabels === "object" && !Array.isArray(data.fieldLabels)
+    ? data.fieldLabels
+    : {};
 
-const hideClass = () => "";
+const isFieldHidden = (data = {}, key) =>
+  Array.isArray(data.hiddenFields) && data.hiddenFields.includes(key);
+
+const fieldLabel = (data = {}, key) => {
+  const customLabel = String(getFieldLabels(data)[key] || "").trim();
+  return customLabel || STANDARD_FIELD_LABELS[key] || key;
+};
+
+const hideClass = (data = {}, key) => (isFieldHidden(data, key) ? "is-hidden" : "");
 
 const labelRowHtml = (data, key, value) =>
-  `
+  isFieldHidden(data, key)
+    ? ""
+    : `
       <div class="row">
         <div class="label-name">${escapeHtml(fieldLabel(data, key))}</div>
         <div>:</div>
@@ -352,7 +372,7 @@ const contactParts = (data = {}) =>
     { key: "manufacturerEmail", value: data.manufacturerEmail },
     { key: "manufacturerPhone", value: data.manufacturerPhone },
   ]
-    .filter((part) => String(part.value || "").trim())
+    .filter((part) => !isFieldHidden(data, part.key) && String(part.value || "").trim())
     .map((part) => `${fieldLabel(data, part.key)}: ${part.value}`)
     .join("  •  ");
 
@@ -377,7 +397,11 @@ const templateValues = (data, qr) => {
       "manufacturerWebsite",
       "manufacturerEmail",
       "manufacturerPhone",
-    ].every((key) => !String(data[key] || "").trim()) && hideManufacturerLogo;
+    ].every((key) => isFieldHidden(data, key) || !String(data[key] || "").trim()) &&
+    hideManufacturerLogo;
+  const hideCustomerBlock =
+    (isFieldHidden(data, "customerName") || !String(data.customerName || "").trim()) &&
+    (isFieldHidden(data, "customerAddress") || !String(data.customerAddress || "").trim());
 
   return {
     labelFormatNo: escapeHtml(fieldLabel(data, "formatNo")),
@@ -409,10 +433,7 @@ const templateValues = (data, qr) => {
     manufacturerPhone: escapeHtml(data.manufacturerPhone),
     hideCustomerName: hideClass(data, "customerName"),
     hideCustomerAddress: hideClass(data, "customerAddress"),
-    hideCustomerBlock:
-      !String(data.customerName || "").trim() && !String(data.customerAddress || "").trim()
-        ? "is-hidden"
-        : "",
+    hideCustomerBlock: hideCustomerBlock ? "is-hidden" : "",
     hideWarningText: hideClass(data, "warningText"),
     hideStorage: hideClass(data, "storage"),
     hideLicense: hideClass(data, "license"),
