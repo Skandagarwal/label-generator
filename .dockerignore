@@ -1,0 +1,12 @@
+.git
+.DS_Store
+node_modules
+client/node_modules
+server/node_modules
+client/build
+npm-debug.log
+.env
+.env.*
+server/*.docx
+server/*.md
+server/purchase_module_review_outputs

@@ -5,11 +5,16 @@ import {
   signInWithPhoneNumber,
 } from "firebase/auth";
 
+const runtimeFirebaseConfig =
+  typeof window !== "undefined" ? window.__BATCHMARK_CONFIG__?.firebase || {} : {};
+
 const firebaseConfig = {
-  apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
-  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
-  appId: process.env.REACT_APP_FIREBASE_APP_ID,
+  apiKey: runtimeFirebaseConfig.apiKey || process.env.REACT_APP_FIREBASE_API_KEY,
+  authDomain:
+    runtimeFirebaseConfig.authDomain || process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
+  projectId:
+    runtimeFirebaseConfig.projectId || process.env.REACT_APP_FIREBASE_PROJECT_ID,
+  appId: runtimeFirebaseConfig.appId || process.env.REACT_APP_FIREBASE_APP_ID,
 };
 
 export const hasFirebaseWebConfig = Boolean(
