@@ -6,7 +6,7 @@ COPY package*.json ./
 COPY client/package*.json ./client/
 COPY server/package*.json ./server/
 
-RUN npm ci
+RUN npm install
 
 COPY client ./client
 COPY server ./server
@@ -49,7 +49,7 @@ RUN apt-get update \
 COPY package*.json ./
 COPY client/package*.json ./client/
 COPY server/package*.json ./server/
-RUN npm ci --omit=dev --ignore-scripts
+RUN npm install --omit=dev --ignore-scripts
 
 COPY --from=build /app/client/build ./client/build
 COPY --from=build /app/server ./server
