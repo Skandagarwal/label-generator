@@ -37,4 +37,9 @@ const result = spawnSync(puppeteerBin, ["browsers", "install", "chrome"], {
   stdio: "inherit",
 });
 
-process.exit(result.status || 0);
+if (result.error) {
+  console.error(result.error.message);
+  process.exit(1);
+}
+
+process.exit(result.status ?? 1);

@@ -13,10 +13,6 @@ COPY server ./server
 
 RUN npm run build --workspace client
 
-ENV INSTALL_PUPPETEER_CHROME=1
-ENV PUPPETEER_CACHE_DIR=/app/.cache/puppeteer
-RUN npm run install:chrome --workspace server
-
 FROM node:20-bookworm-slim AS production
 
 WORKDIR /app
@@ -53,6 +49,8 @@ RUN npm install --omit=dev --ignore-scripts
 
 COPY --from=build /app/client/build ./client/build
 COPY --from=build /app/server ./server
-COPY --from=build /app/.cache/puppeteer ./.cache/puppeteer
+
+ENV INSTALL_PUPPETEER_CHROME=1
+RUN npm run install:chrome --workspace server
 
 CMD ["node", "server/server.js"]
