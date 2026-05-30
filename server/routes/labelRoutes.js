@@ -11,7 +11,7 @@ const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN || "http://localhost:3000";
 const PUBLIC_API_ORIGIN = process.env.PUBLIC_API_ORIGIN || "http://localhost:5050";
 
 if (process.env.NODE_ENV === "production" && !process.env.PUPPETEER_CACHE_DIR) {
-  process.env.PUPPETEER_CACHE_DIR = "/opt/render/.cache/puppeteer";
+  process.env.PUPPETEER_CACHE_DIR = "/app/.cache/puppeteer";
 }
 
 const escapeHtml = (value = "") =>
@@ -142,6 +142,20 @@ const labelPublicUrl = (req, id) => `${requestOrigin(req)}/label/${id}`;
 const chromeInstallErrorPattern = /could not find chrome|browser was not found|executable.*not found|enoent/i;
 let browserPromise = null;
 
+const browserLaunchOptions = () => ({
+  headless: "new",
+  executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
+  timeout: 120000,
+  args: [
+    "--no-sandbox",
+    "--disable-setuid-sandbox",
+    "--disable-dev-shm-usage",
+    "--disable-gpu",
+    "--no-zygote",
+    "--single-process",
+  ],
+});
+
 const installChrome = () => {
   const result = spawnSync(process.execPath, [path.join(__dirname, "../scripts/installChrome.js")], {
     env: {
@@ -156,16 +170,7 @@ const installChrome = () => {
 
 const launchBrowser = async () => {
   try {
-    return await puppeteer.launch({
-      headless: "new",
-      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
-      args: [
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage",
-        "--disable-gpu",
-      ],
-    });
+    return await puppeteer.launch(browserLaunchOptions());
   } catch (err) {
     const message = String(err?.message || err);
 
@@ -179,16 +184,7 @@ const launchBrowser = async () => {
       throw err;
     }
 
-    return puppeteer.launch({
-      headless: "new",
-      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
-      args: [
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage",
-        "--disable-gpu",
-      ],
-    });
+    return puppeteer.launch(browserLaunchOptions());
   }
 };
 
