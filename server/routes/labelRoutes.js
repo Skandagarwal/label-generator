@@ -146,6 +146,7 @@ const browserLaunchOptions = () => ({
   headless: "new",
   executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
   timeout: 120000,
+  protocolTimeout: 300000,
   args: [
     "--no-sandbox",
     "--disable-setuid-sandbox",
@@ -537,6 +538,7 @@ const createPdfBuffer = async (labels, options = {}) => {
       landscape: pdfLayout !== "two-per-page",
       preferCSSPageSize: true,
       printBackground: true,
+      timeout: 300000,
     });
 
     await page.close();
